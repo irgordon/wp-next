@@ -24,13 +24,14 @@ async function main() {
 	const environment = { ...process.env, WP_ENV: 'development', WP_VAR_DIR: runtime, WP_DB_PATH: path.join( runtime, 'data/site.sqlite' ) }; delete environment.WP_AUTH_SALT;
 	const log = fs.openSync( path.join( temp, 'server.log' ), 'w' );
 	const server = spawn( php, [ '-d', 'display_errors=0', '-S', '127.0.0.1:' + port, '-t', site, path.join( site, 'tools/router.php' ) ], { env: environment, stdio: [ 'ignore', log, log ] } );
-	let browser;
+	let browser, page;
+	const errors = [];
 	try {
 		for ( let i = 0; i < 100; i++ ) { try { await fetch( base ); break; } catch ( error ) { await new Promise( resolve => setTimeout( resolve, 30 ) ); } }
 		browser = await chromium.launch( { executablePath: process.env.BROWSER_PATH || undefined, args: process.env.BROWSER_ARGS ? JSON.parse( process.env.BROWSER_ARGS ) : [], headless: true } );
 		const context = await browser.newContext( { viewport: { width: 1440, height: 1000 } } );
 		const capture = async ( page, name ) => { if ( process.env.QA_DIR ) { fs.mkdirSync( process.env.QA_DIR, { recursive: true } ); await page.screenshot( { path: path.join( process.env.QA_DIR, name + '.png' ), fullPage: true } ); } };
-		const page = await context.newPage(); const errors = []; page.on( 'pageerror', error => errors.push( error.message ) );
+		page = await context.newPage(); page.on( 'pageerror', error => errors.push( error.message ) );
 		await page.goto( base + '/wp-admin/install.php' );
 		await capture( page, 'install-desktop' );
 		await page.getByRole( 'button', { name: 'Next', exact: true } ).click();
@@ -66,7 +67,7 @@ async function main() {
 		check( await page.getByRole( 'status' ).first().textContent().then( text => text.includes( 'Content saved' ) ), 'Published content returns to its editor' );
 		await page.goto( base + '/wp-admin/media.php' );
 		const pixel = Buffer.from( 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64' );
-		await page.getByLabel( 'Image file' ).setInputFiles( { name: 'browser-pixel.png', mimeType: 'image/png', buffer: pixel } ); await Promise.all( [ page.waitForURL( '**/media.php?uploaded=1' ), page.getByRole( 'button', { name: 'Upload image', exact: true } ).click() ] );
+		await page.getByLabel( 'Image file' ).setInputFiles( { name: 'browser-pixel.png', mimeType: 'image/png', buffer: pixel } ); await page.getByRole( 'button', { name: 'Upload image', exact: true } ).click(); await page.locator( '[data-upload-state=complete]' ).waitFor();
 		await page.getByLabel( 'Alternative text', { exact: true } ).fill( 'Browser image alt text' ); await Promise.all( [ page.waitForNavigation(), page.getByRole( 'button', { name: 'Save details', exact: true } ).click() ] );
 		check( await page.getByLabel( 'Alternative text', { exact: true } ).inputValue() === 'Browser image alt text', 'Media upload and metadata edit work in the browser' );
 		await page.goto( base + '/wp-admin/post.php?post=' + id ); await add( 'image' ); await page.getByRole( 'button', { name: 'Choose image', exact: true } ).click(); await page.getByRole( 'dialog' ).getByRole( 'button', { name: 'browser-pixel.png', exact: true } ).click();
@@ -78,7 +79,7 @@ async function main() {
 		await page.goto( base + '/wp-admin/media.php?kind=documents' );
 		await page.getByLabel( 'Visibility', { exact: true } ).selectOption( 'public' );
 		await page.getByLabel( 'Document file' ).setInputFiles( { name: 'browser-notes.txt', mimeType: 'text/plain', buffer: Buffer.from( 'Browser document body' ) } );
-		await Promise.all( [ page.waitForURL( '**/media.php?kind=documents&uploaded=1' ), page.getByRole( 'button', { name: 'Upload document', exact: true } ).click() ] );
+		await page.getByRole( 'button', { name: 'Upload document', exact: true } ).click(); await page.locator( '[data-upload-state=complete]' ).waitFor();
 		check( await page.getByRole( 'link', { name: 'Download (unscanned) ↗' } ).count() > 0, 'Document uploads and is listed with an unscanned download link' );
 		await page.goto( base + '/wp-admin/post.php?post=' + id ); await add( 'file' );
 		await page.getByRole( 'button', { name: 'Choose document', exact: true } ).click();
@@ -224,7 +225,7 @@ async function main() {
 		check( await page.getByRole( 'button', { name: 'Restore draft', exact: true } ).isVisible(), 'A browser-tab draft is offered after reload' ); await page.getByRole( 'button', { name: 'Restore draft', exact: true } ).click();
 		check( await page.getByLabel( 'Title', { exact: true } ).inputValue() === 'Recover this draft' && await page.getByRole( 'textbox', { name: 'paragraph content' } ).innerText().then( text => text.includes( 'Unsaved browser text' ) ), 'Draft recovery restores title and content' );
 		await page.goto( base + '/wp-admin/options-general.php' );
-		await page.getByRole( 'link', { name: 'Permalinks', exact: true } ).click();
+		await page.getByRole( 'navigation', { name: 'Administration' } ).getByRole( 'link', { name: 'Permalinks', exact: true } ).click();
 		check( await page.getByRole( 'heading', { name: 'Permalink settings', exact: true } ).isVisible(), 'General settings opens the Permalinks screen' );
 		await page.getByRole( 'radio', { name: 'Day and name', exact: false } ).check();
 		await Promise.all( [ page.waitForNavigation(), page.getByRole( 'button', { name: 'Save permalink settings' } ).click() ] );
@@ -363,6 +364,11 @@ async function main() {
         await page.goto(base+'/');check(restoredDesign && await page.getByText('Browser shared section marker',{exact:true}).count()===0,'Browser design rollback restores the earlier composition');
 		check( errors.length === 0, 'No JavaScript page errors: ' + errors.join( '; ' ) );
 		console.log( count + ' browser checks passed.' );
+	} catch ( error ) {
+		console.error( 'JavaScript errors at failure:', errors );
+		if ( page ) { console.error( 'Upload states at failure:', await page.locator( '.upload-file-row' ).evaluateAll( rows => rows.map( row => ( { state: row.dataset.uploadState, text: row.textContent } ) ) ) ); }
+		if ( page && process.env.QA_DIR ) { await captureFailure( page ); }
+		throw error;
 	} finally {
 		if ( browser ) { await browser.close(); }
 		server.kill( 'SIGTERM' ); await new Promise( resolve => server.once( 'exit', resolve ) ); fs.closeSync( log );
@@ -370,3 +376,9 @@ async function main() {
 	}
 }
 main().catch( error => { console.error( error ); process.exitCode = 1; } ).finally( () => fs.rmSync( temp, { recursive: true, force: true } ) );
+
+async function captureFailure( page ) {
+	fs.mkdirSync( process.env.QA_DIR, { recursive: true } );
+	await page.screenshot( { path: path.join( process.env.QA_DIR, 'failure.png' ), fullPage: true } );
+	fs.writeFileSync( path.join( process.env.QA_DIR, 'failure.html' ), await page.content() );
+}

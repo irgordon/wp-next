@@ -13,7 +13,7 @@ if ( null === $user ) {
 	wp_die( 'Profile not found.', 'Not found', [ 'response' => 404 ] ); 
 }
 $admin_page_title = $id === $actor ? 'Your profile' : 'Edit profile';
-$admin_section = '';
+$admin_section = 'profile';
 $error = '';
 $message = '';
 $action = $id === $actor ? 'profile' : 'profile:' . $id;

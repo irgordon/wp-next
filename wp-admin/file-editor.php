@@ -60,8 +60,8 @@ if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
 		}
 	}
 }
-$admin_page_title = 'Approved file editor';
-$admin_section = 'design';
+$admin_page_title = 'Code & files';
+$admin_section = 'files';
 require __DIR__ . '/admin-header.php';
 wp_admin_notice( $error, true );
 if ( isset( $_GET['saved'] ) ) {
@@ -82,7 +82,7 @@ $draft = 'custom.css' === $file ? wp_managed_file_draft( $file ) : null;
 <?php if ( 'custom.css' === $file ) :
 	?><p>Supported selectors: body, .entry-title, .entry-content, .site-header, .site-footer, .site-navigation, .shared-section. Use colors, font size/weight, line height, letter spacing, text alignment, margin and padding. Imports, external URLs, escapes and scripts are rejected.</p><?php 
 endif; ?>
-<form method="post"><?php wp_nonce_field('file-edit:'.$file); ?><input type="hidden" name="expected_version" value="<?php echo (int)$expected; ?>" /><label for="file-content">File contents</label><textarea class="raw-content" id="file-content" name="content" rows="18"><?php echo esc_textarea($content); ?></textarea><button type="submit" name="file_action" value="publish">Publish file</button><?php if ( 'custom.css' === $file ) :
+<form method="post"><?php wp_nonce_field('file-edit:'.$file); ?><input type="hidden" name="expected_version" value="<?php echo (int)$expected; ?>" /><label for="file-content">File contents</label><textarea class="raw-content" data-code-language="<?php echo 'custom.css' === $file ? 'css' : 'text'; ?>" data-code-name="<?php echo esc_attr( $file ); ?>" id="file-content" name="content" rows="18"><?php echo esc_textarea($content); ?></textarea><button type="submit" name="file_action" value="publish">Publish file</button><?php if ( 'custom.css' === $file ) :
 	?> <button type="submit" name="file_action" value="draft" class="secondary">Save as draft</button><?php 
                     endif; ?></form>
 <?php if ( 'custom.css' === $file && null !== $draft ) : ?>

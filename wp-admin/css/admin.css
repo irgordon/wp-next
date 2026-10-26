@@ -1,5 +1,6 @@
 @import url("../../wp-content/assets/design-tokens.css");
 @import url("visual-builder.css");
+@import url("admin-widgets.css");
 
 :root {
   font-family: var(--font-ui);

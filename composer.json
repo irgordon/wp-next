@@ -37,7 +37,8 @@
     "test": [
       "@php tests/smoke.php",
       "@php tests/hardening.php",
-      "@php tests/assets.php"
+      "@php tests/assets.php",
+      "@php tests/admin-navigation.php"
     ],
     "lint": "@php tools/lint.php",
     "test:http": "python3 tests/http-smoke.py",

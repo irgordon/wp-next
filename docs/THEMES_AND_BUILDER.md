@@ -2,6 +2,8 @@
 
 ## Shared editing workflow
 
+Administration groups destinations under Content, Media, Design and Settings. Each group contains only links the signed-in account can access. Breadcrumbs show the current path; the parent-page menu exposes intermediate links on narrow screens and closes with Escape.
+
 Create Posts and Pages from their respective navigation items. Save Draft for private work, preview through the authenticated preview link, and publish when ready. Archived content leaves public delivery and can be restored to Draft/Published. Prior saves appear in revision history; restoring creates a new revision. Failed validation or a stale revision keeps the submitted form and asks the author to reload deliberately rather than overwriting another save.
 
 The editor supports paragraph, heading (levels 2–6), list, quote, code, image, columns (two or three), HTML, and divider blocks. Rich text supports bold, italic, and links; paste inserts plain text. Library images carry alternative text and captions. Blocks can be reordered and removed with buttons; nested columns contain the same block types. The raw document editor and visual canvas synchronize in both directions. Invalid/unsupported JSON is retained and blocks saving until corrected. Browser-tab drafts offer explicit restore/discard after reload; they are local recovery aids, not server autosave or cross-device synchronization.
@@ -15,6 +17,16 @@ The canvas loads the public renderer and published theme styles in a script-disa
 **Save changes** persists through the normal controller, selected publication status and expected revision. Switching editor views only transfers browser-tab draft state; it does not save or publish. After a reload, Restore draft/Discard draft remain explicit. Unsupported raw documents remain intact, and attempting to save reveals the correction field. Use the Form editor control to return to the standard administration layout.
 
 Keyboard commands: Command/Control-S saves, Command/Control-Z undoes a builder change, and Command/Control-Shift-Z redoes it. Page settings retain status, template, featured image, taxonomy and excerpt controls. The standard editor retains revision history.
+
+## Uploads and library feedback
+
+Open **Media → Images** or **Media → Documents**, browse or drop files into the upload card, then choose Upload. Each row shows its own transfer percentage, processing result and any rejection reason. A 100% transfer waits for the server's acknowledgement before becoming Uploaded. Unknown transfer lengths remain indeterminate. Failed or canceled transfers can be retried; remove controls only remove queue rows. Library deletion remains a separate operation.
+
+Images and documents retain their existing server validation, ownership and visibility rules. The library and storage summary refresh after a batch. Empty libraries explain how to add a file; searches without results offer Clear search. Editor pickers show loading, empty, no-results and connection-error states with recovery actions. Classic multipart forms remain usable with JavaScript disabled. Motion respects the reduced-motion preference.
+
+## Code windows
+
+Raw block documents, HTML/code blocks and **Design → Code & files** use editable code windows with syntax colors, synchronized line numbers, caret position, Wrap, Copy and Expand. JSON fields also offer Format JSON; invalid input stays intact with an explanatory message. Expand keeps the same textarea inside its original form, and Escape closes the dialog. Code is displayed as inert text. Large fields fall back to readable plain editing above the highlighting threshold. Without JavaScript, the original textareas remain available.
 
 ## Canonical document
 

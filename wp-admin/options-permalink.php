@@ -5,7 +5,7 @@ require_once __DIR__ . '/admin.php';
 global $wpdb;
 wp_admin_require_cap( 'administrator' );
 $admin_page_title = 'Permalink settings';
-$admin_section = 'settings';
+$admin_section = 'permalinks';
 $error = '';
 $message = '';
 $structure = wp_permalink_structure();

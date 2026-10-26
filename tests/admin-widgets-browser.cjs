@@ -1,0 +1,175 @@
+'use strict';
+/** Independent UI coverage for upload delivery, navigation and editable code. */
+const fs = require( 'node:fs' );
+const os = require( 'node:os' );
+const path = require( 'node:path' );
+const net = require( 'node:net' );
+const { spawn, spawnSync } = require( 'node:child_process' );
+const assert = require( 'node:assert/strict' );
+const { chromium } = require( 'playwright' );
+const source = path.resolve( __dirname, '..' );
+const temp = fs.mkdtempSync( path.join( os.tmpdir(), 'wp-admin-widgets-' ) );
+const site = path.join( temp, 'site' );
+const runtime = path.join( temp, 'runtime' );
+const php = process.env.PHP_BINARY || 'php';
+let count = 0;
+function check( condition, label ) { assert.ok( condition, label ); ++count; console.log( 'PASS: ' + label ); }
+async function capture( page, name ) {
+	if ( ! process.env.QA_DIR ) { return; }
+	fs.mkdirSync( process.env.QA_DIR, { recursive: true } );
+	await page.screenshot( { path: path.join( process.env.QA_DIR, name + '.png' ), fullPage: false } );
+}
+async function main() {
+	assert.ok( ! ( process.env.BROWSER_ARGS || '' ).includes( '--disable-web-security' ) );
+	fs.cpSync( source, site, { recursive: true, filter: current => ! /^(vendor|node_modules|var|\.git)(\/|$)/.test( path.relative( source, current ) ) } );
+	const listener = net.createServer();
+	await new Promise( resolve => listener.listen( 0, '127.0.0.1', resolve ) );
+	const port = listener.address().port; await new Promise( resolve => listener.close( resolve ) );
+	const base = 'http://127.0.0.1:' + port;
+	const router = path.join( temp, 'upload-router.php' );
+	fs.writeFileSync( router, '<?php if ($_SERVER["REQUEST_METHOD"] === "POST" && parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH) === "/wp-admin/media.php") { usleep(900000); } return require ' + JSON.stringify( path.join( site, 'tools/router.php' ) ) + ';' );
+	const fixture = path.join( temp, 'studio-preview.png' );
+	const generated = spawnSync( php, [ '-r', '$image=imagecreatetruecolor(512,512);imagefill($image,0,0,imagecolorallocate($image,56,88,233));imagefilledrectangle($image,0,256,512,512,imagecolorallocate($image,239,242,255));imagefilledellipse($image,256,256,240,240,imagecolorallocate($image,159,177,255));imagepng($image,$argv[1],0);', fixture ], { encoding: 'utf8' } );
+	assert.equal( generated.status, 0, generated.stderr );
+	const environment = { ...process.env, WP_ENV: 'development', WP_VAR_DIR: runtime, WP_DB_PATH: path.join( runtime, 'data/site.sqlite' ) };
+	delete environment.WP_AUTH_SALT;
+	const log = fs.openSync( path.join( temp, 'server.log' ), 'w' );
+	const server = spawn( php, [ '-d', 'display_errors=0', '-S', '127.0.0.1:' + port, '-t', site, router ], { env: environment, stdio: [ 'ignore', log, log ] } );
+	let browser, page;
+	const errors = [];
+	try {
+		for ( let attempt = 0; attempt < 100; attempt++ ) { try { await fetch( base ); break; } catch ( error ) { await new Promise( resolve => setTimeout( resolve, 30 ) ); } }
+		browser = await chromium.launch( { executablePath: process.env.BROWSER_PATH || undefined, args: process.env.BROWSER_ARGS ? JSON.parse( process.env.BROWSER_ARGS ) : [], headless: true } );
+		const context = await browser.newContext( { viewport: { width: 1440, height: 1000 } } );
+		page = await context.newPage(); page.on( 'pageerror', error => errors.push( error.message ) );
+		await page.goto( base + '/wp-admin/install.php' ); await page.getByRole( 'button', { name: 'Next', exact: true } ).click();
+		await page.getByLabel( 'Site title', { exact: true } ).fill( 'Widget studio' ); await page.getByLabel( 'Administrator username' ).fill( 'admin' ); await page.getByLabel( 'Administrator email' ).fill( 'admin@example.test' ); await page.getByLabel( 'Password', { exact: true } ).fill( 'disposable-test-password' );
+		await Promise.all( [ page.waitForNavigation(), page.getByRole( 'button', { name: 'Install site', exact: true } ).click() ] );
+		await page.getByRole( 'link', { name: 'Log in', exact: true } ).click();
+		await page.getByLabel( 'Username or email' ).fill( 'admin' ); await page.getByLabel( 'Password', { exact: true } ).fill( 'disposable-test-password' );
+		await Promise.all( [ page.waitForURL( '**/wp-admin/index.php' ), page.getByRole( 'button', { name: 'Log in', exact: true } ).click() ] );
+		const navigation = page.getByRole( 'navigation', { name: 'Administration' } );
+		check( await navigation.locator( '.nav-group' ).count() === 4, 'The sidebar groups Content, Media, Design and Settings' );
+		check( await navigation.getByRole( 'link', { name: 'Images', exact: true } ).isVisible() && await navigation.getByRole( 'link', { name: 'Documents', exact: true } ).isVisible(), 'Media kinds are directly reachable in the grouped menu' );
+		await page.goto( base + '/wp-admin/media.php' );
+		check( await page.getByRole( 'heading', { name: 'Your image library is empty' } ).isVisible(), 'An empty library has an explicit useful state' );
+		check( await page.locator( '.upload-card' ).evaluate( element => element.getBoundingClientRect().width >= 600 ), 'The desktop upload card uses the available panel width' );
+		check( await page.getByRole( 'navigation', { name: 'Breadcrumb' } ).innerText().then( text => text.includes( 'Workspace' ) && text.includes( 'Media' ) && text.includes( 'Images' ) ), 'Breadcrumbs reflect the active media hierarchy' );
+		await page.getByRole( 'button', { name: 'Upload image', exact: true } ).click();
+		check( await page.getByRole( 'alert' ).filter( { hasText: 'Choose at least one file' } ).isVisible(), 'Submitting no files produces an in-place error' );
+		await page.getByLabel( 'Image file', { exact: true } ).setInputFiles( { name: 'unsupported.zip', mimeType: 'application/zip', buffer: Buffer.from( 'not an image' ) } );
+		check( await page.locator( '[data-upload-state=rejected]' ).innerText().then( text => text.includes( 'JPEG, PNG, WebP or GIF' ) ), 'Unsupported selections show a per-file reason before any request' );
+		await page.getByRole( 'button', { name: 'Remove unsupported.zip from queue', exact: true } ).click();
+		const cdp = await context.newCDPSession( page );
+		await cdp.send( 'Network.enable' );
+		await cdp.send( 'Network.emulateNetworkConditions', { offline: false, latency: 30, downloadThroughput: 1048576, uploadThroughput: 131072, connectionType: 'wifi' } );
+		const uploadUrls = []; page.on( 'request', request => { if ( request.method() === 'POST' ) { uploadUrls.push( new URL( request.url() ).pathname ); } } );
+		await page.getByLabel( 'Image file', { exact: true } ).setInputFiles( fixture );
+		await page.getByRole( 'button', { name: 'Upload image', exact: true } ).click();
+		await page.waitForFunction( () => { const progress = document.querySelector( '.upload-file-row progress' ); return progress && progress.value > 0 && progress.value < 100; } );
+		check( await page.locator( '.upload-percent-number' ).innerText().then( text => Number( text ) > 0 && Number( text ) < 100 ), 'The animated percent display follows a real throttled byte transfer' );
+		await capture( page, 'upload-percent-progress' );
+		await page.locator( '[data-upload-state=processing]' ).waitFor();
+		check( await page.locator( '[data-upload-state=complete]' ).count() === 0, 'A completed transfer waits for the server to process and acknowledge it' );
+		await page.locator( '[data-upload-state=complete]' ).waitFor();
+		check( uploadUrls.at( -1 ) === '/wp-admin/media.php', 'The hidden action field cannot shadow the actual upload endpoint' );
+		await page.getByLabel( 'Alternative text', { exact: true } ).waitFor();
+		check( await page.getByRole( 'heading', { name: 'studio-preview.png', exact: true } ).isVisible(), 'Successful upload refreshes the library without discarding the queue result' );
+		check( await page.locator( '.upload-summary' ).innerText().then( text => text.includes( '1 of 1 files uploaded' ) ), 'The queue confirms only the acknowledged successful file' );
+		await cdp.send( 'Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 } );
+		await page.getByLabel( 'Image file', { exact: true } ).setInputFiles( { name: 'forged.png', mimeType: 'image/png', buffer: Buffer.from( '<?php echo 1; ?>' ) } );
+		await page.getByRole( 'button', { name: 'Upload image', exact: true } ).click();
+		await page.locator( '[data-upload-state=failed]' ).waitFor();
+		check( await page.locator( '[data-upload-state=failed] .upload-file-error' ).isVisible() && await page.locator( '[data-upload-state=complete]' ).count() === 1, 'A rejected upload exposes its server error while preserving an earlier successful file' );
+		await capture( page, 'upload-partial-failure' );
+		let refuseOnce = true;
+		await page.route( '**/wp-admin/media.php', async route => {
+			if ( route.request().method() === 'POST' && refuseOnce ) { refuseOnce = false; await route.fulfill( { status: 503, contentType: 'application/json', body: '{"ok":false,"error":"Temporary storage refusal. Retry this file."}' } ); }
+			else { await route.continue(); }
+		} );
+		const smallPixel = Buffer.from( 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64' );
+		await page.getByLabel( 'Image file', { exact: true } ).setInputFiles( { name: 'retry.png', mimeType: 'image/png', buffer: smallPixel } );
+		await page.getByRole( 'button', { name: 'Upload image', exact: true } ).click();
+		const retryRow = page.locator( '.upload-file-row' ).filter( { hasText: 'retry.png' } );
+		await retryRow.locator( '.upload-file-error' ).filter( { hasText: 'Temporary storage refusal' } ).waitFor();
+		await page.getByRole( 'button', { name: 'Retry retry.png', exact: true } ).click();
+		await retryRow.locator( '.upload-file-state' ).filter( { hasText: 'Uploaded' } ).waitFor();
+		check( await retryRow.getAttribute( 'data-upload-state' ) === 'complete', 'Retry preserves the selected file and completes through the real upload endpoint' );
+		await page.unroute( '**/wp-admin/media.php' );
+		await page.getByLabel( 'Search library' ).fill( 'nothing-matches-this-query' ); await page.getByRole( 'button', { name: 'Search', exact: true } ).click();
+		check( await page.getByRole( 'heading', { name: 'No matching files found' } ).isVisible() && await page.getByRole( 'link', { name: 'Clear search', exact: true } ).isVisible(), 'Search misses have their own state and a clear-filter recovery action' );
+		await page.goto( base + '/wp-admin/post-new.php?post_type=page' );
+		await page.getByRole( 'button', { name: 'Choose from full library', exact: true } ).click();
+		await page.getByLabel( 'Search images', { exact: true } ).fill( 'no-image-match' ); await page.getByRole( 'button', { name: 'Search images', exact: true } ).click();
+		await page.getByRole( 'dialog' ).getByRole( 'heading', { name: 'No matching images found' } ).waitFor();
+		check( await page.getByRole( 'dialog' ).getByRole( 'heading', { name: 'No matching images found' } ).isVisible(), 'The image picker distinguishes an empty search from an empty library' );
+		await page.getByRole( 'dialog' ).getByRole( 'button', { name: 'Clear search', exact: true } ).click();
+		await page.getByRole( 'dialog' ).getByRole( 'button', { name: 'studio-preview.png', exact: true } ).waitFor();
+		check( true, 'Clearing the picker search restores available media' );
+		await page.getByRole( 'button', { name: 'Close', exact: true } ).click();
+		await page.route( '**/wp-admin/media.php?format=json**', route => route.fulfill( { status: 503, contentType: 'application/json', body: '{"error":"Unavailable"}' } ) );
+		await page.getByRole( 'button', { name: 'Choose from full library', exact: true } ).click();
+		await page.getByRole( 'dialog' ).getByRole( 'heading', { name: 'The library could not be loaded' } ).waitFor();
+		check( await page.getByRole( 'dialog' ).getByRole( 'button', { name: 'Try again', exact: true } ).isVisible(), 'Picker connection failures provide an alert and an explicit retry action' );
+		await page.unroute( '**/wp-admin/media.php?format=json**' );
+		await page.getByRole( 'dialog' ).getByRole( 'button', { name: 'Try again', exact: true } ).click();
+		await page.getByRole( 'dialog' ).getByRole( 'button', { name: 'studio-preview.png', exact: true } ).waitFor();
+		await page.getByRole( 'button', { name: 'Close', exact: true } ).click();
+		await page.getByText( 'Raw block document', { exact: true } ).click();
+		const raw = page.locator( '#post_content' ), code = page.locator( '[data-code-for=post_content]' );
+		await raw.fill( '{"version":1,"blocks":[{"type":"paragraph","html":"Code window text"}]}' );
+		await code.getByRole( 'button', { name: 'Format JSON', exact: true } ).click();
+		check( await code.locator( '.code-line-number' ).count() > 1 && await code.locator( '.code-token-string' ).count() > 0, 'Code view has synchronized line numbers and syntax colors' );
+		await raw.press( 'ControlOrMeta+End' );
+		check( await code.locator( '.code-position' ).innerText().then( text => text.startsWith( 'Ln ' ) && ! text.includes( 'Ln 1,' ) ), 'Code view tracks the active line and caret position' );
+		await code.getByRole( 'button', { name: 'Wrap', exact: true } ).click();
+		check( await code.locator( '.code-window' ).getAttribute( 'data-wrap' ) === 'true', 'Code wrapping is a real editor setting' );
+		const beforeExpand = await raw.inputValue();
+		await code.getByRole( 'button', { name: 'Expand', exact: true } ).click();
+		check( await page.getByRole( 'dialog' ).filter( { has: page.locator( '.code-window' ) } ).isVisible(), 'Code view expands into an accessible native dialog' );
+		await raw.fill( beforeExpand + '\n' );
+		check( await raw.evaluate( element => element.form?.id === 'post-editor' && new FormData( element.form ).get( 'post_content' ) === element.value ), 'Expanded code editing retains the original form association and value' );
+		await page.getByRole( 'button', { name: 'Done', exact: true } ).click();
+		check( await raw.inputValue() === beforeExpand + '\n', 'Closing expanded code preserves the edited value' );
+		await page.evaluate( () => { Object.defineProperty( navigator, 'clipboard', { configurable: true, value: { writeText: async text => { window.__copiedCode = text; } } } ); } );
+		await code.getByRole( 'button', { name: 'Copy', exact: true } ).click();
+		await code.getByRole( 'button', { name: 'Copied', exact: true } ).waitFor();
+		check( await page.evaluate( () => window.__copiedCode === document.getElementById( 'post_content' ).value ), 'Copy feedback follows a successful copy of the exact code value' );
+		await raw.fill( '{"unfinished":' );
+		await code.getByRole( 'button', { name: 'Format JSON', exact: true } ).click();
+		check( await raw.inputValue() === '{"unfinished":' && await code.locator( '.code-message' ).innerText().then( text => text.includes( 'not valid' ) ), 'Invalid JSON is reported without replacing the author input' );
+		await raw.fill( '<img src=x onerror="window.__codeExecuted=true"><script>window.__codeExecuted=true</script>' );
+		check( await page.evaluate( () => ! window.__codeExecuted ) && await code.locator( '.code-highlight' ).innerText().then( text => text.includes( '<script>' ) ), 'Highlighting renders untrusted code as inert text' );
+		await raw.fill( beforeExpand );
+		check( await code.locator( '.code-message' ).innerText() === '', 'Editing clears stale code-tool feedback' );
+		await capture( page, 'code-window-desktop' );
+		await page.setViewportSize( { width: 390, height: 844 } );
+		check( await page.evaluate( () => document.documentElement.scrollWidth <= innerWidth + 1 ), 'Code surfaces and breadcrumbs fit a 390px viewport' );
+		await page.getByRole( 'navigation', { name: 'Breadcrumb' } ).getByLabel( 'Show parent pages' ).click();
+		check( await page.getByRole( 'navigation', { name: 'Breadcrumb' } ).locator( 'details' ).evaluate( element => element.open ), 'Long breadcrumb paths disclose parent links on narrow screens' );
+		await page.getByRole( 'navigation', { name: 'Breadcrumb' } ).getByLabel( 'Show parent pages' ).press( 'Escape' );
+		check( ! await page.getByRole( 'navigation', { name: 'Breadcrumb' } ).locator( 'details' ).evaluate( element => element.open ), 'Breadcrumb overflow closes with Escape' );
+		await code.scrollIntoViewIfNeeded();
+		await capture( page, 'code-window-mobile' );
+		await page.goto( base + '/wp-admin/media.php' );
+		check( await page.evaluate( () => document.documentElement.scrollWidth <= innerWidth + 1 ), 'The upload surface fits mobile width' );
+		await capture( page, 'media-library-mobile' );
+		const noScript = await browser.newContext( { javaScriptEnabled: false, storageState: await context.storageState(), viewport: { width: 390, height: 844 } } );
+		const fallback = await noScript.newPage(); await fallback.goto( base + '/wp-admin/media.php' );
+		check( await fallback.getByLabel( 'Image file', { exact: true } ).isVisible(), 'The original upload control remains available without JavaScript' );
+		await fallback.getByLabel( 'Image file', { exact: true } ).setInputFiles( { name: 'fallback.png', mimeType: 'image/png', buffer: smallPixel } );
+		await Promise.all( [ fallback.waitForURL( '**/media.php?uploaded=1' ), fallback.getByRole( 'button', { name: 'Upload image', exact: true } ).click() ] );
+		check( await fallback.getByRole( 'heading', { name: 'Images', exact: true } ).isVisible(), 'Classic multipart upload remains functional without JavaScript' );
+		await noScript.close();
+		check( errors.length === 0, 'No JavaScript page errors: ' + errors.join( '; ' ) );
+		console.log( count + ' administration widget browser checks passed.' );
+	} catch ( error ) {
+		console.error( 'Page errors:', errors );
+		if ( page && process.env.QA_DIR ) { await capture( page, 'widgets-failure' ); fs.writeFileSync( path.join( process.env.QA_DIR, 'widgets-failure.html' ), await page.content() ); }
+		throw error;
+	} finally {
+		if ( browser ) { await browser.close(); }
+		server.kill( 'SIGTERM' ); await new Promise( resolve => server.once( 'exit', resolve ) ); fs.closeSync( log );
+	}
+}
+main().catch( error => { console.error( error ); process.exitCode = 1; } ).finally( () => fs.rmSync( temp, { recursive: true, force: true } ) );

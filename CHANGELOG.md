@@ -2,7 +2,7 @@
 
 ## v0.0.2
 
-Recorded October 26, 2026. Compact administration typography and a dedicated visual page builder. Schema remains 8.
+Recorded October 26, 2026. Compact administration typography, a dedicated visual page builder, media upload feedback, grouped navigation and editable code windows. Schema remains 8.
 
 ### Changed
 
@@ -17,12 +17,20 @@ Recorded October 26, 2026. Compact administration typography and a dedicated vis
 - Pure document operations with regression coverage for invalid drag locations, descendant cycles, maximum depth/block count, immutable edits and retained media references. CI runs the new document-model suite.
 - A reachable raw-document correction path in the builder when unsupported input prevents saving.
 - [Builder verification record](docs/reviews/V0_0_2_BUILDER_REVIEW.md), including first failures and corrections.
+- A rounded drag-and-drop upload card with per-file queue rows, animated byte-transfer percentages, processing state, server-confirmed completion, cancel and retry controls. The image and document libraries refresh after a batch without discarding its results.
+- Separate empty-library, no-search-results, loading and connection-error states. Library pickers offer clear-search, refresh and retry actions; submitting no files produces an explicit error.
+- Capability-filtered Content, Media, Design and Settings navigation groups, with page breadcrumbs and a keyboard-accessible parent menu on narrow screens. Media links expose the supported Images and Documents libraries.
+- Editable charcoal code windows with syntax colors, line numbers, active-line and caret position, wrap, copy feedback, JSON formatting and an expanded native dialog. The original textareas, form associations and validation remain in use.
+- Pure upload/tokenization checks, navigation access checks and a focused browser suite, included in CI. [Verification record](docs/reviews/V0_0_2_ADMIN_WIDGETS_REVIEW.md) records actual results, initial failures and their corrections.
 
 ### Fixed During Verification
 
 - Prevented canvas startup from handling the initial empty iframe document before its editable content exists.
 - Anchored mobile drawers to the workspace grid so a wrapped toolbar cannot be covered by its own drawer.
 - Synchronized the existing desktop-navigation resize assertion with the asynchronous media-query handler before checking visibility.
+- Resolved the upload endpoint from the form attribute because a hidden field named action shadows the browser's form.action property.
+- Kept breadcrumb hover and pointer activation from immediately closing the same parent menu.
+- Prevented inherited inline-form layout from squeezing the desktop upload card, and cleared obsolete code-tool feedback when input changes.
 
 ## v0.0.1
 

@@ -60,7 +60,7 @@ if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
 		if ( [] === $errors && [] !== $results ) {
 			wp_safe_redirect( 'upload_document' === $action ? 'media.php?kind=documents&uploaded=1' : 'media.php?uploaded=1' );
 		}
-		$error = implode( ' ', $errors );
+		$error = [] === $results ? 'Choose at least one file to upload.' : implode( ' ', $errors );
 	} elseif ( in_array( $action, [ 'focal', 'edit_image', 'replace_preview', 'replace_apply' ], true ) ) {
 		$media_id = (int) wp_input( $_POST, 'id' );
 		$media = $wpdb->get_row( "SELECT * FROM media WHERE id=:id AND kind='image' AND variant='' AND state='ready'", [ ':id' => $media_id ] );
@@ -220,8 +220,8 @@ if ( 'json' === wp_input( $_GET, 'format' ) ) {
 	] );
 	exit;
 }
-$admin_page_title = 'Media';
-$admin_section = 'media';
+$admin_page_title = 'documents' === $kind ? 'Documents' : 'Images';
+$admin_section = 'documents' === $kind ? 'documents' : 'images';
 require __DIR__ . '/admin-header.php';
 wp_admin_notice( $error, true );
 wp_admin_notice( isset( $_GET['uploaded'] ) ? ( 'documents' === $kind ? 'Document uploaded.' : 'Image uploaded.' ) : $message );
@@ -236,23 +236,34 @@ $fmt_bytes = static fn( int $bytes ): string => $bytes >= 1048576 ? round( $byte
 <?php
 if ( 'documents' === $kind ) :
 	?>
-<section class="panel"><h2>Upload a document</h2><p>PDF, text, Markdown, or CSV, up to 25 MB. Documents are stored unmodified in protected storage and delivered only through the checked download route. They are <strong>not scanned for malware</strong>; treat every download as unscanned. Private documents are visible only to you and media managers; public documents can be linked from published content.</p><form class="inline-form" method="post" enctype="multipart/form-data" data-xhr-upload="1">
+<section class="panel upload-panel"><h2>Upload a document</h2><p>PDF, text, Markdown, or CSV, up to 25 MB. Documents are stored unmodified in protected storage and delivered only through the checked download route. They are <strong>not scanned for malware</strong>; treat every download as unscanned. Private documents are visible only to you and media managers; public documents can be linked from published content.</p><form class="inline-form" method="post" enctype="multipart/form-data" data-xhr-upload="1" data-upload-kind="<?php echo esc_attr( $kind ); ?>">
 	<?php
 	wp_nonce_field( 'media' );
 	?>
 <input type="hidden" name="action" value="upload_document" /><label for="document">Document file</label><input id="document" name="document[]" type="file" accept=".pdf,.txt,.md,.csv,application/pdf,text/plain,text/csv" required multiple /><label for="document-visibility">Visibility</label><select id="document-visibility" name="visibility"><option value="private" selected>Private</option><option value="public">Public</option></select><button type="submit">Upload document</button></form><div class="upload-results" role="status" aria-live="polite"></div></section>
 <?php else : ?>
-<section class="panel"><h2>Upload an image</h2><p>Nonanimated JPEG, PNG, WebP, or GIF, up to 10 MB and 12 megapixels. Images are decoded and re-encoded to remove metadata. JPEG orientation is preserved. Published content uses local uploads only. Uploaded images are publicly accessible.</p><form class="inline-form" method="post" enctype="multipart/form-data" data-xhr-upload="1">
+<section class="panel upload-panel"><h2>Upload an image</h2><p>Nonanimated JPEG, PNG, WebP, or GIF, up to 10 MB and 12 megapixels. Images are decoded and re-encoded to remove metadata. JPEG orientation is preserved. Published content uses local uploads only. Uploaded images are publicly accessible.</p><form class="inline-form" method="post" enctype="multipart/form-data" data-xhr-upload="1" data-upload-kind="<?php echo esc_attr( $kind ); ?>">
 	<?php
 	wp_nonce_field( 'media' );
 	?>
 <input type="hidden" name="action" value="upload" /><label for="image">Image file</label><input id="image" name="image[]" type="file" accept="image/jpeg,image/png,image/webp,image/gif" required multiple /><button type="submit">Upload image</button></form><div class="upload-results" role="status" aria-live="polite"></div></section>
 <?php endif; ?>
-<form class="inline-form toolbar" method="get"><?php
+<section class="media-library" data-media-library><form class="inline-form toolbar" method="get"><?php
 if ( 'documents' === $kind ) :
 	?><input type="hidden" name="kind" value="documents" /><?php
 endif;
 ?><label for="media-search">Search library</label><input id="media-search" name="s" value="<?php echo esc_attr( $term ); ?>" /><button type="submit">Search</button></form>
+<?php if ( [] === $items ) : ?>
+<section class="media-empty-state" role="status"><span class="media-empty-icon" aria-hidden="true">▧</span>
+<h2><?php echo '' !== $term ? 'No matching files found' : ( 'documents' === $kind ? 'Your document library is empty' : 'Your image library is empty' ); ?></h2>
+<p><?php echo '' !== $term ? 'Try a different search or clear the filter to see all available files.' : ( 'documents' === $kind ? 'Upload your first document to keep your files organized here.' : 'Upload your first image to start building your media library.' ); ?></p>
+	<?php if ( '' !== $term ) : ?>
+<a class="button button-secondary" href="<?php echo 'documents' === $kind ? 'media.php?kind=documents' : 'media.php'; ?>">Clear search</a>
+    <?php else : ?>
+<button type="button" data-browse-upload>Browse files</button>
+    <?php endif; ?>
+</section>
+<?php endif; ?>
 <div class="media-grid">
 <?php
 foreach ( $items as $media ) :
@@ -406,9 +417,6 @@ foreach ( $items as $media ) :
 		<?php
 	endif;
 endforeach;
-if ( [] === $items ) {
-	echo '<p class="empty">No ' . ( 'documents' === $kind ? 'documents' : 'images' ) . ' found.</p>';
-}
 ?>
 </div>
 <nav class="pagination" aria-label="Media pages">
@@ -430,4 +438,5 @@ foreach ( [
 endforeach;
 ?>
 </nav>
+</section>
 <?php require __DIR__ . '/admin-footer.php';

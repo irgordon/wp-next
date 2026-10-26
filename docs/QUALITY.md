@@ -10,7 +10,10 @@ python3 tests/upgrade-smoke.py
 npm ci
 npx playwright install chromium
 npm run check:js
+npm run test:builder
+npm run test:widgets
 npm run test:browser
+npm run test:widgets:browser
 python3 tests/server-hardening.py /absolute/path/to/nginx
 python3 tests/apache-hardening.py /absolute/path/to/apache2 /absolute/path/to/apache/modules
 ```
@@ -68,3 +71,13 @@ not close J1 production certification.
 The browser suite exercises direct canvas text/caption editing, selection formatting, caret retention across the preview debounce, unsaved handoff in both directions, drag-and-drop into a column, duplication, undo/redo, image selection, new-page creation, saving, raw-input recovery and responsive drawers at 320px/390px. It verifies that page styles retain their public scale and that iframe scripts stay disabled.
 
 The HTTP smoke suite includes builder read isolation, capability and CSRF checks, view-preserving form actions and rendering at every nested column boundary. [The verification record](reviews/V0_0_2_BUILDER_REVIEW.md) retains the initial iframe, drawer and resize-timing failures.
+
+## v0.0.2 Administration Widgets
+
+`composer check` includes 12 pure navigation checks for capability filtering, accessible group destinations, active items and breadcrumb paths. `npm run check:js` discovers every administration script rather than maintaining a fixed list.
+
+`npm run test:widgets` checks file validation, real progress calculation, server acknowledgement, partial success, cancellation, retry-attempt fencing, lossless inert tokenization and invalid-JSON preservation. It requires no browser or database.
+
+`npm run test:widgets:browser` installs a disposable site and exercises the actual upload, picker, breadcrumb and code-window workflows. Network throttling verifies an intermediate byte-transfer percentage; a delayed server response verifies that 100% transferred is still processing. It covers server refusal and retry, no-results and connection recovery, native form association while expanded, inert code display, desktop/mobile fit and classic upload without JavaScript. Clipboard output is replaced by a test-local stub. The suite shares PHP_BINARY, BROWSER_PATH, BROWSER_ARGS and QA_DIR with the existing browser suite. CI includes both new JavaScript suites.
+
+[The verification record](reviews/V0_0_2_ADMIN_WIDGETS_REVIEW.md) retains the first failures, corrections, screenshot review and final counts. These are local results; the updated remote CI workflow has not been run during this change.

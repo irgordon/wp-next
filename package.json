@@ -5,9 +5,11 @@
     "node": ">=24"
   },
   "scripts": {
-    "check:js": "node --check wp-admin/js/page-builder.js && node --check wp-admin/js/admin.js && node --check wp-admin/js/visual-builder.js && node --check wp-admin/js/visual-builder-model.js",
+    "check:js": "node tools/check-js.mjs",
     "test:browser": "node tests/browser.cjs",
-    "test:builder": "node tests/visual-builder-model.mjs"
+    "test:builder": "node tests/visual-builder-model.mjs",
+    "test:widgets": "node tests/admin-widgets-model.mjs",
+    "test:widgets:browser": "node tests/admin-widgets-browser.cjs"
   },
   "devDependencies": {
     "playwright": "1.62.1"

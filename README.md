@@ -23,6 +23,17 @@ Themes and a visual design editor let you change how your site looks without tou
 
 WordPress Next is for bloggers, small businesses, clubs, churches, and anyone who would rather spend their time writing than wrestling with their website.
 
+## Current development build — v0.0.2
+
+The latest build adds a dedicated live visual builder, compact administration typography, clearer media-library feedback, upload queues with real progress, grouped navigation and breadcrumbs, and editable code windows. It also includes the v0.0.1 account-boundary fixes. The database schema remains 8.
+
+- [Installation and local development](docs/INSTALL.md)
+- [Themes, uploads and authoring](docs/THEMES_AND_BUILDER.md)
+- [Changelog](CHANGELOG.md) and [documentation index](docs/README.md)
+- [Quality gates](docs/QUALITY.md), [builder verification](docs/reviews/V0_0_2_BUILDER_REVIEW.md) and [admin widget verification](docs/reviews/V0_0_2_ADMIN_WIDGETS_REVIEW.md)
+
+Export/import, feeds/metadata and production-host certification remain planned work; see the [current state and proposals](PROPOSALS.md).
+
 ---
 
 Licensed under the [BSD 3-Clause License](LICENSE).

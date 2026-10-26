@@ -50,40 +50,6 @@
     } );
   } );
 } )();
-( function() {
-  // Per-file uploads for the media library: one request per file, no batch
-  // atomicity. Without JavaScript the same forms submit classically.
-  document.querySelectorAll( 'form[data-xhr-upload]' ).forEach( function( form ) {
-    form.addEventListener( 'submit', async function( event ) {
-      const input = form.querySelector( 'input[type="file"]' );
-      if ( ! input || input.files.length === 0 ) { return; }
-      event.preventDefault();
-      const results = form.parentElement.querySelector( '.upload-results' );
-      const list = document.createElement( 'ul' );
-      if ( results ) { results.replaceChildren( list ); }
-      const action = form.querySelector( 'input[name="action"]' ).value;
-      let failures = 0;
-      for ( const file of input.files ) {
-        const item = document.createElement( 'li' );
-        item.textContent = file.name + ': uploading…';
-        list.append( item );
-        const data = new FormData();
-        new FormData( form ).forEach( function( value, name ) { if ( name !== input.name ) { data.append( name, value ); } } );
-        data.append( input.name, file, file.name );
-        data.append( 'ajax', '1' );
-        try {
-          const response = await fetch( location.href, { method: 'POST', body: data, credentials: 'same-origin' } );
-          const payload = await response.json();
-          if ( ! response.ok || ! payload.ok ) { throw new Error( payload.error || 'Upload failed.' ); }
-          item.textContent = file.name + ': uploaded.';
-        } catch ( error ) { failures++; item.textContent = file.name + ': ' + error.message; }
-      }
-      if ( failures === 0 ) {
-        location.assign( action === 'upload_document' ? 'media.php?kind=documents&uploaded=1' : 'media.php?uploaded=1' );
-      }
-    } );
-  } );
-} )();
 /** Form-based menu rows: add, remove and reorder without line syntax. */
 ( function() {
 	function renumber( editor ) {

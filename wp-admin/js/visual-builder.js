@@ -46,6 +46,7 @@ function createWorkspaceContext( api ) {
 }
 function arrangeWorkspace( context ) {
 	assembleWorkspace( context );
+	installBuilderBreadcrumb( context );
 	buildPalette( context );
 	renderLayers( context );
 	updateHistoryButtons( context );
@@ -532,4 +533,10 @@ function observeCanvasContainer( context ) {
 }
 function appendCanvasFrame( container, frame ) {
 	container.append( frame );
+}
+function installBuilderBreadcrumb( context ) {
+	const breadcrumb = document.querySelector( '.admin-breadcrumbs' );
+	if ( ! breadcrumb ) { return; }
+	query( context, '.builder-page-label' ).prepend( breadcrumb );
+	query( context, '.builder-page-label > strong' ).hidden = true;
 }
