@@ -15,17 +15,17 @@ function wp_account_token_create( string $purpose, string $email, ?int $user_id 
 	if ( ! in_array( $purpose, [ 'invite', 'reset', 'magic' ], true ) || ! filter_var( $email, FILTER_VALIDATE_EMAIL ) ) {
 		return new WP_Error( 'token_invalid', 'The token request is not valid.' );
 	}
-	if ( ! $operator ) {
-		$recent = (int) $wpdb->get_row( 'SELECT COUNT(*) AS n FROM account_tokens WHERE email=:email AND purpose=:purpose AND created_at>unixepoch()-3600', [
-			':email'   => $email,
-			':purpose' => $purpose
-		] )['n'];
-		if ( $recent >= WP_ACCOUNT_TOKEN_LIMIT ) {
-			return new WP_Error( 'token_rate_limited', 'Too many links were requested. Wait before requesting another.' );
-		}
-	}
 	$token = bin2hex( random_bytes( 32 ) );
-	$wpdb->transaction( static function ( $db ) use ( $purpose, $email, $user_id, $role, $ttl, $token ): void {
+	return $wpdb->transaction( static function ( $db ) use ( $purpose, $email, $user_id, $role, $ttl, $token, $operator ): string|WP_Error {
+		if ( ! $operator ) {
+			$recent = (int) $db->get_row( 'SELECT COUNT(*) AS n FROM account_tokens WHERE email=:email AND purpose=:purpose AND created_at>unixepoch()-3600', [
+				':email'   => $email,
+				':purpose' => $purpose
+			] )['n'];
+			if ( $recent >= WP_ACCOUNT_TOKEN_LIMIT ) {
+				return new WP_Error( 'token_rate_limited', 'Too many links were requested. Wait before requesting another.' );
+			}
+		}
 		$db->query( 'UPDATE account_tokens SET consumed_at=unixepoch() WHERE email=:email AND purpose=:purpose AND consumed_at IS NULL', [
 			':email'   => $email,
 			':purpose' => $purpose
@@ -38,8 +38,8 @@ function wp_account_token_create( string $purpose, string $email, ?int $user_id 
 			':role'    => $role,
 			':ttl'     => $ttl,
 		] );
+		return $token;
 	} );
-	return $token;
 }
 /** Looks a token up without consuming it. A link scanner's GET can never burn a token. */
 function wp_account_token_lookup( string $token, string $purpose ): ?array
@@ -54,10 +54,10 @@ function wp_account_token_lookup( string $token, string $purpose ): ?array
 	] );
 	return $row ?: null;
 }
-/** Consumes a token inside the caller's transaction. Returns false when it was already used. */
+/** Rechecks expiry, account status and sign-in policy inside the caller's transaction. */
 function wp_account_token_consume( WP_SQLite_DB $db, int $id ): bool
 {
-	$db->query( 'UPDATE account_tokens SET consumed_at=unixepoch() WHERE id=:id AND consumed_at IS NULL', [ ':id' => $id ] );
+	$db->query( "UPDATE account_tokens SET consumed_at=unixepoch() WHERE id=:id AND consumed_at IS NULL AND expires_at>unixepoch() AND (purpose='invite' OR EXISTS(SELECT 1 FROM users WHERE users.id=account_tokens.user_id AND disabled=0)) AND (purpose<>'magic' OR EXISTS(SELECT 1 FROM options WHERE option_name='magic_links_enabled' AND option_value='1'))", [ ':id' => $id ] );
 	return 1 === (int) $db->get_row( 'SELECT changes() AS n' )['n'];
 }
 /**

@@ -50,6 +50,9 @@
     "test:design": "python3 tests/design-files-http.py",
     "test:documents": "python3 tests/documents-http.py",
     "test:images": "python3 tests/images-http.py",
-        "test:accounts": "python3 tests/accounts-http.py"
+    "test:accounts": [
+      "python3 tests/accounts-http.py",
+      "python3 tests/account-boundaries-http.py"
+    ]
   }
 }

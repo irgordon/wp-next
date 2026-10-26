@@ -46,3 +46,17 @@ The Apache fixture runs the complete documented vhost security rules with `Allow
 ## P3 and P4 file editing
 
 `composer test:design` runs the design/file HTTP boundary suite, including v5 upgrade, preview isolation, health failure, concurrent-version rejection, draft recovery/discard, template assignment, shared-image references, managed CSS validation/rollback and database backup retention. The browser suite now includes design draft/preview/publication, reopening saved drafts, Page templates, visible managed CSS changes and rollback, and mobile file editing. CI runs this additional suite. PHPStan level 5 and the existing formatting subset remain unchanged.
+
+
+## v0.0.1 Boundary Verification
+
+`composer test:accounts` now runs the original account suite and six additional
+boundary checks. They cover disabled magic-link policy, commit-time expiry and
+account status, File-link correctness after author reassignment, and concurrent
+account-link issuance. The original package fails five of those six checks.
+
+[The verification review](reviews/V0_0_1_VERIFICATION.md) records the complete
+blank-install rerun, each discovered defect, first failures, and the 78 local
+HTTPS checks through real nginx/Apache and PHP-FPM. The local run uses root
+identities and a test certificate. It supplements the fixture checks; it does
+not close J1 production certification.

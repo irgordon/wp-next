@@ -34,7 +34,9 @@ that certification.
 - [Release plan](RELEASE_PLAN.md): sequencing and deliberately excluded
   compatibility features.
 
-## Current build records
+## Current Build Records
+
+- [v0.0.1 Verification And Host Handoff](reviews/V0_0_1_VERIFICATION.md)
 
 - [E1/F1 — accounts, email and user deletion](reviews/E1_F1_REVIEW.md)
 - [C1/D1 — live visual editing and stylesheet drafts](reviews/C1_D1_REVIEW.md)
@@ -50,5 +52,5 @@ that certification.
 - `docs/reviews/` — build and review summaries, including the per-step
   verification records.
 - [CHANGELOG.md](../CHANGELOG.md) at the project root consolidates the
-  complete development history under **v0.0.0**, including recorded fixes
-  and open findings.
+  initial development history under **v0.0.0**, with subsequent fixes
+  recorded in **v0.0.1** and later entries.

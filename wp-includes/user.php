@@ -182,6 +182,7 @@ function wp_delete_user( int $user_id, int $reassign_to, int $actor_id ): array|
 				':target' => $reassign_to,
 				':id'     => $user_id
 			] );
+			wp_invalidate_file_link_renders( $db );
 			$db->query( 'DELETE FROM design_revisions WHERE actor_id=:id AND published=0', [ ':id' => $user_id ] );
 			$db->query( 'DELETE FROM user_sessions WHERE user_id=:id', [ ':id' => $user_id ] );
 			$db->query( 'DELETE FROM account_tokens WHERE user_id=:id OR LOWER(email)=LOWER(:email)', [

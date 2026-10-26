@@ -165,7 +165,7 @@ php bin/wp sessions:revoke
 php bin/wp backup
 ```
 
-`maintain` deletes expired sessions/throttles and completed jobs older than 30 days, and runs a passive WAL checkpoint. Audit and revision histories are retained. `queue:retry` explicitly retries failed jobs; inspect operator logs first. Transition jobs currently produce idempotent audit events, not external webhooks. There is no uploaded-file garbage collector or automated off-host backup retention policy.
+`maintain` deletes expired sessions/throttles and completed jobs older than 30 days, and runs a passive WAL checkpoint. Audit and revision histories are retained. `queue:retry` explicitly retries failed jobs; inspect operator logs first. Transition jobs currently produce idempotent audit events, not external webhooks. Asset maintenance first reconciles pending registrations, then reclaims recognized unreferenced blobs and expired staging after the 24-hour grace period. Referenced blobs, unknown files and symbolic links are preserved. There is no automated off-host backup retention policy.
 
 ## 5. Upgrade and recovery
 

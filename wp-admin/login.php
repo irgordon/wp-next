@@ -55,6 +55,9 @@ if ( 'rp' === $action || 'ml' === $action || 'invite' === $action ) {
 		'invite' => 'invite'
 	][ $action ];
 	$row = wp_account_token_lookup( wp_input( $_REQUEST, 'token' ), $purpose );
+	if ( 'magic' === $purpose && '1' !== (string) get_option( 'magic_links_enabled', '0' ) ) {
+		$row = null;
+	}
 	if ( null !== $row && 'invite' !== $purpose ) {
 		$token_user = $wpdb->get_row( 'SELECT disabled FROM users WHERE id=:id', [ ':id' => (int) $row['user_id'] ] );
 		if ( null === $token_user || 0 !== (int) $token_user['disabled'] ) {
@@ -78,7 +81,7 @@ if ( 'rp' === $action || 'ml' === $action || 'invite' === $action ) {
 				}
 				$wpdb->transaction( static function ( $db ) use ( $row, $password ): void {
 					if ( ! wp_account_token_consume( $db, (int) $row['id'] ) ) {
-						throw new RuntimeException( 'This link was already used.' );
+						throw new RuntimeException( 'This link is unavailable. Request a new one from the sign-in page.' );
 					}
 					$db->query( 'UPDATE users SET password_hash=:hash WHERE id=:id', [
 						':hash' => password_hash( $password, PASSWORD_DEFAULT ),
@@ -92,11 +95,11 @@ if ( 'rp' === $action || 'ml' === $action || 'invite' === $action ) {
 			if ( 'magic' === $purpose ) {
 				$wpdb->transaction( static function ( $db ) use ( $row ): void {
 					if ( ! wp_account_token_consume( $db, (int) $row['id'] ) ) {
-						throw new RuntimeException( 'This link was already used.' );
+						throw new RuntimeException( 'This link is unavailable. Request a new one from the sign-in page.' );
 					}
 					wp_audit( 'magic_link_used', (int) $row['user_id'] );
+					wp_login_user( (int) $row['user_id'] );
 				} );
-				wp_login_user( (int) $row['user_id'] );
 				wp_safe_redirect( 'index.php' );
 			}
 			$username = trim( wp_input( $_POST, 'username' ) );
@@ -107,7 +110,7 @@ if ( 'rp' === $action || 'ml' === $action || 'invite' === $action ) {
 			}
 			$new_id = $wpdb->transaction( static function ( $db ) use ( $row, $username, $password, $display ): int {
 				if ( ! wp_account_token_consume( $db, (int) $row['id'] ) ) {
-					throw new RuntimeException( 'This link was already used.' );
+					throw new RuntimeException( 'This link is unavailable. Request a new one from the sign-in page.' );
 				}
 				if ( null !== $db->get_row( 'SELECT id FROM users WHERE username=:name COLLATE NOCASE OR email=:email COLLATE NOCASE', [
 					':name'  => $username,

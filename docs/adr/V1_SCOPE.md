@@ -107,3 +107,12 @@ Use [Deployment Requirements](../V1_DEPLOYMENT_REQUIREMENTS.md) for the operatin
 6. Complete H1 metadata, documentation reconciliation and J1 deployment certification. I1 remains deferred.
 
 This ordering is an execution dependency, not an additional approval queue. Routine implementation choices within the approved contract may proceed. Material changes to scope or semantics must be called out explicitly.
+
+
+## October 26 Implementation Rulings
+
+These refine the approved scope. They do not mark G2 or H1 delivered.
+
+- G2 uses a ZIP container with a versioned JSON manifest and preflight before writes. Unmapped authors become ordinary accounts with unusable passwords. Default handling skips exact duplicates and suffixes colliding slugs. Remote fetching is off by default.
+- H1 provides excerpt-only RSS for the latest 20 published public Posts, site-wide indexing controls only for v1, and featured-image fallback for social images.
+- J1 uses hybrid verification: local FPM/TLS evidence plus target-host verification of production identities, certificate chain, operating procedures and remaining feature coverage. Neither side alone closes J1. See [Verification And Host Handoff](../reviews/V0_0_1_VERIFICATION.md).

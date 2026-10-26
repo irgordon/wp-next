@@ -1,10 +1,33 @@
 # Changelog
 
+## v0.0.1
+
+Recorded October 26, 2026. Verification and boundary fixes against the supplied schema 8 rollup. The initial development history remains under v0.0.0.
+
+### Fixed
+
+- Disabling email sign-in now refuses already issued magic links at display and completion. Previously, those links still created sessions.
+- Token consumption rechecks expiry and enabled-account status inside the write transaction. A stale lookup can no longer authorize completion after either state changes. Magic-link policy is checked again under the same lock, and its session is created in that transaction.
+- Account-link issuance checks its hourly budget under the write lock. Eight synchronized requests previously issued eight tokens against a five-token limit; they now issue five and refuse three.
+- Corrected the operator guide: maintenance automatically reclaims eligible unreferenced assets after the documented grace period. It does not remove referenced blobs or provide off-host retention.
+- User deletion with content reassignment invalidates File-block renders and fences stale jobs. An author-based permalink change can no longer leave a cached document link serving a Post instead of the document.
+
+### Added
+
+- Six boundary regression checks, included in `composer test:accounts` and therefore the existing CI account gate. The original package fails five of them; the corrected tree passes all six.
+- [Independent verification and host handoff](docs/reviews/V0_0_1_VERIFICATION.md), including individual product, environment and harness failures, evidence limits and file-change rationale.
+
+### Decisions
+
+- Recorded the approved G2 ZIP/manifest, preflight, ordinary unusable-password authors, skip/suffix defaults and remote-fetching-off choices.
+- Recorded H1 excerpt-only RSS at 20 entries, site-wide indexing only for v1, and featured-image fallback.
+- Adopted hybrid J1 verification. Local real nginx/Apache to PHP-FPM over TLS is supplementary evidence; production service identity, certificate chain, operations and pending G2/H1 coverage remain open. G2 and H1 are not implemented by this update.
+
 ## v0.0.0
 
-Consolidated development history from the initial documented application through October 26, 2026. All work below belongs to v0.0.0. Dates identify recorded build activity, not separate version releases. The approved v1.0.0 scope remains a delivery target; approval does not mean every scoped feature is implemented or certified.
+Consolidated development history from the initial application recorded on October 24, 2026 through the schema 8 account build recorded on October 26, 2026. All work below belongs to v0.0.0. Dates identify recorded build activity, not separate version releases. The approved v1.0.0 scope remains a delivery target; approval does not mean every scoped feature is implemented or certified.
 
-This file replaces the previously split current/history changelogs and their retrospectively assigned intermediate versions. Detailed rationale, evidence and corrections remain in [the review records](docs/reviews/) and [approved decisions](docs/adr/).
+This file replaces the previously split current/history changelogs and their retrospectively assigned intermediate versions. Detailed rationale, evidence and corrections remain in [the review records](docs/reviews/) and [approved decisions](docs/adr/). Verification figures in those records retain their original attribution; this consolidation does not represent a new execution of application tests. [Current state and proposals](PROPOSALS.md) separates the delivered build from proposed implementation work.
 
 ### October 26, 2026
 
@@ -64,7 +87,7 @@ This file replaces the previously split current/history changelogs and their ret
 - Explicit incomplete-backup semantics: pending registrations are identified in the manifest and excluded from recoverable-file counts. Restore can lose bytes from an upload registered before promotion; maintenance removes unrecoverable records, releases quota and audits the loss.
 - Theme manifests, renderer contracts and standard/wide/landing Page templates in schema 6.
 - Versioned design drafts, session-bound private previews, explicit publication, immutable published history and rollback. A separate trusted-theme health process renders against a private database snapshot before publication, followed by version, authority and source-fingerprint rechecks.
-- Shared header/footer sections and nested header/footer menus, with the legacy Page-navigation fallback retained.
+- Shared header/footer sections and nested header/footer menus, bounded to 40 entries and three levels, with the legacy Page-navigation fallback retained.
 - Administrator-managed `custom.css` and `site-notice.txt`, stored as versioned logical files rather than deployed source. Fixed types, a documented CSS subset, expected-version checks, rollback and `no-store` delivery protect the editing contract.
 
 #### Changed
@@ -101,7 +124,7 @@ This file replaces the previously split current/history changelogs and their ret
 - WordPress.org-inspired administration styling using the supplied Blueberry/charcoal palette, local Inter and EB Garamond fonts, shared styles and collapsible mobile navigation.
 - Configurable permalink presets and custom structures, retained structure history, canonical redirects and a post-name default. These replace the earlier validated month/day alias-only change; Pages retain their separate routing rules.
 - Image decoding/re-encoding to strip metadata, preserve supported orientation and reject unsupported or incomplete raster inputs. Published image content uses local uploads.
-- Content Trash, restore to the prior status and separately confirmed permanent deletion from Trash, with in-transaction permissions and dependent revision/job handling.
+- Content Trash in schema 3, restore to the prior status and separately confirmed permanent deletion from Trash, with in-transaction permissions and dependent revision/job handling.
 - Sortable content lists, All/Trash counts, touch/hover actions, Quick Edit with conflict checks and inline deletion confirmation.
 - Stepped installation wizard and a full-height administration sidebar with accessible profile/logout controls.
 - User profiles in schema 4: display names, biographies, websites, local avatars and opt-in public author archives that exclude private account data.
@@ -119,12 +142,14 @@ This file replaces the previously split current/history changelogs and their ret
 - Added an atomic per-IP login budget reserved before expensive password verification, alongside account/IP controls.
 - Added virtual-host protections that do not depend on Apache honoring `.htaccess`, static upload headers, nginx login rate limiting, strict URL handling and content sanitization.
 
+### Review Follow-Through
+
+- Recorded as corrected in the subsequent build: the nginx allowlist omission, stale status documentation, and missing CI suites. Details remain in the October 26 Fixed and Changed entries.
+- Recorded as delivered: SMTP, invitations, password recovery, optional sign-in links, and user deletion/reassignment (E1/F1). Details remain in the October 26 Added entries.
+
 ### Open Findings And Verification Limits
 
-These are retained from the latest independent rollup review. The first three findings, and the account work listed last, were addressed by the subsequent build recorded above on the same date; the rest remain open.
-
-- Corrected: the nginx allowlist omission, the stale status text, and the missing CI suites (see Fixed and Changed above).
-- Delivered: SMTP, invitations, password recovery, optional sign-in links, and user deletion/reassignment (E1/F1; see Added above).
+The following remain open in the supplied package. Proposed work is not a delivered change.
 - An intermittent theme-settings HTTP check failed once in an earlier run. Later passes have not established its cause; the failure remains unresolved.
 - Static Apache/nginx fixture passes and PHP development-server/browser passes do not certify the required PHP-FPM, TLS and production proxy integration under J1.
 - Native and WordPress import/export (G2) and publishing metadata (H1) remain approved v1.0.0 work. They are not claimed as delivered by this log.
