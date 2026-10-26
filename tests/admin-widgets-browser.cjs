@@ -40,7 +40,7 @@ async function main() {
 	try {
 		for ( let attempt = 0; attempt < 100; attempt++ ) { try { await fetch( base ); break; } catch ( error ) { await new Promise( resolve => setTimeout( resolve, 30 ) ); } }
 		browser = await chromium.launch( { executablePath: process.env.BROWSER_PATH || undefined, args: process.env.BROWSER_ARGS ? JSON.parse( process.env.BROWSER_ARGS ) : [], headless: true } );
-		const context = await browser.newContext( { viewport: { width: 1440, height: 1000 } } );
+		const context = await browser.newContext( { viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 2 } );
 		page = await context.newPage(); page.on( 'pageerror', error => errors.push( error.message ) );
 		await page.goto( base + '/wp-admin/install.php' ); await page.getByRole( 'button', { name: 'Next', exact: true } ).click();
 		await page.getByLabel( 'Site title', { exact: true } ).fill( 'Widget studio' ); await page.getByLabel( 'Administrator username' ).fill( 'admin' ); await page.getByLabel( 'Administrator email' ).fill( 'admin@example.test' ); await page.getByLabel( 'Password', { exact: true } ).fill( 'disposable-test-password' );
@@ -51,7 +51,37 @@ async function main() {
 		const navigation = page.getByRole( 'navigation', { name: 'Administration' } );
 		check( await navigation.locator( '.nav-group' ).count() === 4, 'The sidebar groups Content, Media, Design and Settings' );
 		check( await navigation.getByRole( 'link', { name: 'Images', exact: true } ).isVisible() && await navigation.getByRole( 'link', { name: 'Documents', exact: true } ).isVisible(), 'Media kinds are directly reachable in the grouped menu' );
+		await page.goto( base + '/wp-admin/themes.php' );
+		const order = page.locator( 'input[type=number][max="999"]' ).first(), numberControl = order.locator( '..' );
+		await order.fill( '998' );
+		await numberControl.locator( '[data-step-direction="1"]' ).click();
+		check( await order.inputValue() === '999', 'NumberControl increments the original native field' );
+		await numberControl.locator( '[data-step-direction="1"]' ).click();
+		check( await order.inputValue() === '999', 'NumberControl preserves the native maximum boundary' );
+		await numberControl.locator( '[data-step-direction="-1"]' ).click();
+		check( await order.inputValue() === '998' && await order.evaluate( element => new FormData( element.form ).get( element.name ) === element.value ), 'NumberControl decrements without breaking the form value' );
+		await order.fill( '1' );
+		await numberControl.locator( '[data-step-direction="-1"]' ).click();
+		check( await order.inputValue() === '1', 'NumberControl preserves the native minimum boundary' );
+		check( await order.evaluate( input => input.parentElement.getBoundingClientRect().height === 40 && getComputedStyle( input ).borderWidth === '0px' ), 'NumberControl has one border and the reference 40px height' );
+		await order.evaluate( element => element.readOnly = true );
+		await page.waitForFunction( () => document.querySelector( 'input[max="999"]' ).parentElement.querySelector( 'button' ).disabled );
+		check( await numberControl.locator( 'button:disabled' ).count() === 2, 'Read-only numeric fields disable both step actions' );
+		await order.evaluate( element => element.readOnly = false );
+		await order.evaluate( element => element.step = 'any' );
+		await page.waitForFunction( () => document.querySelector( 'input[max="999"]' ).parentElement.querySelector( 'button' ).disabled );
+		check( await numberControl.locator( 'button:disabled' ).count() === 2 && await order.inputValue() === '1', 'Changing to unrestricted precision disables native stepping without changing the value' );
+		await order.evaluate( element => element.step = '1' );
+		check( await numberControl.locator( 'img' ).evaluateAll( images => images.every( image => image.complete && image.naturalWidth === 24 && image.getBoundingClientRect().width === 24 && image.getBoundingClientRect().height === 24 ) ), 'Native Figma step icons render locally at their original 24px dimensions' );
+		await capture( page, 'figma-design-controls-desktop' );
 		await page.goto( base + '/wp-admin/media.php' );
+		const search = page.locator( '#media-search' );
+		await search.focus();
+		check( await search.evaluate( input => { const style = getComputedStyle( input.parentElement ); return style.borderRadius === '2px' && parseFloat( style.outlineWidth ) >= 1 && parseFloat( style.outlineWidth ) <= 1.5 && style.outlineColor === 'rgb(56, 88, 233)' && input.parentElement.getBoundingClientRect().height === 40; } ), 'SearchControl has the reference radius, focus ring and 40px height' );
+		check( await search.evaluate( input => { const icon = input.parentElement.querySelector( 'img' ); return icon.complete && icon.naturalWidth === 24 && icon.getBoundingClientRect().width === 24; } ), 'SearchControl uses the local 24px Figma icon' );
+		check( await page.locator( '.upload-panel' ).evaluate( element => getComputedStyle( element ).borderRadius === '8px' ), 'Cards use the reference large radius rather than arbitrary rounding' );
+		await page.getByRole( 'heading', { name: 'Images', exact: true } ).scrollIntoViewIfNeeded();
+		await capture( page, 'figma-media-desktop' );
 		check( await page.getByRole( 'heading', { name: 'Your image library is empty' } ).isVisible(), 'An empty library has an explicit useful state' );
 		check( await page.locator( '.upload-card' ).evaluate( element => element.getBoundingClientRect().width >= 600 ), 'The desktop upload card uses the available panel width' );
 		check( await page.getByRole( 'navigation', { name: 'Breadcrumb' } ).innerText().then( text => text.includes( 'Workspace' ) && text.includes( 'Media' ) && text.includes( 'Images' ) ), 'Breadcrumbs reflect the active media hierarchy' );

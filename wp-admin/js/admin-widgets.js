@@ -1,6 +1,7 @@
 /** Shared admin presentation enhancements; native forms remain the fallback. */
 import { enhanceUploadForms } from './media-upload.js';
 import { enhanceCodeEditors, observeCodeEditors } from './code-editor.js';
+import { enhanceAdminControls, observeAdminControls } from './admin-controls.js';
 
 initializeAdminWidgets();
 
@@ -8,6 +9,8 @@ function initializeAdminWidgets() {
 	enhanceUploadForms();
 	enhanceCodeEditors();
 	observeCodeEditors();
+	enhanceAdminControls();
+	observeAdminControls();
 	connectBreadcrumbs();
 	connectLibraryBrowse();
 }

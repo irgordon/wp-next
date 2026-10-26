@@ -1,24 +1,24 @@
 /* Editable text remains in its native textarea; tokens are an inert presentation layer. */
 .code-editor-host { min-width: 0; margin: 8px 0 14px; }
-.code-window { --code-bg: #1c2024; --code-ink: #e5e9f0; display: flex; flex-direction: column; min-width: 0; border: 1px solid #3a424c; border-radius: 9px; background: var(--code-bg); color: var(--code-ink); overflow: hidden; box-shadow: 0 3px 9px rgb(30 30 30 / 7%); }
+.code-window { --code-bg: #1c2024; --code-ink: #e5e9f0; display: flex; flex-direction: column; min-width: 0; border: 1px solid #3a424c; border-radius: var(--wp-radius-lg); background: var(--code-bg); color: var(--code-ink); overflow: hidden; box-shadow: 0 3px 9px rgb(30 30 30 / 7%); }
 .code-window:focus-within { border-color: #9fb1ff; box-shadow: 0 0 0 1px rgb(56 88 233 / 30%); }
 .code-window-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; padding: 9px 12px; min-height: 44px; border-bottom: 1px solid #353d47; background: #23282d; }
 .code-file, .code-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; min-width: 0; }
-.code-filename { font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 500; color: #e5e9f0; overflow-wrap: anywhere; }
+.code-filename { font: 11px/1.4 var(--font-code); font-weight: 500; color: #e5e9f0; overflow-wrap: anywhere; }
 .code-file-icon { color: #9fb1ff; font-size: 15px; }
 .code-language { border: 1px solid #414b65; border-radius: 4px; padding: 1px 5px; font-size: 9px; color: #c7d1ff; background: #29314a; }
 .code-edit-state { color: #9ba6b6; font-size: 10px; }
 .code-window[data-modified=true] .code-edit-state { color: #9fb1ff; }
 .code-window[data-modified=true] .code-edit-state::before { content: "• "; }
 .code-tools { gap: 4px; }
-.code-tools button { min-height: 27px; padding: 4px 7px; border: 1px solid #434b56; border-radius: 5px; background: #292f37; color: #cdd5e2; font-size: 10px; font-weight: 400; }
+.code-tools button { min-height: 27px; padding: 4px 7px; border: 1px solid #434b56; border-radius: var(--wp-radius-sm); background: #292f37; color: #cdd5e2; font-size: 10px; font-weight: 400; }
 .code-tools button:hover, .code-tools [aria-pressed=true] { background: #33416f; border-color: #667ecd; color: #dce3ff; }
 .code-viewport { display: grid; grid-template-columns: 44px minmax(0, 1fr); height: 300px; min-width: 0; min-height: 0; }
 .code-gutter { padding: 14px 0; overflow: hidden; border-right: 1px solid #303842; color: #738095; background: #1a1e22; text-align: right; user-select: none; }
-.code-line-number { display: block; height: 20px; padding-right: 10px; font: 12px/20px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.code-line-number { display: block; height: 20px; padding-right: 10px; font: 12px/20px var(--font-code); }
 .code-line-number.is-active { color: #c7d1ff; }
 .code-text-plane { position: relative; min-width: 0; min-height: 0; }
-.code-window .code-highlight, .code-window textarea.code-input { font: 12px/20px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-variant-ligatures: none; letter-spacing: 0; tab-size: 2; white-space: pre; padding: 14px 16px; margin: 0; box-sizing: border-box; border: 0; }
+.code-window .code-highlight, .code-window textarea.code-input { font: 12px/20px var(--font-code); font-variant-ligatures: none; letter-spacing: 0; tab-size: 2; white-space: pre; padding: 14px 16px; margin: 0; box-sizing: border-box; border: 0; }
 .code-window .code-highlight { position: absolute; inset: 0; overflow: hidden; background: transparent; color: var(--code-ink); pointer-events: none; }
 .code-window .code-highlight code { display: block; min-width: 100%; font: inherit; }
 .code-window textarea.code-input { position: absolute; inset: 0; resize: none; width: 100%; height: 100%; min-height: 0; color: transparent; -webkit-text-fill-color: transparent; caret-color: #e5e9f0; background: transparent; outline: none; border-radius: 0; overflow: auto; overflow-wrap: normal; }
@@ -40,9 +40,9 @@
 .code-window.code-plain .code-viewport { grid-template-columns: minmax(0, 1fr); }
 .code-window.code-plain textarea.code-input { color: var(--code-ink); -webkit-text-fill-color: var(--code-ink); }
 .code-window [hidden] { display: none !important; }
-dialog.code-dialog { width: min(1160px, calc(100vw - 32px)); height: min(850px, calc(100dvh - 32px)); max-width: none; max-height: none; padding: 0; border: 0; border-radius: 10px; overflow: hidden; background: #1c2024; }
+dialog.code-dialog { width: min(1160px, calc(100vw - 32px)); height: min(850px, calc(100dvh - 32px)); max-width: none; max-height: none; padding: 0; border: 0; border-radius: var(--wp-radius-lg); overflow: hidden; background: #1c2024; }
 .code-dialog::backdrop { background: rgb(15 19 29 / 70%); backdrop-filter: blur(3px); }
-.code-dialog > .code-window { height: 100%; border: 1px solid #53628c; border-radius: 10px; }
+.code-dialog > .code-window { height: 100%; border: 1px solid #53628c; border-radius: var(--wp-radius-lg); }
 .code-dialog .code-viewport { height: auto; flex: 1; }
 .builder-inspector .code-window-toolbar { padding: 8px; }
 .builder-inspector .code-file { flex-basis: 100%; }

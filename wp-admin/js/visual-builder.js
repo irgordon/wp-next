@@ -24,7 +24,7 @@ const WORKSPACE_MARKUP = [
 	'<aside class="builder-palette" aria-label="Building blocks"><div class="builder-panel-tabs"><button type="button" data-panel="blocks" aria-pressed="true">Blocks</button><button type="button" data-panel="layers" aria-pressed="false">Layers</button></div>',
 	'<div id="builder-blocks"><p class="builder-help">Click to add. Drag onto the page to place.</p><div class="builder-block-grid"></div></div><div id="builder-layers" hidden><p class="builder-help">Select a block to edit its settings.</p><ol class="builder-layer-list"></ol></div></aside>',
 	'<section class="builder-stage" aria-label="Page canvas"><div class="builder-formatbar" role="toolbar" aria-label="Canvas editing tools">',
-	'<button type="button" id="builder-bold" aria-label="Bold selected text" title="Bold selected text"><strong>B</strong></button><button type="button" id="builder-italic" aria-label="Italic selected text" title="Italic selected text"><em>I</em></button>',
+	'<button type="button" id="builder-bold" aria-label="Bold selected text" title="Bold selected text"><img src="assets/wordpress/bold.svg" alt=""></button><button type="button" id="builder-italic" aria-label="Italic selected text" title="Italic selected text"><img src="assets/wordpress/italic.svg" alt=""></button>',
 	'<input type="text" id="builder-link-url" aria-label="Canvas link URL" placeholder="Link URL"><button type="button" id="builder-link">Apply link</button>',
 	'<span class="builder-tools-divider"></span><button type="button" id="builder-duplicate">Duplicate block</button><button type="button" id="builder-remove">Delete block</button></div>',
 	'<div class="builder-scroll"><div class="builder-page-shell"></div></div></section>',

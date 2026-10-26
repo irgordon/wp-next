@@ -42,7 +42,8 @@ async function main() {
 		await Promise.all( [ page.waitForURL( '**/wp-admin/index.php' ), page.getByRole( 'button', { name: 'Log in', exact: true } ).click() ] );
 		check( await page.getByRole( 'heading', { name: 'Overview', exact: true } ).isVisible(), 'Browser session opens the consistent admin shell' );
 		await page.evaluate( () => document.fonts.ready );
-		check( await page.evaluate( () => document.fonts.check( '16px Inter' ) && getComputedStyle( document.body ).fontFamily.startsWith( 'Inter' ) && getComputedStyle( document.querySelector( '.sidebar' ) ).backgroundColor === 'rgb(30, 30, 30)' ), 'Local Inter font and reference charcoal palette are applied' );
+		check( await page.evaluate( () => getComputedStyle( document.body ).fontFamily.includes( 'system-ui' ) && getComputedStyle( document.querySelector( '.sidebar' ) ).backgroundColor === 'rgb(240, 240, 240)' ), 'The Figma system typeface and neutral navigation surface are applied' );
+		check( await page.locator( '.sidebar' ).evaluate( element => element.getBoundingClientRect().width === 240 ), 'Administration uses the reference 240px navigation area' );
 		await capture( page, 'overview-desktop' );
 		const noScriptBrowser = await chromium.launch( { executablePath: process.env.BROWSER_PATH || undefined, args: process.env.BROWSER_ARGS ? JSON.parse( process.env.BROWSER_ARGS ) : [], headless: true } );
 		const noScript = await noScriptBrowser.newContext( { javaScriptEnabled: false, storageState: await context.storageState(), viewport: { width: 390, height: 844 } } );
@@ -102,6 +103,8 @@ async function main() {
 		await Promise.all( [ page.waitForURL( '**/post.php?post=*&editor=visual' ), page.getByRole( 'button', { name: 'Visual editor', exact: true } ).click() ] );
 		const canvas = page.frameLocator( '#builder-canvas-frame' );
 		await canvas.getByRole( 'textbox', { name: 'Edit paragraph on page', exact: true } ).waitFor();
+		await page.waitForFunction( () => Array.from( document.querySelectorAll( '.builder-formatbar button img' ) ).every( image => image.complete ) );
+		check( await page.locator( '.builder-formatbar button img' ).evaluateAll( images => images.length === 2 && images.every( image => image.complete && image.naturalWidth === 24 && image.getBoundingClientRect().width === 24 && image.getBoundingClientRect().height === 24 ) ), 'Builder toolbar uses the local Figma icons at their original dimensions' );
 		check( new URL( page.url() ).searchParams.get( 'editor' ) === 'visual' && await page.locator( '.builder-workspace' ).isVisible(), 'Visual builder opens as its own full administration view' );
 		check( await canvas.getByRole( 'textbox', { name: 'Edit paragraph on page', exact: true } ).textContent().then( text => text.includes( 'Unsaved editor handoff' ) ), 'Opening the builder carries unsaved form edits without publishing them' );
 		check( ! ( await ( await context.request.get( base + '/browser-page/' ) ).text() ).includes( 'Unsaved editor handoff' ), 'Changing editor views does not implicitly save or publish' );
@@ -193,7 +196,7 @@ async function main() {
 		await page.getByRole( 'button', { name: 'Save changes', exact: true } ).click();
 		check( await page.locator( '#post_content' ).isVisible() && ( await page.locator( '#post_content' ).inputValue() ).includes( 'Keep this rejected input' ), 'Invalid raw content stays intact and its correction field is revealed before saving' );
 		await page.locator( '#post_content' ).fill( validCanvasDocument );
-		await page.goto( base + '/wp-admin/themes.php' ); await page.getByLabel( 'Studio', { exact: true } ).check(); await page.getByLabel( 'Content width in pixels' ).fill( '1040' ); await page.getByLabel( 'Type style' ).selectOption( 'serif' ); await page.getByLabel( 'Homepage', { exact: true } ).selectOption( id ); await page.getByLabel( 'Browser Page', { exact: true } ).check();
+		await page.goto( base + '/wp-admin/themes.php' ); await page.getByLabel( 'Studio', { exact: true } ).check(); await page.getByLabel( 'Content width in pixels', { exact: true } ).fill( '1040' ); await page.getByLabel( 'Type style' ).selectOption( 'serif' ); await page.getByLabel( 'Homepage', { exact: true } ).selectOption( id ); await page.getByLabel( 'Browser Page', { exact: true } ).check();
 		await Promise.all( [ page.waitForNavigation(), page.getByRole( 'button', { name: 'Publish design', exact: true } ).click() ] ); await page.goto( base + '/' );
 		check( await page.locator( 'link[rel=stylesheet]' ).getAttribute( 'href' ).then( url => url.includes( '/studio/' ) ) && await page.getByRole( 'heading', { name: 'Browser Page', exact: true } ).isVisible(), 'Theme selection and static homepage affect the public site' );
 		if ( process.env.QA_DIR ) { fs.mkdirSync( process.env.QA_DIR, { recursive: true } ); await page.screenshot( { path: path.join( process.env.QA_DIR, 'public-desktop.png' ), fullPage: true } ); }

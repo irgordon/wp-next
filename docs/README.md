@@ -22,6 +22,8 @@ that certification.
   what passing them does and does not establish.
 - [Themes and the builder](THEMES_AND_BUILDER.md): theme manifests,
   templates, shared sections, and the design workflow.
+- [Administration design system](DESIGN_SYSTEM.md): verified WordPress Figma
+  foundations, component mappings and native control behavior.
 
 ## Decisions and requirements
 
@@ -35,6 +37,8 @@ that certification.
   compatibility features.
 
 ## Current Build Records
+
+- [v0.0.2 — WordPress Figma alignment](reviews/V0_0_2_WORDPRESS_DESIGN_REVIEW.md)
 
 - [v0.0.2 — uploads, navigation and code windows](reviews/V0_0_2_ADMIN_WIDGETS_REVIEW.md)
 

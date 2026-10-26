@@ -1,0 +1,13 @@
+/* Native controls retain their labels, validation, form values and keyboard input. */
+.wp-search-control { display: flex; align-items: center; flex: 1 1 200px; width: 100%; max-width: 360px; min-width: 0; min-height: 40px; border: 1px solid var(--wp-gray-600); border-radius: var(--wp-radius-sm); padding-inline: var(--wp-space-10); background: var(--paper); }
+.wp-search-control > img, .wp-number-control button img, .builder-formatbar button img { display: block; flex: none; }
+.wp-search-control input:not([type=checkbox]):not([type=radio]) { flex: 1; width: 100%; max-width: none; min-width: 0; min-height: 38px; border: 0; outline: none; box-shadow: none; background: transparent; padding: var(--wp-space-10) var(--wp-space-05); }
+.wp-search-control:focus-within, .wp-number-control:focus-within { border-color: var(--focus); outline: 1.5px solid var(--focus); outline-offset: 2px; }
+.wp-number-control { display: flex; align-items: center; gap: var(--wp-space-05); min-width: 0; width: 100%; min-height: 40px; padding: 3px var(--wp-space-05) 3px var(--wp-space-15); border: 1px solid var(--wp-gray-600); border-radius: var(--wp-radius-sm); background: var(--paper); }
+.wp-number-control input:not([type=checkbox]):not([type=radio]) { appearance: textfield; min-width: 0; min-height: 32px; flex: 1; padding: 0; border: 0; outline: none; background: transparent; box-shadow: none; }
+.wp-number-control input::-webkit-inner-spin-button, .wp-number-control input::-webkit-outer-spin-button { appearance: none; margin: 0; }
+.wp-number-control button { flex: none; width: 32px; min-height: 32px; padding: var(--wp-space-05); border: 0; border-radius: var(--wp-radius-xs); background: transparent; color: var(--ink); }
+.wp-number-control button:hover { background: var(--wp-gray-100); }
+.wp-number-control:has(input:disabled), .wp-search-control:has(input:disabled) { background: var(--wp-gray-100); color: var(--muted); }
+.wp-number-control:has(input[aria-invalid=true]), .wp-search-control:has(input[aria-invalid=true]) { border-color: var(--danger); }
+@media (max-width: 760px) { .wp-search-control { max-width: none; } }

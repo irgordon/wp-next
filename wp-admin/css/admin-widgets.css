@@ -1,12 +1,13 @@
 @import url("media-upload.css");
 @import url("code-editor.css");
+@import url("admin-controls.css");
 
 /* Grouped, capability-filtered navigation. */
 .sidebar nav { padding: 12px 10px; }
 .sidebar nav > .admin-nav-link { margin-bottom: 12px; }
-.sidebar .nav-group { margin: 0 0 14px; border-bottom: 1px solid var(--border-light); padding-bottom: 12px; }
+.sidebar .nav-group { margin: 0 0 14px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
 .sidebar .nav-group:last-of-type { border-bottom: 0; }
-.sidebar .nav-group > summary { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; margin: 0; color: var(--gray); font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; list-style: none; }
+.sidebar .nav-group > summary { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; margin: 0; color: var(--ink); font-size: var(--wp-font-xs); line-height: var(--wp-line-xs); font-weight: var(--wp-weight-medium); letter-spacing: 0; text-transform: uppercase; list-style: none; }
 .sidebar .nav-group > summary::-webkit-details-marker { display: none; }
 .nav-group-chevron { font-size: 14px; transition: transform .18s ease; }
 .nav-group:not([open]) .nav-group-chevron { transform: rotate(-90deg); }
@@ -25,11 +26,11 @@
 .crumb-separator { color: var(--charcoal-5); font-size: 12px; user-select: none; }
 .admin-breadcrumbs > ol > .breadcrumb-overflow { display: none; }
 .breadcrumb-overflow details { position: relative; }
-.breadcrumb-overflow summary { min-width: 26px; min-height: 26px; padding: 2px 7px; margin: 0 !important; border-radius: 5px; list-style: none; cursor: pointer; text-align: center; }
+.breadcrumb-overflow summary { min-width: 26px; min-height: 26px; padding: 2px 7px; margin: 0 !important; border-radius: var(--wp-radius-md); list-style: none; cursor: pointer; text-align: center; }
 .breadcrumb-overflow summary::-webkit-details-marker { display: none; }
 .breadcrumb-overflow summary:hover, .breadcrumb-overflow details[open] summary { color: var(--blue); background: var(--blue-4); }
-.breadcrumb-menu { position: absolute; left: 0; top: calc(100% + 5px); z-index: 100; list-style: none; padding: 6px; margin: 0; min-width: 170px; max-width: min(290px, calc(100vw - 32px)); border: 1px solid var(--line); border-radius: 8px; background: var(--paper); box-shadow: 0 8px 28px rgb(30 30 30 / 12%); animation: crumb-enter .15s ease; }
-.breadcrumb-menu a { display: block; padding: 8px 10px; }
+.breadcrumb-menu { position: absolute; left: 0; top: calc(100% + var(--wp-space-05)); z-index: 100; list-style: none; padding: var(--wp-space-05); margin: 0; min-width: 160px; max-width: min(290px, calc(100vw - 32px)); border: 1px solid var(--line); border-radius: var(--wp-radius-md); background: var(--paper); box-shadow: var(--wp-elevation-md); animation: crumb-enter .15s ease; }
+.breadcrumb-menu a { display: block; padding: var(--wp-space-10) var(--wp-space-15); font-size: var(--wp-font-md); line-height: var(--wp-line-sm); }
 .breadcrumb-menu a:hover { background: var(--blue-4); }
 .builder-page .wrap > .admin-breadcrumbs { display: none; }
 .builder-page-label .admin-breadcrumbs { margin: 0; font-size: 10px; }
@@ -42,12 +43,12 @@
 
 /* Explicit library and picker feedback. */
 .media-library { margin-top: 24px; }
-.media-empty-state, .picker-state { text-align: center; padding: 44px 24px; border: 1px dashed var(--line); border-radius: 12px; background: var(--paper); color: var(--muted); }
+.media-empty-state, .picker-state { text-align: center; padding: 44px 24px; border: 1px dashed var(--line); border-radius: var(--wp-radius-lg); background: var(--paper); color: var(--muted); }
 .media-empty-state h2, .picker-state h3 { color: var(--ink); font-size: 15px; margin: 14px 0 8px; }
 .media-empty-state p, .picker-state p { max-width: 420px; margin: 0 auto 18px; font-size: 12px; }
-.media-empty-icon, .picker-state-icon { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 14px; color: var(--blue); background: var(--blue-4); font-size: 27px; }
+.media-empty-icon, .picker-state-icon { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: var(--wp-radius-lg); color: var(--blue); background: var(--blue-4); font-size: 27px; }
 .picker-state { grid-column: 1 / -1; width: 100%; border-style: solid; padding-block: 40px; }
-.picker-state-error { border-color: #ffb7a7; background: #fff7f4; }
+.picker-state-error { border-color: var(--danger); background: var(--paper); }
 .picker-state-error .picker-state-icon { color: var(--danger); background: var(--red-3); }
 .picker-state-loading .picker-state-icon { animation: picker-pulse 1.2s ease-in-out infinite alternate; }
 .storage-summary { padding: 16px 0; }

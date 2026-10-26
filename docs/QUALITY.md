@@ -32,7 +32,7 @@ Passing these checks supplies scoped regression evidence, not security certifica
 
 ## UI refresh checks
 
-The browser suite also checks mobile menu state and Escape focus, navigation without JavaScript, local Inter/palette application, immediate text alignment, resize recovery, and eight administration screens at 320px and 390px. See reviews/UI_REVIEW.md for this release's changes and executed results.
+The browser suite also checks mobile menu state and Escape focus, navigation without JavaScript, administration system typography and neutral surfaces, immediate text alignment, resize recovery, and eight administration screens at 320px and 390px. Public themes retain their local font assets. See reviews/UI_REVIEW.md for the earlier interface pass and reviews/V0_0_2_WORDPRESS_DESIGN_REVIEW.md for the Figma alignment.
 
 Run `composer test:permalinks` (or `python3 tests/permalinks-http.py /absolute/path/to/php`) for the canonical-routing HTTP matrix. The browser suite also exercises the Permalinks settings screen. See reviews/PERMALINK_REVIEW.md for current execution evidence and format constraints.
 
@@ -81,3 +81,7 @@ The HTTP smoke suite includes builder read isolation, capability and CSRF checks
 `npm run test:widgets:browser` installs a disposable site and exercises the actual upload, picker, breadcrumb and code-window workflows. Network throttling verifies an intermediate byte-transfer percentage; a delayed server response verifies that 100% transferred is still processing. It covers server refusal and retry, no-results and connection recovery, native form association while expanded, inert code display, desktop/mobile fit and classic upload without JavaScript. Clipboard output is replaced by a test-local stub. The suite shares PHP_BINARY, BROWSER_PATH, BROWSER_ARGS and QA_DIR with the existing browser suite. CI includes both new JavaScript suites.
 
 [The verification record](reviews/V0_0_2_ADMIN_WIDGETS_REVIEW.md) retains the first failures, corrections, screenshot review and final counts. These are local results; the updated remote CI workflow has not been run during this change.
+
+## WordPress Figma Alignment
+
+The current browser suites additionally check the 240px navigation area, native system type, local 24px reference icons, numeric min/max boundaries, read-only controls, retained form values, single-border numeric fields, focused search geometry and card radii. The general suite uses a 1x viewport and the focused suite uses a 2x viewport. Focus assertions account for Chromium's fractional-outline quantization. [The alignment review](reviews/V0_0_2_WORDPRESS_DESIGN_REVIEW.md) records the 210 model/browser assertions, initial failures and corrections. [The design-system map](DESIGN_SYSTEM.md) records the full reference inventory and intentional compact-density mapping.

@@ -1,27 +1,27 @@
 /* Native upload controls are enhanced only after their event handlers exist. */
-.upload-panel { border-radius: 12px; }
+.upload-panel { border-radius: var(--wp-radius-lg); }
 .upload-panel > p { max-width: 760px; font-size: 11px; color: var(--muted); }
 form.upload-enhanced { display: block; position: relative; width: 100%; max-width: 760px; }
 .upload-enhanced .upload-native-input, .upload-enhanced .upload-native-label { position: absolute; width: 1px !important; height: 1px !important; min-height: 0 !important; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.upload-card { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
-.upload-card-heading { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; margin: 0 2px 14px; }
+.upload-card { background: var(--paper); border: 1px solid var(--line); border-radius: var(--wp-radius-lg); padding: var(--wp-space-20); }
+.upload-card-heading { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; margin: 0 0 var(--wp-space-20); }
 .upload-card-label { font-size: 12px; color: var(--ink); }
 .upload-summary { font-size: 10px; color: var(--muted); }
-.upload-dropzone { min-height: 200px; border: 1px dashed var(--charcoal-5); border-radius: 11px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 7px; padding: 24px 18px; text-align: center; color: var(--muted); background: linear-gradient(180deg, #fff, #fafbff); transition: background .18s ease, border-color .18s ease, box-shadow .18s ease; }
+.upload-dropzone { min-height: 200px; border: 1px dashed var(--charcoal-5); border-radius: var(--wp-radius-lg); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: var(--wp-space-10); padding: var(--wp-space-30); text-align: center; color: var(--muted); background: linear-gradient(180deg, #fff, #fafbff); transition: background .18s ease, border-color .18s ease, box-shadow .18s ease; }
 .upload-dropzone > strong { color: var(--ink); font-size: 13px; }
 .upload-dropzone small { font-size: 10px; }
-.upload-cloud { display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; margin-bottom: 5px; border: 1px solid #dce2ff; border-radius: 14px; color: var(--blue); background: var(--blue-4); box-shadow: 0 2px 5px rgb(56 88 233 / 5%); }
+.upload-cloud { display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; margin-bottom: 5px; border: 1px solid #dce2ff; border-radius: var(--wp-radius-lg); color: var(--blue); background: var(--blue-4); box-shadow: 0 2px 5px rgb(56 88 233 / 5%); }
 .upload-cloud svg { width: 28px; height: 28px; }
-.upload-browse { border: 0; min-height: 30px; padding: 2px 3px; color: var(--blue); background: transparent; font-weight: 600; font-size: 11px; }
+.upload-browse { border: 0; min-height: 32px; padding: 2px 4px; color: var(--blue); background: transparent; font-weight: var(--wp-weight-medium); font-size: 11px; }
 .upload-browse:hover { background: transparent; color: var(--blue-dark); text-decoration: underline; }
 .upload-dropzone.is-dragging, .upload-dropzone:focus-visible { border-color: var(--blue); background: var(--blue-4); box-shadow: inset 0 0 0 1px var(--blue); }
 .upload-queue { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 8px; }
-.upload-file-row { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: start; gap: 12px; padding: 13px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); animation: upload-row-enter .2s ease; }
-.upload-file-icon { display: flex; align-items: center; justify-content: center; width: 38px; height: 40px; border-radius: 9px; background: var(--blue-4); color: var(--blue); font-size: 22px; }
+.upload-file-row { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: start; gap: 12px; padding: var(--wp-space-15); border: 1px solid var(--line); border-radius: var(--wp-radius-md); background: var(--paper); animation: upload-row-enter .2s ease; }
+.upload-file-icon { display: flex; align-items: center; justify-content: center; width: 38px; height: 40px; border-radius: var(--wp-radius-md); background: var(--blue-4); color: var(--blue); font-size: 22px; }
 .upload-file-main { min-width: 0; }
 .upload-file-heading { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
 .upload-file-name { display: block; min-width: 0; font-size: 12px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.upload-percent { display: inline-flex; flex-shrink: 0; gap: 1px; color: var(--blue); font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 36px; justify-content: flex-end; overflow: hidden; }
+.upload-percent { display: inline-flex; flex-shrink: 0; gap: 1px; color: var(--blue); font-size: 11px; font-weight: var(--wp-weight-medium); font-variant-numeric: tabular-nums; min-width: 36px; justify-content: flex-end; overflow: hidden; }
 .upload-percent-number { display: inline-block; }
 .upload-file-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; font-size: 10px; color: var(--muted); margin: 4px 0 8px; }
 .upload-file-state { color: var(--muted); }
@@ -33,25 +33,25 @@ form.upload-enhanced { display: block; position: relative; width: 100%; max-widt
 .upload-file-row progress::-webkit-progress-value { background: var(--blue); border-radius: 3px; transition: width .18s ease; }
 .upload-file-row progress::-moz-progress-bar { background: var(--blue); border-radius: 3px; }
 .upload-file-row[data-upload-state=processing] progress { animation: processing-pulse 1s ease-in-out infinite alternate; }
-.upload-file-row[data-upload-state=complete] .upload-file-state { color: #147536; }
+.upload-file-row[data-upload-state=complete] .upload-file-state { color: var(--ink); }
 .upload-file-row[data-upload-state=complete] .upload-file-state::before { content: "✓ "; }
-.upload-file-row[data-upload-state=failed], .upload-file-row[data-upload-state=rejected] { border-color: #ffc8bb; background: #fffaf8; }
+.upload-file-row[data-upload-state=failed], .upload-file-row[data-upload-state=rejected] { border-color: var(--danger); background: var(--paper); }
 .upload-file-row[data-upload-state=failed] .upload-file-state, .upload-file-row[data-upload-state=rejected] .upload-file-state { color: var(--danger); }
 .upload-file-row[data-upload-state=failed] progress, .upload-file-row[data-upload-state=rejected] progress, .upload-file-row[data-upload-state=canceled] progress { display: none; }
 .upload-file-error { font-size: 11px; line-height: 1.55; color: var(--danger); margin: 6px 0 0; overflow-wrap: anywhere; }
-.upload-feedback { padding: 10px 12px; border-radius: 7px; border: 1px solid #ffc8bb; background: var(--red-3); color: var(--danger); font-size: 11px; margin: 12px 0 0; }
-.upload-controls { display: flex; align-items: end; justify-content: space-between; gap: 14px; margin-top: 14px; }
+.upload-feedback { padding: 10px 12px; border-radius: var(--wp-radius-md); border: 1px solid var(--danger); background: var(--paper); color: var(--danger); font-size: 11px; margin: 12px 0 0; }
+.upload-controls { display: flex; align-items: end; justify-content: space-between; gap: 14px; margin-top: var(--wp-space-20); }
 .upload-options { min-width: 0; flex: 1; max-width: 240px; }
 .upload-options label { font-size: 11px; margin-bottom: 4px; }
 .upload-submit { margin-left: auto; }
-.upload-submit button { border-radius: 6px; min-height: 34px; padding-inline: 16px; }
+.upload-submit button { border-radius: var(--wp-radius-sm); min-height: 40px; padding-inline: 16px; }
 .upload-refresh-message { font-size: 10px; color: var(--muted); margin: 10px 0 0; }
 .upload-refresh-message:empty { display: none; }
 .upload-card [hidden] { display: none !important; }
 @keyframes upload-row-enter { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes processing-pulse { from { opacity: .45; } to { opacity: 1; } }
 @media (max-width: 760px) {
-  .upload-panel { padding: 14px; }
+  .upload-panel { padding: var(--wp-space-20); }
   .upload-card { padding: 10px; }
   .upload-dropzone { min-height: 180px; padding-inline: 12px; }
   .upload-file-row { grid-template-columns: 30px minmax(0, 1fr) auto; gap: 7px; padding: 11px 8px; }

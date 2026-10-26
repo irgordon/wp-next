@@ -6,6 +6,8 @@ Recorded October 26, 2026. Compact administration typography, a dedicated visual
 
 ### Changed
 
+- Aligned administration foundations and component treatments with the supplied WordPress Figma design system: system typography, neutral frames, theme/feedback colors, a 4px spacing grid, semantic radii and elevation. Compact base text remains 12px; public-theme typography retains its own scale.
+- Applied the reference navigation/content-frame dimensions, card and menu treatments, form labels, input focus/error states and editor toolbar icons. Search and numeric controls use locally stored 24px WordPress assets; number stepping preserves the original native field and its bounds.
 - Reduced the administration base type from 16px to 12px, with 10–11px supporting text and controls. Headings retain their hierarchy, and mobile controls retain usable hit areas. Public page typography remains controlled by the selected theme.
 - Opening Visual editor now navigates to a full administration workspace for both new and existing Posts/Pages. The workspace contains a block palette, layers, an isolated page canvas, Block/Page settings, preview, save controls and an explicit return to the form editor.
 - Browser-tab handoff carries unsaved content and settings between the form editor and builder without saving or publishing. Save redirects retain the selected builder view; revision checks and action-bound CSRF remain in the existing controllers.
