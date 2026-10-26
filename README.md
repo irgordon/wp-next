@@ -2,38 +2,14 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white" alt="PHP 8.4+">
-  <img src="https://img.shields.io/badge/SQLite-3.45%2B-003B57?logo=sqlite&logoColor=white" alt="SQLite 3.45+">
-  <img src="https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white" alt="HTML5">
-  <img src="https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=white" alt="CSS3">
+  <img src="https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white" alt="SQLite">
+  <img src="https://img.shields.io/badge/HTML-E34F26?logo=html5&logoColor=white" alt="HTML">
+  <img src="https://img.shields.io/badge/CSS-1572B6?logo=css&logoColor=white" alt="CSS">
+  <img src="https://img.shields.io/badge/JS-F7DF1E?logo=javascript&logoColor=black" alt="JavaScript">
 </p>
 
-<p align="center"><em>The CMS that feels like WordPress, without the weight.</em></p>
+WordPress Next brings the familiar WordPress approach to a more focused publishing system. It exists for people who want to own their website and spend more time creating than maintaining it. Posts, pages, media, visual editing, and site design work together in one workspace, with built-in tools that keep everyday publishing straightforward.
 
-## A website you can run yourself
+PHP and SQLite keep the foundation simple: site data lives in a local database file, without a separate database server to manage. Design drafts, previews, and revision history help you try changes with confidence. For writers, small businesses, and community groups, WP Next offers familiar controls, fewer moving parts, and a clearer path from an idea to a published page.
 
-WordPress Next is a content management system for people who want their own website without the usual hassle. If you have ever written a post, built a page, or uploaded a photo in WordPress, you already know how to use it. The screens are familiar, the words are plain, and nothing asks you to be a programmer.
-
-What you will not find is a database server to install, configure, and babysit. WordPress Next keeps your whole site — posts, pages, media, and settings — in a single folder, powered by one SQLite database file. Moving your site means copying the folder. Backing it up means saving a copy. It runs on the same affordable PHP hosting that powers millions of WordPress sites, with nothing extra to set up.
-
-## Made for everyday publishing
-
-Write in a clean editor and publish in minutes. Organize posts with categories and tags, build pages from ready-made templates, and keep photos and documents in one tidy library. Running a site with other people? Invite them by email and give each person the role they need, from writer to administrator.
-
-Themes and a visual design editor let you change how your site looks without touching code. Try a new look as a draft, preview it, and publish it when it is right — and if you ever change your mind, your design history lets you roll back.
-
-WordPress Next is for bloggers, small businesses, clubs, churches, and anyone who would rather spend their time writing than wrestling with their website.
-
-## Current development build — v0.0.2
-
-The latest build adds a dedicated live visual builder, compact administration typography, clearer media-library feedback, upload queues with real progress, grouped navigation and breadcrumbs, and editable code windows. It also includes the v0.0.1 account-boundary fixes. The database schema remains 8.
-
-- [Installation and local development](docs/INSTALL.md)
-- [Themes, uploads and authoring](docs/THEMES_AND_BUILDER.md)
-- [Changelog](CHANGELOG.md) and [documentation index](docs/README.md)
-- [Quality gates](docs/QUALITY.md), [builder verification](docs/reviews/V0_0_2_BUILDER_REVIEW.md) and [admin widget verification](docs/reviews/V0_0_2_ADMIN_WIDGETS_REVIEW.md)
-
-Export/import, feeds/metadata and production-host certification remain planned work; see the [current state and proposals](PROPOSALS.md).
-
----
-
-Licensed under the [BSD 3-Clause License](LICENSE).
+**[Docs / Wiki](docs/README.md) · [BSD 3-Clause License](LICENSE)**
