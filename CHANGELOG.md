@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.0.2
+
+Recorded October 26, 2026. Compact administration typography and a dedicated visual page builder. Schema remains 8.
+
+### Changed
+
+- Reduced the administration base type from 16px to 12px, with 10–11px supporting text and controls. Headings retain their hierarchy, and mobile controls retain usable hit areas. Public page typography remains controlled by the selected theme.
+- Opening Visual editor now navigates to a full administration workspace for both new and existing Posts/Pages. The workspace contains a block palette, layers, an isolated page canvas, Block/Page settings, preview, save controls and an explicit return to the form editor.
+- Browser-tab handoff carries unsaved content and settings between the form editor and builder without saving or publishing. Save redirects retain the selected builder view; revision checks and action-bound CSRF remain in the existing controllers.
+
+### Added
+
+- Direct canvas editing for page titles, paragraphs, headings, lists, quotes, code, captions, document labels and legacy HTML. Public renderer output and published theme styles supply the preview. Canvas typing retains focus across preview refreshes.
+- Drag-and-drop insertion and movement, nested columns, duplication, removal, undo/redo and keyboard save/history commands. Image/document selection uses the existing media library. Desktop/mobile previews use real 960px/390px layout viewports.
+- Pure document operations with regression coverage for invalid drag locations, descendant cycles, maximum depth/block count, immutable edits and retained media references. CI runs the new document-model suite.
+- A reachable raw-document correction path in the builder when unsupported input prevents saving.
+- [Builder verification record](docs/reviews/V0_0_2_BUILDER_REVIEW.md), including first failures and corrections.
+
+### Fixed During Verification
+
+- Prevented canvas startup from handling the initial empty iframe document before its editable content exists.
+- Anchored mobile drawers to the workspace grid so a wrapped toolbar cannot be covered by its own drawer.
+- Synchronized the existing desktop-navigation resize assertion with the asynchronous media-query handler before checking visibility.
+
 ## v0.0.1
 
 Recorded October 26, 2026. Verification and boundary fixes against the supplied schema 8 rollup. The initial development history remains under v0.0.0.

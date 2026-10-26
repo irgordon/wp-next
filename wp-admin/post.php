@@ -2,6 +2,7 @@
 /** Read authorization precedes both editor rendering and mutation handling. */
 declare( strict_types=1 );
 require_once __DIR__ . '/admin.php';
+$admin_builder_mode = 'visual' === wp_input( $_GET, 'editor' );
 global $wpdb;
 $id = (int) wp_input( $_GET, 'post', wp_input( $_POST, 'ID' ) );
 $post = $wpdb->get_row( 'SELECT * FROM posts WHERE id=:id', [ ':id' => $id ] );
@@ -69,11 +70,12 @@ if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
 		if ( is_wp_error( $result ) ) {
 			$error = $result->get_error_message();
 		} else {
-			wp_safe_redirect( 'post.php?post=' . $id . '&updated=1' );
+			wp_safe_redirect( 'post.php?post=' . $id . '&updated=1' . ( $admin_builder_mode ? '&editor=visual' : '' ) );
 		}
 	}
 }
 $admin_page_title = 'Edit ' . ( 'page' === $post_type ? 'page' : 'post' );
+$admin_page_title = $admin_builder_mode ? 'Visual builder' : $admin_page_title;
 $admin_section = $post_type;
 require __DIR__ . '/admin-header.php';
 require __DIR__ . '/post-editor.php';

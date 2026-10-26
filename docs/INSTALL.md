@@ -179,12 +179,52 @@ For restore, stop traffic and workers; inspect the archive manifest; restore `si
 
 ## 6. Local development and checks
 
+### macOS with Homebrew
+
+Install PHP 8.4 to match CI. Homebrew supplies SQLite as a PHP dependency; the system SQLite command does not determine which library PHP uses.
+
 ```bash
-WP_ENV=development php -S 127.0.0.1:8080 -t . tools/router.php
+brew install php@8.4
+brew link --force php@8.4
+```
+
+Install Composer 2 using the [official verified installer](https://getcomposer.org/download/), placing `composer` in `/opt/homebrew/bin` on Apple silicon (`/usr/local/bin` on Intel). Check the installer checksum before executing it.
+
+If Composer downloads time out with LuLu installed, check outbound permissions for `/opt/homebrew/opt/php@8.4/bin/php` and its resolved Cellar path. Composer makes its network requests through PHP.
+
+On Apple silicon, PHP configuration lives in `/opt/homebrew/etc/php/8.4/`. Add `conf.d/99-wordpress-next-dev.ini` with upload limits that accommodate the 25 MiB document ceiling:
+
+```ini
+upload_max_filesize=26M
+post_max_size=32M
+```
+
+Set `WP_ENV=development` in the project's ignored `.env` file for local HTTP. Leave `WP_AUTH_SALT` unset to generate a private per-install secret. The web installer creates the database and administrator; no separate SQLite service is needed.
+
+Verify PHP's actual SQLite library and extensions before starting:
+
+```bash
+php --version
+composer --version
+php -r 'echo "SQLite ", (new PDO("sqlite::memory:"))->query("SELECT sqlite_version()")->fetchColumn(), PHP_EOL;'
+php -m
+```
+
+PHP must report 8.4+, SQLite must report 3.45+, and extensions must include `dom`, `libxml`, `pdo_sqlite`, `fileinfo`, `gd`, `exif`, `tokenizer`, and `Phar`. Composer's development tools also require the XML extensions listed in the CI workflow.
+
+### Run the application
+
+From the extracted `wordpress-next/` directory:
+
+```bash
 composer install
 composer check
 composer test:http
+python3 tests/upgrade-smoke.py
+WP_ENV=development php -S 127.0.0.1:8080 -t . tools/router.php
 ```
+
+Open `http://127.0.0.1:8080/wp-admin/install.php` to create the local site. The development server stays in the foreground; stop it with Control-C. Restart it after changing PHP configuration.
 
 The local router rejects private paths for workflow testing. It does not validate Apache/Nginx rules and is not a production server. See QUALITY.md and reviews/REVIEW.md for scoped verification.
 

@@ -18,19 +18,17 @@ if ( is_wp_error( $normalized ) ) {
 	exit;
 }
 $document = json_decode( (string) $normalized, true );
-$blocks = [];
-foreach ( $document['blocks'] as $block ) {
-	$item = [ 'html' => wp_render_blocks( [ $block ] ) ];
-	if ( 'columns' === $block['type'] ) {
-		$item['columns'] = [];
-		foreach ( $block['columns'] as $children ) {
-			$column = [];
-			foreach ( $children as $child ) {
-				$column[] = wp_render_blocks( [ $child ] );
-			}
-			$item['columns'][] = $column;
-		}
+echo wp_json_encode( [ 'blocks' => wp_preview_block_tree( $document['blocks'] ) ] );
+
+/** Serialize the public renderer's output at every nested block boundary. */
+function wp_preview_block_tree( array $blocks ): array
+{
+	$output = [];
+	foreach ( $blocks as $block ) {
+		$output[] = [
+			'html'    => wp_render_blocks( [ $block ] ),
+			'columns' => array_map( 'wp_preview_block_tree', $block['columns'] ?? [] )
+		];
 	}
-	$blocks[] = $item;
+	return $output;
 }
-echo wp_json_encode( [ 'blocks' => $blocks ] );

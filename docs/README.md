@@ -36,6 +36,8 @@ that certification.
 
 ## Current Build Records
 
+- [v0.0.2 — compact admin and visual builder](reviews/V0_0_2_BUILDER_REVIEW.md)
+
 - [v0.0.1 Verification And Host Handoff](reviews/V0_0_1_VERIFICATION.md)
 
 - [E1/F1 — accounts, email and user deletion](reviews/E1_F1_REVIEW.md)

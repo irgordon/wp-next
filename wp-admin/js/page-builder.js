@@ -1,5 +1,7 @@
 /** Canonical nested block editor. Server validation remains authoritative. */
 'use strict';
+import { mountVisualWorkspace } from './visual-builder.js';
+import { createBlock as makeBlock, locateBlock } from './visual-builder-model.js';
 ( function() {
 	const sharedPicker = { loadMedia: null, loadDocuments: null, moreMedia: null, moreDocuments: null, searchMedia: null, searchDocuments: null };
 	function initBuilder( root, raw, form, options ) {
@@ -62,7 +64,7 @@
 		return parsed.body.innerHTML;
 	}
 	function cacheDraft() {
-		if ( ! key ) { return; }
+		if ( ! key ) { return true; }
 		try {
 			const data = {};
 			data[ 'term_ids[]' ] = Array.from( form.querySelectorAll( 'input[name="term_ids[]"]:checked' ) ).map( input => input.value );
@@ -70,11 +72,14 @@
 				if ( name !== '_wpnonce' && name !== 'term_ids[]' && typeof value === 'string' ) { data[ name ] = value; }
 			}
 			sessionStorage.setItem( key, JSON.stringify( data ) );
-		} catch ( error ) { announce( 'Browser draft storage is unavailable. Save changes to keep your work.' ); }
+			return true;
+		} catch ( error ) { announce( 'Browser draft storage is unavailable. Save changes to keep your work.' ); return false; }
 	}
 	function sync() {
 		raw.value = JSON.stringify( documentState );
 		cacheDraft();
+		updateState();
+		workspace?.documentChanged();
 	}
 	function parse() {
 		try {
@@ -101,14 +106,6 @@
 			root.replaceChildren( node( 'p', 'The raw document needs correction before visual editing can resume.', 'notice notice-error' ) );
 			announce( error.message );
 		}
-	}
-	function makeBlock( type ) {
-		if ( type === 'columns' ) { return { type, columns: [ [ makeBlock( 'paragraph' ) ], [ makeBlock( 'paragraph' ) ] ] }; }
-		if ( type === 'image' ) { return { type, media_id: 0, alt: '', caption: '' }; }
-		if ( type === 'file' ) { return { type, media_id: 0, label: '' }; }
-		if ( type === 'code' ) { return { type, text: '' }; }
-		if ( type === 'heading' ) { return { type, level: 2, html: '' }; }
-		return { type, html: type === 'list' ? '<li>List item</li>' : '' };
 	}
 	function addToolbar( collection, depth ) {
 		const toolbar = node( 'div', undefined, 'builder-toolbar' );
@@ -258,131 +255,95 @@
 	}
 	raw.addEventListener( 'input', () => { parse(); cacheDraft(); } );
 	form.addEventListener( 'input', cacheDraft );
-	form.addEventListener( 'submit', function( event ) { if ( ! valid ) { event.preventDefault(); announce( 'Correct the raw block document before saving.' ); raw.closest( 'details' ).open = true; raw.focus(); } else { cacheDraft(); if ( key ) { try { sessionStorage.setItem( 'wp-pending-draft', key ); } catch ( error ) { /* Server saving remains available. */ } } } } );
+	form.addEventListener( 'submit', function( event ) { if ( ! valid ) { event.preventDefault(); announce( 'Correct the raw block document before saving.' ); workspace?.showRawEditor(); raw.closest( 'details' ).open = true; raw.focus(); } else { cacheDraft(); if ( key ) { try { sessionStorage.setItem( 'wp-pending-draft', key ); } catch ( error ) { /* Server saving remains available. */ } } } } );
 
-	/* Visual canvas mode: the same document model, rendered by the public renderer. */
+	/* The form adapter owns persistence; the visual workspace owns canvas interactions. */
 	const canvas = document.getElementById( 'wp-visual-canvas' );
 	const inspector = document.getElementById( 'wp-visual-inspector' );
-	const inspectorPanel = document.getElementById( 'wp-visual-inspector-panel' );
 	const stateLine = document.getElementById( 'editor-state' );
-	let visualMode = false;
+	let workspace = null;
 	let selectedPath = null;
-	let savedSnapshot = raw.value;
-	let refreshSeq = 0;
-	let refreshTimer = 0;
+	const savedSnapshot = editorSnapshot();
 	function visualAfterRender() {
-		if ( visualMode && selectedPath ) { showInspector(); }
-	}
-	function pathBlock( path ) {
-		let blocks = documentState.blocks, block = null, collection = null, index = -1;
-		for ( let i = 0; i < path.length; i++ ) {
-			index = path[ i ]; block = blocks[ index ]; collection = blocks;
-			if ( i < path.length - 1 ) { blocks = block.columns[ path[ ++i ] ]; }
-		}
-		return { block, collection, index };
+		updateState();
+		showInspector();
+		workspace?.documentChanged();
 	}
 	function updateState() {
 		if ( ! stateLine ) { return; }
 		const statusSelect = form.elements.namedItem( 'post_status' );
 		const label = ! statusSelect ? 'Draft' : 'published' === statusSelect.value ? 'Published' : 'archived' === statusSelect.value ? 'Archived' : 'Draft';
-		stateLine.textContent = label + ' · ' + ( raw.value !== savedSnapshot ? 'Unsaved changes' : 'All changes saved' );
-	}
-	async function refreshCanvas() {
-		if ( ! visualMode || ! canvas ) { return; }
-		const seq = ++refreshSeq;
-		const body = new URLSearchParams();
-		body.set( '_wpnonce', document.getElementById( 'block-preview-nonce' ).value );
-		body.set( 'content', raw.value );
-		try {
-			const response = await fetch( 'block-preview.php', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body } );
-			if ( ! response.ok ) { throw new Error( 'Preview failed.' ); }
-			const data = await response.json();
-			if ( seq !== refreshSeq ) { return; }
-			buildCanvas( data.blocks );
-		} catch ( error ) {
-			if ( seq === refreshSeq ) { canvas.replaceChildren( node( 'p', 'The visual preview could not be loaded. Your content is unchanged and the form editor still works.', 'notice notice-error' ) ); }
-		}
-	}
-	function scheduleRefresh() { clearTimeout( refreshTimer ); refreshTimer = setTimeout( refreshCanvas, 350 ); }
-	function canvasToolbar( collection, depth, prefix ) {
-		const toolbar = node( 'div', undefined, 'builder-toolbar' );
-		const selectBox = node( 'select', undefined, 'block-select' );
-		selectBox.setAttribute( 'aria-label', 'Block type to add' );
-		types.filter( type => depth < 6 || type !== 'columns' ).forEach( function( type ) { const option = node( 'option', type.charAt( 0 ).toUpperCase() + type.slice( 1 ) ); option.value = type; selectBox.append( option ); } );
-		toolbar.append( selectBox, button( 'Add block', function() { const block = makeBlock( selectBox.value ); collection.push( block ); sync(); render(); refreshCanvas(); selectPath( [ ...prefix, collection.length - 1 ] ); announce( 'Block added.' ); } ) );
-		return toolbar;
-	}
-	function frameFor( block, path, rendered, collection, depth ) {
-		const frame = node( 'section', undefined, 'canvas-frame' );
-		frame.dataset.path = path.join( '.' );
-		frame.tabIndex = 0;
-		frame.setAttribute( 'role', 'button' );
-		frame.setAttribute( 'aria-label', 'Select ' + block.type + ' block' );
-		if ( selectedPath && selectedPath.join( '.' ) === path.join( '.' ) ) { frame.classList.add( 'selected' ); }
-		const index = collection.indexOf( block );
-		const bar = node( 'div', undefined, 'canvas-frame-bar' );
-		const up = button( '↑', function() { [ collection[ index - 1 ], collection[ index ] ] = [ block, collection[ index - 1 ] ]; selectedPath = [ ...path.slice( 0, -1 ), index - 1 ]; sync(); render(); refreshCanvas(); announce( 'Block moved up.' ); } );
-		up.disabled = index === 0; up.setAttribute( 'aria-label', 'Move ' + block.type + ' block up' );
-		const down = button( '↓', function() { [ collection[ index + 1 ], collection[ index ] ] = [ block, collection[ index + 1 ] ]; selectedPath = [ ...path.slice( 0, -1 ), index + 1 ]; sync(); render(); refreshCanvas(); announce( 'Block moved down.' ); } );
-		down.disabled = index === collection.length - 1; down.setAttribute( 'aria-label', 'Move ' + block.type + ' block down' );
-		const remove = button( 'Remove', function() { collection.splice( index, 1 ); selectedPath = null; inspector.replaceChildren(); sync(); render(); refreshCanvas(); announce( 'Block removed.' ); } );
-		bar.append( node( 'strong', block.type.charAt( 0 ).toUpperCase() + block.type.slice( 1 ) ), up, down, remove );
-		frame.append( bar );
-		const bodyDiv = node( 'div', undefined, 'canvas-block' );
-		if ( 'columns' === block.type && rendered && rendered.columns ) {
-			const wrap = node( 'div', undefined, 'canvas-columns' );
-			block.columns.forEach( function( children, columnIndex ) {
-				const column = node( 'div', undefined, 'canvas-column' );
-				children.forEach( function( child, childIndex ) { column.append( frameFor( child, [ ...path, columnIndex, childIndex ], { html: rendered.columns[ columnIndex ][ childIndex ] }, children, depth + 1 ) ); } );
-				column.append( canvasToolbar( children, depth + 1, [ ...path, columnIndex ] ) );
-				wrap.append( column );
-			} );
-			bodyDiv.append( wrap );
-		} else {
-			bodyDiv.innerHTML = rendered ? rendered.html : '';
-		}
-		frame.append( bodyDiv );
-		frame.addEventListener( 'click', function( event ) { if ( event.target.closest( '.canvas-frame' ) === frame && ! event.target.closest( 'button, select, a, input' ) ) { selectPath( path ); } } );
-		frame.addEventListener( 'keydown', function( event ) { if ( ( 'Enter' === event.key || ' ' === event.key ) && event.target === frame ) { event.preventDefault(); selectPath( path ); } } );
-		return frame;
-	}
-	function buildCanvas( rendered ) {
-		canvas.replaceChildren();
-		documentState.blocks.forEach( function( block, index ) { canvas.append( frameFor( block, [ index ], rendered[ index ], documentState.blocks, 0 ) ); } );
-		if ( 0 === documentState.blocks.length ) { canvas.append( node( 'p', 'Add your first block to start building.', 'empty' ) ); }
-		canvas.append( canvasToolbar( documentState.blocks, 0, [] ) );
+		stateLine.textContent = label + ' · ' + ( editorSnapshot() !== savedSnapshot ? 'Unsaved changes' : 'All changes saved' );
 	}
 	function showInspector() {
-		if ( ! selectedPath || ! inspector ) { return; }
-		const target = pathBlock( selectedPath );
+		if ( ! inspector ) { return; }
+		inspector.replaceChildren();
+		if ( ! selectedPath ) { return; }
+		const target = locateBlock( documentState, selectedPath );
 		if ( ! target.block ) { return; }
 		const card = root.querySelector( '[data-block-id="' + ids.get( target.block ) + '"]' );
-		if ( card ) { inspector.replaceChildren( card ); }
+		if ( card ) { inspector.append( card ); }
 	}
-	function selectPath( path ) {
+	function applyWorkspaceChange( change ) {
+		documentState = change.document;
+		selectedPath = change.selection;
+		valid = true;
+		sync();
+		render();
+	}
+	function selectWorkspaceBlock( path ) {
 		selectedPath = path;
-		canvas.querySelectorAll( '.canvas-frame' ).forEach( function( frame ) { frame.classList.toggle( 'selected', frame.dataset.path === path.join( '.' ) ); } );
-		showInspector();
+		render();
 	}
-	function setMode( visual ) {
-		visualMode = visual;
-		document.getElementById( 'mode-form' ).setAttribute( 'aria-pressed', String( ! visual ) );
-		document.getElementById( 'mode-visual' ).setAttribute( 'aria-pressed', String( visual ) );
-		document.getElementById( 'canvas-width' ).hidden = ! visual;
-		root.hidden = visual;
-		canvas.hidden = ! visual;
-		inspectorPanel.hidden = ! visual;
-		if ( visual ) { render(); refreshCanvas(); }
-		else { inspector.replaceChildren(); render(); }
+	function pickWorkspaceAsset( path, type ) {
+		selectWorkspaceBlock( path );
+		activatePicker();
+		if ( type === 'image' ) {
+			imageTarget = locateBlock( documentState, path ).block;
+			loadMedia().then( () => dialog.showModal() );
+		} else {
+			fileTarget = locateBlock( documentState, path ).block;
+			loadDocuments().then( () => docDialog.showModal() );
+		}
 	}
-	if ( canvas ) {
-		document.getElementById( 'mode-form' ).addEventListener( 'click', () => setMode( false ) );
-		document.getElementById( 'mode-visual' ).addEventListener( 'click', () => setMode( true ) );
-		document.getElementById( 'width-desktop' ).addEventListener( 'click', function() { canvas.classList.remove( 'canvas-mobile' ); this.setAttribute( 'aria-pressed', 'true' ); document.getElementById( 'width-mobile' ).setAttribute( 'aria-pressed', 'false' ); } );
-		document.getElementById( 'width-mobile' ).addEventListener( 'click', function() { canvas.classList.add( 'canvas-mobile' ); this.setAttribute( 'aria-pressed', 'true' ); document.getElementById( 'width-desktop' ).setAttribute( 'aria-pressed', 'false' ); } );
-		form.addEventListener( 'input', function() { updateState(); if ( visualMode ) { scheduleRefresh(); } } );
-		form.addEventListener( 'change', updateState );
+	function switchEditorView( visual ) {
+		if ( ! cacheDraft() ) { return; }
+		try {
+			sessionStorage.setItem( 'wp-editor-handoff', key );
+			location.assign( editorViewAddress( visual ) );
+		} catch ( error ) { announce( 'Save your changes before switching editors; browser draft storage is unavailable.' ); }
+	}
+	function editorViewAddress( visual ) {
+		const address = new URL( location.href );
+		address.searchParams.delete( 'updated' );
+		address.searchParams.delete( 'created' );
+		if ( visual ) { address.searchParams.set( 'editor', 'visual' ); }
+		else { address.searchParams.delete( 'editor' ); }
+		return address.href;
+	}
+	function editorSnapshot() {
+		return JSON.stringify( Array.from( new FormData( form ) ).filter( ( [ name ] ) => name !== '_wpnonce' ) );
+	}
+	function restoreEditorDraft( data ) {
+		Object.entries( data ).forEach( restoreDraftField );
+		parse();
+		document.getElementById( 'draft-recovery' ).classList.add( 'hidden' );
 		updateState();
+	}
+	function restoreDraftField( [ name, value ] ) {
+		if ( name === 'term_ids[]' ) {
+			const values = Array.isArray( value ) ? value : [ value ];
+			form.querySelectorAll( 'input[name="term_ids[]"]' ).forEach( input => { input.checked = values.includes( input.value ); } );
+			return;
+		}
+		const control = form.elements.namedItem( name );
+		if ( control && 'value' in control ) { control.value = value; }
+	}
+	if ( canvas && options.postEditor ) {
+		document.getElementById( 'mode-visual' ).addEventListener( 'click', () => switchEditorView( true ) );
+		document.getElementById( 'mode-form' ).addEventListener( 'click', () => switchEditorView( false ) );
+		form.addEventListener( 'input', updateState );
+		form.addEventListener( 'change', updateState );
 	}
 	parse();
 	if ( ! options.postEditor ) { return; }
@@ -392,10 +353,21 @@
 		if ( saved ) {
 			const data = JSON.parse( saved );
 			if ( data.post_content !== raw.value || data.post_title !== form.elements.post_title.value ) { document.getElementById( 'draft-recovery' ).classList.remove( 'hidden' ); }
-			document.getElementById( 'restore-draft' ).addEventListener( 'click', function() { Object.entries( data ).forEach( ( [ name, value ] ) => { if ( name === 'term_ids[]' ) { const values = Array.isArray( value ) ? value : [ value ]; form.querySelectorAll( 'input[name="term_ids[]"]' ).forEach( input => { input.checked = values.includes( input.value ); } ); return; } const control = form.elements.namedItem( name ); if ( control && 'value' in control ) { control.value = value; } } ); parse(); document.getElementById( 'draft-recovery' ).classList.add( 'hidden' ); announce( 'Browser draft restored. Review it before saving.' ); } );
+			document.getElementById( 'restore-draft' ).addEventListener( 'click', () => { restoreEditorDraft( data ); announce( 'Browser draft restored. Review it before saving.' ); } );
+			if ( sessionStorage.getItem( 'wp-editor-handoff' ) === key ) { restoreEditorDraft( data ); sessionStorage.removeItem( 'wp-editor-handoff' ); }
 		}
 		document.getElementById( 'discard-draft' ).addEventListener( 'click', function() { sessionStorage.removeItem( key ); document.getElementById( 'draft-recovery' ).classList.add( 'hidden' ); } );
 	} catch ( error ) { /* A storage failure cannot prevent editing or server saves. */ }
+	if ( form.dataset.editorView === 'visual' ) {
+		workspace = mountVisualWorkspace( {
+			form, root, raw, canvas, read: () => documentState, isValid: () => valid,
+			title: () => form.elements.post_title.value,
+			setTitle: value => { form.elements.post_title.value = value; form.elements.post_title.dispatchEvent( new Event( 'input', { bubbles: true } ) ); },
+			apply: applyWorkspaceChange, select: selectWorkspaceBlock, pick: pickWorkspaceAsset,
+			announce, sanitizeInline: safeInline
+		} );
+		if ( ! valid ) { workspace.showRawEditor(); }
+	}
 	}
 	const postForm = document.getElementById( 'post-editor' );
 	if ( postForm ) {

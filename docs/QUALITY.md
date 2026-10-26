@@ -60,3 +60,11 @@ blank-install rerun, each discovered defect, first failures, and the 78 local
 HTTPS checks through real nginx/Apache and PHP-FPM. The local run uses root
 identities and a test certificate. It supplements the fixture checks; it does
 not close J1 production certification.
+
+## v0.0.2 Visual Builder
+
+`npm run test:builder` checks the pure document operations without a browser or database. It covers immutable updates, nested movement, ordering, descendant-cycle refusal, invalid positions, maximum depth/block count, independent copies and media-reference preservation. CI runs it alongside JavaScript syntax and browser checks.
+
+The browser suite exercises direct canvas text/caption editing, selection formatting, caret retention across the preview debounce, unsaved handoff in both directions, drag-and-drop into a column, duplication, undo/redo, image selection, new-page creation, saving, raw-input recovery and responsive drawers at 320px/390px. It verifies that page styles retain their public scale and that iframe scripts stay disabled.
+
+The HTTP smoke suite includes builder read isolation, capability and CSRF checks, view-preserving form actions and rendering at every nested column boundary. [The verification record](reviews/V0_0_2_BUILDER_REVIEW.md) retains the initial iframe, drawer and resize-timing failures.

@@ -8,13 +8,14 @@ global $wpdb, $post, $post_type, $plural, $error, $form;
 $is_new = null === $post;
 $nonce_action = $is_new ? 'create:' . $post_type : 'post:' . $post['id'];
 $action_url = $is_new ? 'post-new.php?post_type=' . $post_type : 'post.php?post=' . $post['id'];
+$action_url .= ! empty( $admin_builder_mode ) ? '&editor=visual' : '';
 wp_admin_notice( $error, true );
 if ( isset( $_GET['updated'] ) || isset( $_GET['created'] ) ) {
 	wp_admin_notice( 'Content saved.' );
 }
 $media_items = $wpdb->get_results( "SELECT * FROM media WHERE kind='image' AND state='ready' AND (id=:selected OR id IN (SELECT id FROM media ORDER BY id DESC LIMIT 100)) ORDER BY id DESC", [ ':selected' => (int) $form['featured_media_id'] ] );
 ?>
-<div class="editor-grid"><form id="post-editor" class="editor-form" method="post" action="<?php echo esc_url( $action_url ); ?>" data-draft-key="<?php echo esc_attr( get_current_user_id() . ':' . ( $post['id'] ?? 'new-' . $post_type ) ); ?>" data-saved="<?php echo isset( $_GET['updated'] ) || isset( $_GET['created'] ) ? '1' : '0'; ?>">
+<div class="editor-grid"><form id="post-editor" class="editor-form" method="post" action="<?php echo esc_url( $action_url ); ?>" data-editor-view="<?php echo ! empty( $admin_builder_mode ) ? 'visual' : 'form'; ?>" data-draft-key="<?php echo esc_attr( get_current_user_id() . ':' . ( $post['id'] ?? 'new-' . $post_type ) ); ?>" data-saved="<?php echo isset( $_GET['updated'] ) || isset( $_GET['created'] ) ? '1' : '0'; ?>">
 <?php wp_nonce_field( $nonce_action ); ?><input type="hidden" name="post_type" value="<?php echo esc_attr( $post_type ); ?>" />
 <?php if ( ! $is_new ) :
 	?><input type="hidden" name="ID" value="<?php echo (int) $post['id']; ?>" /><input type="hidden" name="expected_revision" value="<?php echo esc_attr( $form['expected_revision'] ); ?>" /><?php
@@ -70,4 +71,7 @@ endif; ?>
 </div>
 <dialog id="media-picker" aria-labelledby="media-picker-title"><div class="toolbar"><h2 id="media-picker-title">Choose an image</h2><button type="button" id="close-media-picker">Close</button></div><div class="inline-form"><label for="media-picker-search">Search images</label><input id="media-picker-search" type="search" /><button id="media-picker-search-button" type="button">Search images</button></div><div id="media-picker-items" class="media-grid"></div><button id="media-picker-more" type="button" class="hidden">Load more images</button><p><a href="media.php" target="_blank" rel="noopener">Upload or manage media ↗</a></p></dialog>
 <dialog id="document-picker" aria-labelledby="document-picker-title"><div class="toolbar"><h2 id="document-picker-title">Choose a document</h2><button type="button" id="close-document-picker">Close</button></div><div class="inline-form"><label for="document-picker-search">Search documents</label><input id="document-picker-search" type="search" /><button id="document-picker-search-button" type="button">Search documents</button></div><div id="document-picker-items" class="media-grid"></div><button id="document-picker-more" type="button" class="hidden">Load more documents</button><p><a href="media.php?kind=documents" target="_blank" rel="noopener">Upload or manage documents ↗</a></p></dialog>
-<script src="js/page-builder.js" defer></script>
+<?php if ( ! empty( $admin_builder_mode ) ) : ?>
+<template id="builder-canvas-head"><?php wp_head(); ?></template>
+<?php endif; ?>
+<script type="module" src="js/page-builder.js"></script>
