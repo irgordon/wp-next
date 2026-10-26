@@ -1,0 +1,10 @@
+/* Theme Name: Studio | Version: 1.0.0 */
+@import url("../../assets/site.css");
+
+.site-header { border-bottom: 4px solid var(--accent); }
+.site-brand { font-size: 26px; text-transform: uppercase; letter-spacing: .04em; }
+.entry-title { font-family: var(--font-editorial); }
+.archive-entry { display: grid; grid-template-columns: 1fr; gap: 8px; border-bottom: 2px solid var(--ink); }
+.entry-meta { letter-spacing: .08em; text-transform: uppercase; }
+.page-entry { padding: 24px 0; }
+.site-footer { border-top: 4px solid var(--accent); }

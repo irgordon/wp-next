@@ -1,0 +1,130 @@
+# Changelog
+
+## v0.0.0
+
+Consolidated development history from the initial documented application through October 26, 2026. All work below belongs to v0.0.0. Dates identify recorded build activity, not separate version releases. The approved v1.0.0 scope remains a delivery target; approval does not mean every scoped feature is implemented or certified.
+
+This file replaces the previously split current/history changelogs and their retrospectively assigned intermediate versions. Detailed rationale, evidence and corrections remain in [the review records](docs/reviews/) and [approved decisions](docs/adr/).
+
+### October 26, 2026
+
+#### Added
+
+- Image tools and media lineage in schema 7. Edited copies and derived variants have their own records, retain the source owner's attribution and do not grant additional access.
+- Fixed image variants: a focal-point-driven thumbnail up to 150 × 150 pixels and aspect-preserving widths of 600 and 1200 pixels. Generation never upscales; smaller masters produce valid smaller outputs.
+- Crop and rotate operations that create a new sanitized master and its variants. Existing media and references remain unchanged until an explicit replacement is applied.
+- Reviewable image replacement with affected-content counts and permission checks for every target. Current featured images and image blocks may be updated; shared-section replacements become design drafts for normal publication. Avatars, the site logo and historical revisions retain their selected assets.
+- Responsive `srcset` and `sizes` output for ready image variants and masters, with site-local URL validation in the sanitizer.
+- Separate reporting of registered master, variant and document bytes alongside physical storage usage in the media library and CLI status.
+- Visual mode in the Post/Page block editor, using the public block renderer through an authenticated, action-nonce-protected preview endpoint. Canvas selection works with mouse and keyboard; the Block settings inspector reuses existing editing fields.
+- Canvas insertion, movement and removal, including nested columns; desktop/mobile preview widths; visible saved, unsaved, draft and published state.
+- Block editing for shared header/footer sections, retaining design drafts and explicit publication.
+- Structured menu forms with labels, addresses, nesting levels, ordering and add/remove/move controls. Order fields remain usable without JavaScript.
+- Private stylesheet drafts with save, session-bound preview, explicit publication, discard and retained input on publication conflict. Design and file histories remain independently restorable.
+- Approved scope and deployment requirements covering media tools, live editing, CSS drafts, account lifecycle, native/WordPress imports, publishing metadata and nginx/Apache with PHP-FPM. Remaining approved work is tracked as scope, not listed here as delivered functionality.
+- Image regression coverage for variants, dimensions, focal cropping, edited copies, replacement boundaries, interrupted generation, quota release and backup restoration of related assets.
+- Account email in schema 8: administrator-configured SMTP (settings or `WP_MAIL_*` environment variables) with the recorded delivery result shown to administrators, email invitations, neutral password recovery, and optional single-use sign-in links that stay off until enabled. Links are purpose-bound, hashed at rest, expiring, rate-limited, and never consumed by opening them; completion is always an explicit step. Usernames are suggested from the email local part, collisions get a numeric suffix, and the suggestion can be customized when accepting. `bin/wp user:reset-link` provides operator recovery when mail is unavailable.
+- Separately confirmed user deletion: a dedicated confirmation shows the account's content counts and requires an existing enabled reassignment target. Posts and media are reassigned, never cascade-deleted; sessions and account tokens are revoked in the same transaction; a minimal audit tombstone (user id, username, reassignment target, counts) remains, without contact or profile fields.
+- Account regression coverage: 60 checks against a local SMTP sink covering invitations, derivation collisions, neutral recovery, scanner-safe links, session revocation, rate limiting, disable/re-enable, deletion/reassignment, and honest delivery-failure reporting.
+
+#### Changed
+
+- Organized governing/operator documentation at `docs/`, decision records at `docs/adr/`, and build/review records at `docs/reviews/`.
+- Consolidated all application change history into this single v0.0.0 changelog and updated the documentation index accordingly.
+- Extended backups, reference checks and deletion handling to understand image families. Incomplete variant generation is recovered from its retained source/instructions or removed with quota release and an audit event.
+- Reconciled the maintained status documentation (root README, documentation index, INSTALL, QUALITY, ARCHITECTURE) to the current schema 8 build, including the enabled document library and account features. Historical review records are unchanged.
+
+#### Fixed
+
+- Cached File links are invalidated when routing changes can transfer a `/documents/{id}` address between a document and a Post. Relevant changes include permalink settings/history, publication, creation, author/category/slug changes, trash/restore and category slug changes.
+- Render-generation checks reject work prepared before a routing change. A second change also fences work for a Post whose cached render was already invalidated.
+- Structured menu arrays no longer pass through a string-only form merge that made design saves fail.
+- The HTTP smoke test now counts master images rather than all media records after variants were introduced.
+- The documented nginx PHP allowlist now includes `wp-admin/block-preview.php`; the visual editor's preview endpoint previously returned 404 before PHP could execute. The nginx fixture asserts that allowlisted endpoints reach the configured FastCGI handler, with media.php as the positive control; the fixture has no live FPM backend, so this proves routing, not FPM success.
+- CI now invokes `composer test:images` and `composer test:accounts`; both suites previously ran only locally.
+
+#### Verification Corrections
+
+- The original B1 report incorrectly listed the complete HTTP smoke suite as passing. It had stopped at the outdated media-count assertion; later checks had not run. The assertion was corrected, and the full 53-check suite subsequently completed with exit 0. The correction remains recorded in the B1 and C1/D1 review documents.
+- Preserve individual tool results, initial failures, causes and reruns. A successful rerun does not erase an earlier tool, environment or harness failure.
+
+### October 25, 2026
+
+#### Added
+
+- Asset lifecycle foundation in schema 5: stage bytes, register a pending record, promote verified bytes and mark the record ready.
+- Protected, content-addressed document storage. Private access is restricted to the owner and media managers; inaccessible document requests receive a uniform 404.
+- Shared reentrant storage locking for storage writers and backup reads, atomic registration quota checks, deferred recovery, and cleanup restricted to canonical unreferenced blobs after a 24-hour grace period. Unknown files and symlinks are preserved during cleanup.
+- Document intake for PDF, TXT, Markdown and CSV up to 25 MiB. Canonical format comes from the extension; detected MIME, PDF signature and UTF-8/no-NUL checks provide the accepted validation evidence.
+- Document library with access-filtered listing/search/picker results, visibility controls, reference-guarded removal and explicit unscanned-download labels.
+- Routed document delivery with per-request authorization, `no-store`, `nosniff` and attachment disposition for successful downloads. Missing, incomplete and inaccessible documents share the refusal contract.
+- File blocks with document-access checks at save and again inside insert/update transactions. Publication requires public documents; rendering omits inaccessible File blocks while retaining surrounding content.
+- Per-file XHR upload results and a multiple-file classic form fallback. A rejected file does not roll back files that succeeded.
+- Backups containing hash-verified ready documents from protected storage. Missing, corrupt or invalid ready paths fail loudly and identify the asset.
+- Explicit incomplete-backup semantics: pending registrations are identified in the manifest and excluded from recoverable-file counts. Restore can lose bytes from an upload registered before promotion; maintenance removes unrecoverable records, releases quota and audits the loss.
+- Theme manifests, renderer contracts and standard/wide/landing Page templates in schema 6.
+- Versioned design drafts, session-bound private previews, explicit publication, immutable published history and rollback. A separate trusted-theme health process renders against a private database snapshot before publication, followed by version, authority and source-fingerprint rechecks.
+- Shared header/footer sections and nested header/footer menus, with the legacy Page-navigation fallback retained.
+- Administrator-managed `custom.css` and `site-notice.txt`, stored as versioned logical files rather than deployed source. Fixed types, a documented CSS subset, expected-version checks, rollback and `no-store` delivery protect the editing contract.
+
+#### Changed
+
+- Image intake uses the serialized asset pipeline; dedupe and image consumers require ready image records.
+- File-backed SQLite connections request and verify WAL. The explicit 3000 ms busy timeout is applied before requesting WAL, making that request follow the application's policy rather than the PDO driver's prior timeout. The order itself is not claimed to be what makes backups capture WAL commits.
+- Theme publication explicitly requires tokenizer and a reachable PHP CLI through `proc_open`; `WP_PHP_CLI` selects the executable when needed.
+- New permalink structures cannot reserve the literal `documents` application prefix. Compatible historical structures retain resolution, with document links using the query fallback where the pretty route belongs to a Post.
+- Document and image quotas account for registered bytes; physical storage, staging and retained unreferenced bytes are separate quantities.
+
+#### Fixed
+
+- Editor sidebar placement on long content and the layout impact of draft-recovery notices. Summary and revision history sit with publishing controls while restore forms retain valid form ownership.
+- Recovery retains a pending record and its quota when promotion is temporarily blocked, then retries when storage becomes available. It unwinds only unrecoverable bytes-absent registrations.
+- Image reuse cannot be satisfied by a document record over the same bytes.
+- Document picker parameters consistently select the Documents branch.
+- Array upload field names preserve multiple selected files without JavaScript; both form and XHR paths use the correct shape.
+- JSON Content-Type is emitted as a valid single-line header; regression tests check response headers as well as bodies.
+- Making a File reference inaccessible no longer substitutes an error for the entire Post body.
+- Visibility changes invalidate dependent renders and fence stale worker results in the same transaction.
+- Document routing recognizes Post ownership under historical and dynamic permalink structures instead of relying only on a literal current prefix.
+- Draft and published writes recheck document access for the acting author under the write lock, closing the preflight-to-commit reference race.
+- Document dedupe verifies canonical stored bytes before reporting success. Reupload can repair missing bytes through the lifecycle; corrupt content-addressed bytes produce an explicit integrity refusal.
+- Backup and document delivery share canonical document-path validation, including symlinked root, prefix and final-file refusal.
+- Deployment upload allowances match the 25 MiB per-file document ceiling: PHP 26M per file/32M POST and nginx 32m, with larger total allowances needed for large classic-form batches.
+
+### October 24, 2026
+
+#### Added
+
+- Initial PHP 8.4+ and SQLite publishing application: Posts, Pages, block content, revisions, raster media, search, a blog front end and web installation.
+- Transactional schema upgrades, initially progressing through schema 2; Studio theme; a durable outbox/job queue, bounded worker and `bin/wp` operator commands.
+- Per-install random authentication secret, opaque hashed sessions, expiry and server-side revocation. The runtime directory is configurable and defaults to in-tree `var/`; an external private directory is recommended rather than assumed.
+- WordPress.org-inspired administration styling using the supplied Blueberry/charcoal palette, local Inter and EB Garamond fonts, shared styles and collapsible mobile navigation.
+- Configurable permalink presets and custom structures, retained structure history, canonical redirects and a post-name default. These replace the earlier validated month/day alias-only change; Pages retain their separate routing rules.
+- Image decoding/re-encoding to strip metadata, preserve supported orientation and reject unsupported or incomplete raster inputs. Published image content uses local uploads.
+- Content Trash, restore to the prior status and separately confirmed permanent deletion from Trash, with in-transaction permissions and dependent revision/job handling.
+- Sortable content lists, All/Trash counts, touch/hover actions, Quick Edit with conflict checks and inline deletion confirmation.
+- Stepped installation wizard and a full-height administration sidebar with accessible profile/logout controls.
+- User profiles in schema 4: display names, biographies, websites, local avatars and opt-in public author archives that exclude private account data.
+- Hierarchical categories, flat tags, public archives and category-based permalinks. Assignments participate in revisions and draft recovery.
+- Locked development checks for PHP syntax, PHPStan level 5, the configured PHPCS subset, actual HTTP workflows, browser authoring and server rules, with CI configuration.
+
+#### Fixed
+
+- Initial authorization and persistence boundaries, including draft isolation, separate Page capabilities, CSRF enforcement, session revocation, transactional slug collisions, real 404 behavior and durable queued work.
+- Migration completion, deleted-ID reuse and Trash revision handling.
+
+#### Security
+
+- Enforced the PHP version floor; action-bound CSRF on mutations; consistent security headers and safe error handling.
+- Added an atomic per-IP login budget reserved before expensive password verification, alongside account/IP controls.
+- Added virtual-host protections that do not depend on Apache honoring `.htaccess`, static upload headers, nginx login rate limiting, strict URL handling and content sanitization.
+
+### Open Findings And Verification Limits
+
+These are retained from the latest independent rollup review. The first three findings, and the account work listed last, were addressed by the subsequent build recorded above on the same date; the rest remain open.
+
+- Corrected: the nginx allowlist omission, the stale status text, and the missing CI suites (see Fixed and Changed above).
+- Delivered: SMTP, invitations, password recovery, optional sign-in links, and user deletion/reassignment (E1/F1; see Added above).
+- An intermittent theme-settings HTTP check failed once in an earlier run. Later passes have not established its cause; the failure remains unresolved.
+- Static Apache/nginx fixture passes and PHP development-server/browser passes do not certify the required PHP-FPM, TLS and production proxy integration under J1.
+- Native and WordPress import/export (G2) and publishing metadata (H1) remain approved v1.0.0 work. They are not claimed as delivered by this log.

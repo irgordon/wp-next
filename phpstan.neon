@@ -1,0 +1,15 @@
+parameters:
+    level: 5
+    phpVersion: 80400
+    paths:
+        - wp-includes
+        - wp-admin
+        - wp-content/themes
+        - wp-config.php
+        - index.php
+        - wp-cron.php
+        - bin
+    tmpDir: var/cache/phpstan
+    dynamicConstantNames:
+        - WP_INSTALLING
+        - WP_MAINTENANCE_COMMAND

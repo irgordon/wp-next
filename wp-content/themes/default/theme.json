@@ -1,0 +1,19 @@
+{
+  "slug": "default",
+  "name": "Default",
+  "version": "1.0.0",
+  "requires": "1",
+  "templates": {
+    "standard": "page.php",
+    "wide": "page-wide.php",
+    "landing": "page-landing.php"
+  },
+  "tokens": [
+    "accent",
+    "background",
+    "width",
+    "font",
+    "body_size",
+    "spacing"
+  ]
+}

@@ -1,0 +1,36 @@
+name: Quality
+on: [push, pull_request]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, libxml, pdo_sqlite, fileinfo, gd, exif, phar, simplexml, tokenizer, xmlreader, xmlwriter
+          tools: composer:v2
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: composer install --no-interaction --prefer-dist
+      - run: composer check
+      - run: composer test:assets
+      - run: composer test:design
+      - run: composer test:documents
+      - run: composer test:images
+      - run: composer test:accounts
+      - run: composer test:http
+      - run: python3 tests/permalinks-http.py
+      - run: python3 tests/profiles-taxonomy-http.py
+      - run: python3 tests/upgrade-smoke.py
+      - run: python3 tests/migration-regressions.py
+      - run: sudo apt-get update && sudo apt-get install -y apache2 nginx
+      - run: python3 tests/server-hardening.py nginx
+      - run: python3 tests/apache-hardening.py apache2 /usr/lib/apache2/modules
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run check:js
+      - run: npm run test:browser

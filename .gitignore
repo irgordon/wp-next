@@ -1,0 +1,8 @@
+/vendor/
+/.env
+/var/*
+!/var/.htaccess
+
+/node_modules/
+/wp-content/uploads/*
+/qa/

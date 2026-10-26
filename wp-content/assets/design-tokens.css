@@ -1,0 +1,60 @@
+@font-face {
+  font-family: Inter;
+  src: url("fonts/inter-italic.woff") format("woff");
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: "EB Garamond";
+  src: url("fonts/eb-garamond-italic.woff") format("woff");
+  font-style: italic;
+  font-weight: 400 800;
+  font-display: swap;
+}
+/* Values transcribed from the supplied WordPress.org Design Library screenshots. */
+@font-face {
+  font-family: Inter;
+  src: url("fonts/inter.woff") format("woff");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: "EB Garamond";
+  src: url("fonts/eb-garamond.woff") format("woff");
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+}
+:root {
+  --blue-dark: #1d35b4;
+  --blue-deep: #213fd4;
+  --blue: #3858e9;
+  --blue-2: #9fb1ff;
+  --blue-3: #c7d1ff;
+  --blue-4: #eff2ff;
+  --charcoal-0: #1a1919;
+  --charcoal: #1e1e1e;
+  --charcoal-2: #23282d;
+  --charcoal-3: #40464d;
+  --charcoal-4: #656a71;
+  --charcoal-5: #979aa1;
+  --gray: #d9d9d9;
+  --gray-light: #f6f6f6;
+  --white: #fff;
+  --red: #e26f56;
+  --red-2: #ffb7a7;
+  --red-3: #ffe9de;
+  --green: #33f078;
+  --green-2: #c7ffdb;
+  --green-3: #e2ffed;
+  --yellow: #fff972;
+  --yellow-2: #fffcb5;
+  --yellow-3: #fffdd6;
+  --nero: #1c2024;
+  --border-dark: rgb(30 30 30 / 15%);
+  --border-light: rgb(255 255 255 / 15%);
+  --font-ui: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-editorial: "EB Garamond", Georgia, serif;
+}

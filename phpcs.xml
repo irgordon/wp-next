@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<ruleset name="WordPress Next Formatting">
+    <description>WordPress formatting subset. Not a full WPCS compliance claim.</description>
+    <arg name="extensions" value="php"/>
+    <arg name="tab-width" value="4"/>
+    <file>wp-includes</file>
+    <file>wp-admin</file>
+    <file>wp-content/themes</file>
+    <file>wp-config.php</file>
+    <file>index.php</file>
+    <file>wp-cron.php</file>
+    <file>bin/wp-cli.php</file>
+    <rule ref="WordPress.WhiteSpace"/>
+    <rule ref="WordPress.Arrays"/>
+    <rule ref="WordPress.PHP.YodaConditions"/>
+    <rule ref="Generic.Formatting.DisallowMultipleStatements"/>
+    <rule ref="Squiz.ControlStructures.ControlSignature"/>
+    <rule ref="Squiz.Functions.MultiLineFunctionDeclaration"/>
+    <rule ref="Generic.Files.LineEndings"/>
+    <rule ref="Squiz.WhiteSpace.ScopeClosingBrace"/>
+    <rule ref="Generic.WhiteSpace.ScopeIndent"><properties><property name="tabIndent" value="true"/><property name="exact" value="true"/></properties></rule>
+</ruleset>

@@ -1,0 +1,80 @@
+<?php
+/** Read authorization precedes both editor rendering and mutation handling. */
+declare( strict_types=1 );
+require_once __DIR__ . '/admin.php';
+global $wpdb;
+$id = (int) wp_input( $_GET, 'post', wp_input( $_POST, 'ID' ) );
+$post = $wpdb->get_row( 'SELECT * FROM posts WHERE id=:id', [ ':id' => $id ] );
+if ( null === $post ) {
+	wp_die( 'The requested content does not exist.', 'Not found', [ 'response' => 404 ] );
+}
+if ( ! current_user_can( 'edit_post', $id ) ) {
+	wp_die( 'You cannot read or edit this draft.', 'Access denied', [ 'response' => 403 ] );
+}
+$post_type = $post['post_type'];
+$plural = 'page' === $post_type ? 'pages' : 'posts';
+$error = '';
+$form = [
+    'page_template'     => (json_decode($post['metadata'] ?? '{}',true)['page_template'] ?? 'standard'),
+	'term_ids'          => wp_post_term_ids( $id, $wpdb ),
+	'post_title'        => $post['title'],
+	'post_name'         => $post['slug'],
+	'post_content'      => $post['content_raw'],
+	'post_excerpt'      => $post['excerpt'],
+	'post_status'       => $post['status'],
+	'featured_media_id' => (string) ( $post['featured_media_id'] ?? '' ),
+	'expected_revision' => (string) $post['revision']
+];
+if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
+	wp_require_post( 'post:' . $id );
+	$action = wp_input( $_POST, 'action', 'update' );
+	if ( 'restore' === $action ) {
+		$revision = $wpdb->get_row( 'SELECT snapshot FROM post_revisions WHERE id=:revision AND post_id=:id', [
+			':revision' => (int) wp_input( $_POST, 'revision_id' ),
+			':id'       => $id
+		] );
+		if ( null === $revision ) {
+			$error = 'The selected revision does not exist.';
+		} else {
+			$snapshot = json_decode( $revision['snapshot'], true );
+			$form = [
+                'page_template'     => (json_decode($snapshot['metadata'] ?? '{}',true)['page_template'] ?? 'standard'),
+				'term_ids'          => $snapshot['term_ids'] ?? wp_post_term_ids( $id, $wpdb ),
+				'post_title'        => $snapshot['title'],
+				'post_name'         => $snapshot['slug'],
+				'post_content'      => $snapshot['content_raw'],
+				'post_excerpt'      => $snapshot['excerpt'] ?? '',
+				'post_status'       => $snapshot['status'],
+				'featured_media_id' => (string) ( $snapshot['featured_media_id'] ?? '' ),
+				'expected_revision' => wp_input( $_POST, 'expected_revision' )
+			];
+		}
+	} else {
+		foreach ( $form as $key => $value ) {
+			if ( 'term_ids' === $key ) {
+				continue; 
+			}
+			$form[ $key ] = 'page_template' === $key ? wp_input( $_POST, $key, $value ) : wp_input( $_POST, $key );
+		}
+		$form['term_ids'] = isset( $_POST['terms_present'] ) ? ( is_array( $_POST['term_ids'] ?? [] ) ? $_POST['term_ids'] ?? [] : [ 'invalid' ] ) : $form['term_ids'];
+		if ( 'archive' === $action ) {
+			$form['post_status'] = 'archived';
+		}
+	}
+	if ( 'trashed' === $post['status'] && 'trashed' === $form['post_status'] ) {
+		$error = 'This content is in the Trash. Restore it from the list before editing it.';
+	}
+	if ( '' === $error ) {
+		$result = wp_update_post( $form + [ 'ID' => $id ] );
+		if ( is_wp_error( $result ) ) {
+			$error = $result->get_error_message();
+		} else {
+			wp_safe_redirect( 'post.php?post=' . $id . '&updated=1' );
+		}
+	}
+}
+$admin_page_title = 'Edit ' . ( 'page' === $post_type ? 'page' : 'post' );
+$admin_section = $post_type;
+require __DIR__ . '/admin-header.php';
+require __DIR__ . '/post-editor.php';
+require __DIR__ . '/admin-footer.php';

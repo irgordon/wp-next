@@ -1,0 +1,10 @@
+{
+  "name": "wordpress-next-editor-checks",
+  "private": true,
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "check:js": "node --check wp-admin/js/page-builder.js && node --check wp-admin/js/admin.js",
+    "test:browser": "node tests/browser.cjs"
+  },
+  "devDependencies": { "playwright": "1.62.1" }
+}
