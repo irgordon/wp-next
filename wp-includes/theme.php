@@ -375,6 +375,20 @@ function wp_head(): void
 	$description = $post['excerpt'] ?? $GLOBALS['wp_archive_description'] ?? get_option( 'site_tagline', '' );
 	$canonical = $GLOBALS['wp_canonical'] ?? wp_home_url();
 	echo '<meta name="description" content="' . esc_attr( $description ) . '" /><link rel="canonical" href="' . esc_url( $canonical ) . '" />';
+	echo '<link rel="alternate" type="application/rss+xml" title="' . esc_attr( (string) get_option( 'site_title', '' ) ) . '" href="' . esc_url( wp_discovery_feed_url() ) . '" />';
+	if ( wp_discovery_discouraged() || ! empty( $GLOBALS['wp_is_preview'] ) ) {
+		echo '<meta name="robots" content="noindex, nofollow" />';
+	}
+	if ( is_array( $post ) && 'published' === ( $post['status'] ?? '' ) && empty( $GLOBALS['wp_is_preview'] ) ) {
+		echo '<meta property="og:title" content="' . esc_attr( (string) $post['title'] ) . '" />';
+		echo '<meta property="og:description" content="' . esc_attr( (string) $description ) . '" />';
+		echo '<meta property="og:url" content="' . esc_url( (string) $canonical ) . '" />';
+		echo '<meta property="og:type" content="' . ( 'page' === ( $post['post_type'] ?? 'post' ) ? 'website' : 'article' ) . '" />';
+		$social_image = wp_discovery_social_image_url( $post );
+		if ( '' !== $social_image ) {
+			echo '<meta property="og:image" content="' . esc_url( $social_image ) . '" />';
+		}
+	}
 	echo '<link rel="stylesheet" href="' . esc_url( wp_home_url( '/wp-content/themes/' . wp_theme_slug() . '/style.css' ) ) . '" />';
 	$design = json_decode( (string) get_option( 'design_tokens', '{}' ), true ) ?: [];
 	$accent = preg_match( '/^#[a-fA-F0-9]{6}$/', $design['accent'] ?? '' ) ? $design['accent'] : '#3858e9';

@@ -69,6 +69,19 @@ with tempfile.TemporaryDirectory(prefix='wp-nginx-') as temp_name:
             except urllib.error.HTTPError as error: response=error
             assert response.status in (500,502), (endpoint, response.status)
             print('PASS: PHP endpoint reaches configured FastCGI handler:',endpoint,response.status)
+        # H1 discovery routes are front-controller routes: with no static file of
+        # that name in the docroot, try_files must hand /feed, /sitemap.xml and
+        # /robots.txt to /index.php and thus to the FastCGI handler (500/502
+        # here proves routing only). A stray static file would answer 200 and
+        # shadow the route, which this control exists to catch.
+        (site/'index.php').write_text('harmless fixture')
+        for route in ['feed','sitemap.xml','robots.txt']:
+            assert not (site/route).exists(), route
+            assert not (root/route).exists(), route
+            try: response=opener.open(f'http://127.0.0.1:{port}/{route}',timeout=5)
+            except urllib.error.HTTPError as error: response=error
+            assert response.status in (500,502), (route, response.status)
+            print('PASS: Discovery route reaches PHP through the front controller:',route,response.status)
         statuses=[]
         for _ in range(8):
             try: response=opener.open(f'http://127.0.0.1:{port}/wp-admin/login.php',data=b'',timeout=5)
@@ -76,7 +89,7 @@ with tempfile.TemporaryDirectory(prefix='wp-nginx-') as temp_name:
             statuses.append(response.status)
         assert 429 in statuses, statuses
         print('PASS: Login requests are rate-limited before any PHP backend is available')
-        print(f'{len(fixtures)+4} Nginx delivery/rate checks passed.')
+        print(f'{len(fixtures)+7} Nginx delivery/rate checks passed.')
     finally:
         process.terminate()
         process.wait(timeout=5)

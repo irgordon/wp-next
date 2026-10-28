@@ -3,8 +3,8 @@
 Accompanies the rollup of the current application state (October 26, 2026).
 This document began as packaging-level proposals. The October 26 rulings below
 are now approved implementation choices for the remaining scope. G2 was
-implemented on October 28, 2026 (see its section below); H1 is not
-implemented yet. Delivered fixes are recorded
+implemented on October 28, 2026 (see its section below); H1 was
+implemented the same day (see its section below). Delivered fixes are recorded
 in `CHANGELOG.md`; the approved scope remains in `docs/adr/V1_SCOPE.md`.
 The earlier gate counts below describe the supplied baseline, not the new
 verification run. See `docs/reviews/V0_0_1_VERIFICATION.md` for new evidence.
@@ -41,7 +41,7 @@ verification run. See `docs/reviews/V0_0_1_VERIFICATION.md` for new evidence.
 
 Open items carried in `CHANGELOG.md` (Open Findings): the intermittent
 theme-settings failure remains unresolved; real PHP-FPM + HTTPS certification
-(J1) is outstanding; H1 below is approved scope, not yet built.
+(J1) is outstanding.
 
 ## Delivered: G2 — native export/import + WordPress WXR importer
 
@@ -102,7 +102,16 @@ duplicates and suffix colliding slugs by default. Remote fetching stays off
 by default. These were the implementation requirements for the delivery
 recorded above.
 
-## Proposed: H1 — feeds, sitemap, metadata
+## Delivered: H1 — feeds, sitemap, metadata
+
+Delivered October 28, 2026: the engine in `wp-includes/discovery.php` with
+front-controller routes for `/feed`, `/sitemap.xml` and `/robots.txt`, the
+site-wide indexing option in General settings, Open Graph tags in the public
+head, and the per-entry social image picker in the editor Summary panel.
+Canonical addresses and the meta description already shipped and were
+audited, not rebuilt. The suite is `tests/discovery-http.py`
+(`composer test:discovery`, also in CI), and the server fixtures assert the
+three routes reach PHP on both stacks.
 
 Per §H1. Proposed design:
 
@@ -125,7 +134,7 @@ Per §H1. Proposed design:
 
 Approved October 26: latest 20 published public Posts, excerpt-only RSS,
 site-wide indexing control only for v1, and featured-image fallback for social
-images. Per-entry noindex is outside v1. These features remain to be built.
+images. Per-entry noindex is outside v1.
 
 ## Proposed: J1 — PHP-FPM certification on both stacks
 

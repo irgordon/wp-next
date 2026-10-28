@@ -67,6 +67,24 @@ exhaustion, exact-duplicate skipping, slug-collision suffixing, and resume
 of a completed archive without duplication. CI runs the suite alongside the
 other HTTP suites.
 
+## v0.0.4 Discovery
+
+`composer test:discovery` runs `tests/discovery-http.py` against a disposable
+site. It covers the named H1 tests individually: the feed holds exactly the
+latest 20 published Posts, excerpt-only, with display-name authorship;
+draft, archived, trashed and newly unpublished content is absent from both
+feed and sitemap; sitemap addresses are canonical under the default and a
+custom permalink structure; hostile titles and excerpts round-trip as inert
+text in the feed and the Open Graph tags; the social-image chain resolves
+override before featured image, emits nothing when neither is set, and can
+never emit a document; account email addresses appear in no discovery
+output; the site-wide discouragement option flips robots.txt and the robots
+meta in both directions while feed and sitemap stay reachable; and the
+pre-existing description/canonical output is pinned unchanged. The nginx
+and Apache fixtures additionally assert that `/feed`, `/sitemap.xml` and
+`/robots.txt` reach PHP through the front controller. CI runs the suite
+alongside the other HTTP suites.
+
 ## v0.0.1 Boundary Verification
 
 `composer test:accounts` now runs the original account suite and six additional

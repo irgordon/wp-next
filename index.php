@@ -17,6 +17,10 @@ $path = trim( rawurldecode( $path ), '/' );
 if ( 'index.php' === $path ) {
 	$path = '';
 }
+if ( in_array( $path, [ 'feed', 'sitemap.xml', 'robots.txt' ], true ) ) {
+	wp_discovery_serve( $path );
+	exit;
+}
 $pagination = $_GET['page'] ?? '1';
 if ( ! is_string( $pagination ) || ! preg_match( '/^[1-9][0-9]{0,8}$/D', $pagination ) ) {
 	http_response_code( 404 );
@@ -64,6 +68,7 @@ if ( $preview > 0 ) {
 		wp_die( 'You cannot preview this content.', 'Access denied', [ 'response' => 403 ] );
 	}
 	$post = $wpdb->get_row( 'SELECT * FROM posts WHERE id=:id', [ ':id' => $preview ] );
+	$GLOBALS['wp_is_preview'] = true;
 	header( 'Cache-Control: no-store, private' );
 } elseif ( $has_identity ) {
 	// Identity query routes belong at the site root; never override a wrong date path.

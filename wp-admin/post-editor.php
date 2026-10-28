@@ -14,7 +14,10 @@ wp_admin_notice( $error, true );
 if ( isset( $_GET['updated'] ) || isset( $_GET['created'] ) ) {
 	wp_admin_notice( ! empty( $admin_design_editor ) ? wp_design_page_save_notice( true, wp_input( $_GET, 'page_action' ), $post['status'] ) : 'Content saved.' );
 }
-$media_items = $wpdb->get_results( "SELECT * FROM media WHERE kind='image' AND state='ready' AND (id=:selected OR id IN (SELECT id FROM media ORDER BY id DESC LIMIT 100)) ORDER BY id DESC", [ ':selected' => (int) $form['featured_media_id'] ] );
+$media_items = $wpdb->get_results( "SELECT * FROM media WHERE kind='image' AND state='ready' AND (id=:selected OR id=:social OR id IN (SELECT id FROM media ORDER BY id DESC LIMIT 100)) ORDER BY id DESC", [
+	':selected' => (int) $form['featured_media_id'],
+	':social'   => (int) ( $form['social_image_id'] ?? 0 )
+] );
 ?>
 <div class="editor-grid"><form id="post-editor" class="editor-form" method="post" action="<?php echo esc_url( $action_url ); ?>" data-persisted-status="<?php echo esc_attr( $post['status'] ?? $form['post_status'] ); ?>" data-design-list-page="<?php echo ! empty( $admin_design_editor ) ? wp_design_page_list_position( $post ) : 0; ?>" data-design-embed="<?php echo ! empty( $admin_design_editor ) ? '1' : '0'; ?>" data-editor-view="<?php echo ! empty( $admin_builder_mode ) ? 'visual' : 'form'; ?>" data-draft-key="<?php echo esc_attr( get_current_user_id() . ':' . ( $post['id'] ?? 'new-' . $post_type ) ); ?>" data-saved="<?php echo isset( $_GET['updated'] ) || isset( $_GET['created'] ) ? '1' : '0'; ?>">
 <?php wp_nonce_field( $nonce_action ); ?><input type="hidden" name="post_type" value="<?php echo esc_attr( $post_type ); ?>" />
@@ -64,7 +67,10 @@ endif; ?></div>
 <?php if ( ! $is_new ) :
 	?><hr /><p class="description">Revision <?php echo (int) $post['revision']; ?> · <?php echo esc_html( $post_type ); ?></p><p><a href="<?php echo esc_url( 'post.php?post=' . $post['id'] ); ?>">Reload current version</a></p><p><a href="<?php echo esc_url( wp_post_url( $post ) ); ?>" target="_blank" rel="noopener">View public page ↗</a></p><?php
 endif; ?>
-<p><a href="edit.php?post_type=<?php echo esc_attr( $post_type ); ?>">Back to <?php echo esc_html( $plural ); ?></a></p></section><section class="panel"><h2>Summary</h2><label for="post_excerpt">Excerpt and search description</label><textarea id="post_excerpt" name="post_excerpt" rows="3"><?php echo esc_textarea( $form['post_excerpt'] ); ?></textarea></section><section class="panel" id="wp-visual-inspector-panel" hidden><h2>Block settings</h2><p class="description">Select a block on the canvas to change it here. The same settings appear in the form editor.</p><div id="wp-visual-inspector"></div></section></aside>
+<p><a href="edit.php?post_type=<?php echo esc_attr( $post_type ); ?>">Back to <?php echo esc_html( $plural ); ?></a></p></section><section class="panel"><h2>Summary</h2><label for="post_excerpt">Excerpt and search description</label><textarea id="post_excerpt" name="post_excerpt" rows="3"><?php echo esc_textarea( $form['post_excerpt'] ); ?></textarea>
+<div class="form-field"><label for="social_image_id">Social image</label><select id="social_image_id" name="social_image_id"><option value="">Use the featured image</option><?php $social_selected = (string) ( $form['social_image_id'] ?? '' ); foreach ( $media_items as $media ) :
+	?><option value="<?php echo (int) $media['id']; ?>" <?php echo (string) $media['id'] === $social_selected ? 'selected' : ''; ?>><?php echo esc_html( $media['original_name'] ); ?></option><?php
+																																								             endforeach; ?></select><p class="description">Image shown when this content is shared. Leave unset to fall back to the featured image.</p></div></section><section class="panel" id="wp-visual-inspector-panel" hidden><h2>Block settings</h2><p class="description">Select a block on the canvas to change it here. The same settings appear in the form editor.</p><div id="wp-visual-inspector"></div></section></aside>
 </form>
 <?php if ( ! $is_new ) :
 	$revisions = $wpdb->get_results( 'SELECT id,revision,created_at FROM post_revisions WHERE post_id=:id ORDER BY revision DESC LIMIT 30', [ ':id' => $post['id'] ] ); ?>

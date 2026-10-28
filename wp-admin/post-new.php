@@ -13,6 +13,7 @@ $error = '';
 $post = null;
 $form = [
     'page_template'     => 'standard',
+	'social_image_id'   => '',
 	'term_ids'          => [],
 	'post_title'        => '',
 	'post_name'         => '',

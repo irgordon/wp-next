@@ -41,6 +41,18 @@ with tempfile.TemporaryDirectory(prefix='wp-apache-') as directory:
                 assert response.headers.get('Cache-Control')=='public, max-age=31536000, immutable'
                 assert response.headers.get('Content-Type')=='image/png'
             print('PASS:',name,response.status)
-        print(len(fixtures),'Apache delivery checks passed with AllowOverride None.')
+        # H1 discovery routes are front-controller routes: the documented
+        # rewrite must hand /feed, /sitemap.xml and /robots.txt to index.php
+        # and thus to the PHP-FPM proxy (500/502/503 with no live backend
+        # proves routing only). A stray static file of that name in the
+        # docroot would be served directly (200) and shadow the route.
+        for route in ['feed','sitemap.xml','robots.txt']:
+            assert not (site/route).exists(), route
+            assert not (root/route).exists(), route
+            try:response=opener.open(f'http://127.0.0.1:{port}/{route}',timeout=5)
+            except urllib.error.HTTPError as error:response=error
+            assert response.status in (500,502,503),(route,response.status)
+            print('PASS: Discovery route reaches PHP through the front controller:',route,response.status)
+        print(len(fixtures)+3,'Apache delivery checks passed with AllowOverride None.')
     finally:
         process.terminate();process.wait(timeout=5)

@@ -20,6 +20,7 @@ $plural = 'page' === $post_type ? 'pages' : 'posts';
 $error = '';
 $form = [
     'page_template'     => (json_decode($post['metadata'] ?? '{}',true)['page_template'] ?? 'standard'),
+	'social_image_id'   => (string) ( json_decode($post['metadata'] ?? '{}',true)['social_image_id'] ?? '' ),
 	'term_ids'          => wp_post_term_ids( $id, $wpdb ),
 	'post_title'        => $post['title'],
 	'post_name'         => $post['slug'],
@@ -43,6 +44,7 @@ if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
 			$snapshot = json_decode( $revision['snapshot'], true );
 			$form = [
                 'page_template'     => (json_decode($snapshot['metadata'] ?? '{}',true)['page_template'] ?? 'standard'),
+				'social_image_id'   => (string) ( json_decode($snapshot['metadata'] ?? '{}',true)['social_image_id'] ?? '' ),
 				'term_ids'          => $snapshot['term_ids'] ?? wp_post_term_ids( $id, $wpdb ),
 				'post_title'        => $snapshot['title'],
 				'post_name'         => $snapshot['slug'],

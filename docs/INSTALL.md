@@ -149,6 +149,8 @@ Denial regexes must precede the PHP handler. Run `nginx -t` and actual requests.
 
 Live Site design preview posts to the existing `wp-admin/themes.php` route using a dedicated action-bound nonce. It returns private, non-cacheable JSON for a sandboxed `srcdoc` frame. No additional public PHP endpoint or relaxation of the site-wide frame-protection headers is required.
 
+The H1 discovery routes — `/feed`, `/sitemap.xml` and `/robots.txt` — are front-controller routes handled by `index.php`; they are not separate PHP entry points, so they need no allowlist entry: the `location /` `try_files` fallback (and the equivalent Apache rewrite) hands them to `index.php` like any other public path. Do not place static files named `feed`, `sitemap.xml` or `robots.txt` in the site root: under those rules a real file is served directly and shadows the route. Both server fixtures assert the three routes reach PHP and that the shipped tree contains no such file.
+
 Export / Import lives at `wp-admin/portability.php`, which the allowlist above includes; omitting it returns 404 before PHP runs. The screen is administrator-only, and export archives include private document bytes, so treat downloaded archives like backups. Import requires the PHP `zip` extension on the server; without it the screen reports the feature as unavailable and changes nothing. Uploaded archives are stored under the private data directory (`var/portability`) so an interrupted import can be resumed; prune that folder like other operator state.
 
 ## 4. Workers and housekeeping

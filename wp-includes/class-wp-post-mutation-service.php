@@ -64,6 +64,18 @@ class WP_Post_Mutation_Service {
         if ( 'page' === $type && is_array($metadata) && isset($metadata['page_template']) && ( ! is_string($metadata['page_template']) || ! isset(wp_curated_templates()[ $metadata['page_template'] ])) ) {
 			return new WP_Error('invalid_template','Choose an approved Page template.'); 
 		}
+		if ( array_key_exists( 'social_image_id', $input ) ) {
+			$social = (int) $input['social_image_id'];
+			if ( $social > 0 && null === $this->db->get_row( "SELECT id FROM media WHERE id=:id AND kind='image' AND state='ready'", [ ':id' => $social ] ) ) {
+				return new WP_Error( 'invalid_media', 'Select an existing social image.' );
+			}
+			$metadata = is_array( $metadata ) ? $metadata : [];
+			if ( $social > 0 ) {
+				$metadata['social_image_id'] = $social;
+			} else {
+				unset( $metadata['social_image_id'] );
+			}
+		}
 		$featured = (int) ( $input['featured_media_id'] ?? $snapshot['featured_media_id'] ?? 0 );
 		if ( $featured > 0 && null === $this->db->get_row( "SELECT id FROM media WHERE id=:id AND kind='image' AND state='ready'", [ ':id' => $featured ] ) ) {
 			return new WP_Error( 'invalid_media', 'Select an existing featured image.' );

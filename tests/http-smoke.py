@@ -151,7 +151,7 @@ with tempfile.TemporaryDirectory(prefix='wp-release-http-') as temp_name:
             public=dbrow(database,"SELECT * FROM posts WHERE slug='public-page'")
             status,body,_=admin.request('/public-page/')
             check(status==200 and 'Public body' in body and 'page-entry' in body,'Pretty Page route selects page template')
-            for path in ['/missing-route/','/feed/','/wp-json/']:
+            for path in ['/missing-route/','/atom/','/wp-json/']:
                 check(admin.request(path)[0]==404,'Unknown route has a real 404: '+path)
             status,_,headers=admin.request('/?slug=public-page')
             check(status==301 and headers.get('Location')==base+'/public-page/','Legacy slug URL redirects to canonical route')

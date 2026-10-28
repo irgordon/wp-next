@@ -12,6 +12,7 @@ $form = [];
 foreach ( [ 'site_title', 'site_tagline', 'site_url', 'admin_email', 'default_status' ] as $key ) {
 	$form[ $key ] = (string) get_option( $key, '' );
 }
+$form['discourage_search_engines'] = (string) get_option( 'discourage_search_engines', '0' );
 $mail_form = [];
 foreach ( [ 'mail_smtp_host', 'mail_smtp_port', 'mail_smtp_encryption', 'mail_smtp_username', 'mail_from_email', 'mail_from_name' ] as $key ) {
 	$mail_form[ $key ] = (string) get_option( $key, '' );
@@ -73,6 +74,7 @@ if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && ! isset( $_POST['mail_ac
 	foreach ( $form as $key => $value ) {
 		$form[ $key ] = wp_input( $_POST, $key );
 	}
+	$form['discourage_search_engines'] = '1' === wp_input( $_POST, 'discourage_search_engines' ) ? '1' : '0';
 	$url = wp_validate_site_url( $form['site_url'] );
 	if ( '' === trim( $form['site_title'] ) ) {
 		$error = 'Site title cannot be empty.';
@@ -117,7 +119,8 @@ wp_admin_field( 'site_url', 'Site address', $form['site_url'], 'url', 'The absol
 wp_admin_field( 'admin_email', 'Administration email', $form['admin_email'], 'email' ); ?>
 <div class="form-field"><label for="default_status">Default content status</label><select id="default_status" name="default_status"><?php foreach ( [ 'draft', 'published' ] as $status ) :
 	?><option <?php echo $status === $form['default_status'] ? 'selected' : ''; ?> value="<?php echo esc_attr( $status ); ?>"><?php echo esc_html( ucfirst( $status ) ); ?></option><?php
-																																	endforeach; ?></select></div><button type="submit">Save settings</button></form></section>
+																																	endforeach; ?></select></div>
+<div class="form-field"><label class="inline-checkbox"><input type="checkbox" name="discourage_search_engines" value="1" <?php echo '1' === $form['discourage_search_engines'] ? 'checked' : ''; ?> /> Discourage search engines from indexing this site</label><p class="description">Applies site-wide: every page carries a noindex robots meta tag and robots.txt disallows all crawling. The feed and sitemap remain available.</p></div><button type="submit">Save settings</button></form></section>
 <section class="panel"><h2>Mail</h2><form id="mail-settings" method="post"><?php wp_nonce_field( 'mail-settings' ); ?>
 <p>Account email — invitations, password recovery and sign-in links — uses SMTP when a host is set, and the server's PHP mail transport otherwise. Environment variables (WP_MAIL_SMTP_HOST and related) take precedence over these settings. Delivery failures are recorded, never reported as sent.</p>
 <?php if ( is_array( $mail_status ) ) :

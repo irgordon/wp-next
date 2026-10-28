@@ -1,30 +1,43 @@
 # Changelog
 
-## v0.0.3
+## v0.0.4
 
-Updated October 28, 2026. G2 portability: native export/import and the WordPress WXR importer. Schema remains 8; no schema change was needed.
+Updated October 28, 2026. H1 public discovery and metadata. Schema remains 8.
 
 ### Added
 
-- Native export/import in a versioned ZIP archive with a JSON manifest (`wpnext-portability`, format version 1): Posts, Pages, block and legacy-HTML content, categories/tags with hierarchy, authors, publication dates, slugs, metadata, featured media and referenced media, with media bytes content-addressed and deduplicated in the archive. The format and its compatibility rules are documented in [the portability format document](docs/PORTABILITY_FORMAT.md).
-- A WordPress WXR importer on the same pipeline: posts/pages, statuses, dates, slugs, authors, categories/tags, excerpts and attachment references, with attachment bytes supplied in a separate media archive matched by file name. WordPress-private items import as drafts with the downgrade reported; content that cannot become a native block is kept as sanitized legacy HTML.
-- Preflight before any import writes: item inventory, author mapping plan, duplicate and slug-collision outcomes, missing media, unsupported elements and a quota projection. Import runs only after a separate confirm step with its own nonce.
-- Per-item results and resumable runs: run state is keyed by archive digest plus author mapping in a site option, so re-running the same archive reports completed items as already imported instead of duplicating them. Exact duplicates are skipped; colliding slugs are suffixed `-imported`, then `-imported-2`, and so on.
-- The administrator screen at `wp-admin/portability.php` (registered in the Settings navigation group) and the `bin/wp export` / `bin/wp import` operator commands (preflight by default, `--commit` to run).
-- Archive and XML safety caps: entry count/size limits, refusal of absolute or parent-traversing entry paths, manifest count verification, and WXR parsing with network access and entity expansion disabled. Imported PHP, shortcodes and plugin data are never executed, and unsupported or missing items are reported per item rather than silently discarded.
-- The release-test suite `tests/portability-http.py` (`composer test:portability`, also in CI) covering the named G2 release tests individually: native round-trip, a representative WXR fixture, missing/unsupported reporting, hostile archive/XML inputs, quota exhaustion, slug collisions and exact duplicates, and interrupted-run resume.
+- RSS feed at `/feed`: the latest 20 published Posts, excerpt-only, canonical link/guid, RFC-822 dates, author display name (never an email address); a feed-discovery link in every public head.
+- XML sitemap at `/sitemap.xml`: home plus every published Post and Page at its canonical address, `lastmod` from the last update; the configured homepage is listed once, at the home address.
+- `robots.txt` response and a site-wide "Discourage search engines" setting in General settings: while on, public pages carry a `noindex, nofollow` robots meta and `robots.txt` disallows all crawling. Feed and sitemap remain available in both states.
+- Open Graph metadata on single published Posts and Pages (title, description, canonical URL, type, and image when one resolves), plus a per-entry social image override in the editor's Summary panel (ready images only; unset means the featured image is used).
+- Release-test suite `tests/discovery-http.py` (`composer test:discovery`, also in CI); the nginx and Apache fixtures gain positive controls for the three discovery routes.
 
 ### Changed
 
-- Unmapped authors become ordinary accounts with an unusable password (a hash of discarded random bytes); source role data is never carried into the target, and authorship is applied only through the import's explicit ID map.
-- Media enters only from the supplied archive through the normal intake validators, dedupe and quota; there is no remote fetching code path. Image masters are exported without their derived variants, which regenerate on import.
-- The nginx allowlist in [the installation document](docs/INSTALL.md) now includes `portability.php`, and the nginx fixture asserts it reaches the configured FastCGI handler like the other allowlisted endpoints (routing only, not an FPM claim).
-- `composer.json` declares the `ext-zip` requirement the importer uses; the lock file hash was refreshed without dependency changes.
+- Canonical addresses and the meta description already shipped; they were audited and are now pinned by regression checks rather than rebuilt. The excerpt remains the per-entry description source.
+- The discovery routes are front-controller routes in `index.php`, not new PHP entry points, so the nginx endpoint allowlist is unchanged.
 
-### Fixed During Verification
+Errors and deviations for this version are recorded in [the G2/H1 deviations ADR](docs/adr/G2_H1_DEVIATIONS.md).
 
-- The first WXR run failed because uploaded WordPress exports commonly carry a `.wxr` file name while the screen only recognized `.xml`; both extensions are now accepted in the admin screen and the CLI.
-- A quota-exhausted image initially reported as a generic registration failure, because the intake wraps its errors; the quota outcome is now surfaced as its own per-item result.
+## v0.0.3
+
+Updated October 28, 2026. G2 portability: native export/import and the WordPress WXR importer. Schema remains 8.
+
+### Added
+
+- Native export/import in a versioned ZIP archive with a JSON manifest (`wpnext-portability`, format version 1): Posts, Pages, block and legacy-HTML content, categories/tags, authors, dates, slugs, metadata, featured and referenced media, with media bytes content-addressed and deduplicated. Format contract: [the portability format document](docs/PORTABILITY_FORMAT.md).
+- A WordPress WXR importer on the same pipeline, with attachment bytes supplied in a separate media archive matched by file name; WordPress-private items import as drafts with the downgrade reported; non-block content is kept as sanitized legacy HTML.
+- Preflight before any import writes (inventory, author mapping, duplicate/collision outcomes, missing media, unsupported elements, quota projection); import runs only after a separately-nonced confirm. Per-item results and resumable runs keyed by archive digest plus author mapping; exact duplicates are skipped and colliding slugs are suffixed.
+- The administrator screen at `wp-admin/portability.php` and the `bin/wp export` / `bin/wp import` operator commands (preflight by default, `--commit` to run).
+- Release-test suite `tests/portability-http.py` (`composer test:portability`, also in CI) covering the named G2 release tests individually.
+
+### Changed
+
+- Unmapped authors become ordinary accounts with an unusable password; source role data is never carried into the target, and authorship applies only through the explicit ID map.
+- Media enters only from the supplied archive through the normal intake validators, dedupe and quota; there is no remote fetching code path. Image masters are exported without derived variants, which regenerate on import.
+- The nginx allowlist in [the installation document](docs/INSTALL.md) includes `portability.php`; `composer.json` declares the `ext-zip` requirement (lock hash refreshed, no dependency changes).
+
+Errors and deviations for this version are recorded in [the G2/H1 deviations ADR](docs/adr/G2_H1_DEVIATIONS.md).
 
 ## v0.0.2
 
@@ -218,4 +231,4 @@ This file replaces the previously split current/history changelogs and their ret
 The following remain open in the supplied package. Proposed work is not a delivered change.
 - An intermittent theme-settings HTTP check failed once in an earlier run. Later passes have not established its cause; the failure remains unresolved.
 - Static Apache/nginx fixture passes and PHP development-server/browser passes do not certify the required PHP-FPM, TLS and production proxy integration under J1.
-- Publishing metadata (H1) remains approved v1.0.0 work. It is not claimed as delivered by this log. Native and WordPress import/export (G2) is delivered in v0.0.3 above.
+- Publishing metadata (H1) is delivered in v0.0.4 above. Native and WordPress import/export (G2) is delivered in v0.0.3 above.
