@@ -449,10 +449,7 @@ function assembleWorkspace( context ) {
 	finishWorkspaceAssembly( context, sidebar );
 }
 function finishWorkspaceAssembly( context, sidebar ) {
-	context.saveButton = context.api.form.querySelector( 'button[type=submit][value=update]' );
-	const preview = context.api.form.querySelector( '.builder-page-settings .actions a' );
-	if ( preview ) { preview.className = 'button button-secondary'; moveInto( context, '.builder-save', preview ); }
-	moveInto( context, '.builder-save', context.saveButton );
+	placeWorkspaceActions( context );
 	moveInto( context, '.builder-save-state', document.getElementById( 'editor-state' ) );
 	moveInto( context, '.builder-feedback', document.getElementById( 'builder-status' ) );
 	document.getElementById( 'mode-form' ).textContent = '← Form editor';
@@ -462,6 +459,15 @@ function finishWorkspaceAssembly( context, sidebar ) {
 	context.api.form.querySelector( '.editor-main' ).classList.add( 'hidden' ); sidebar.classList.add( 'hidden' );
 	document.body.classList.add( 'builder-ready' );
 	query( context, '#builder-page-name' ).textContent = context.api.title() || 'Untitled page';
+}
+function placeWorkspaceActions( context ) {
+	context.saveButton = context.api.form.querySelector( 'button[type=submit][value=update]' );
+	placeWorkspacePreview( context );
+	moveInto( context, '.builder-save', context.saveButton );
+}
+function placeWorkspacePreview( context ) {
+	const preview = context.api.form.querySelector( '.builder-page-settings .actions a' );
+	if ( preview ) { preview.className = 'button button-secondary'; moveInto( context, '.builder-save', preview ); }
 }
 async function requestBlockPreview( context ) {
 	const payload = new URLSearchParams( { _wpnonce: document.getElementById( 'block-preview-nonce' ).value, content: JSON.stringify( previewDocument( context.api.read() ) ) } );
