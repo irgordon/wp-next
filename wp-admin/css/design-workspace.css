@@ -1,0 +1,42 @@
+/* Focused SiteEditor navigation, scoped to Site design; main admin groups retain their shell. */
+.design-workspace { background: var(--wp-gray-900); }
+.design-workspace .sidebar { width: 288px; flex-basis: 288px; background: var(--wp-gray-900); color: var(--wp-gray-100); }
+.design-workspace .brand { color: var(--wp-gray-100); border-color: var(--wp-gray-800); }
+.design-workspace .brand strong { color: var(--blue-2); }
+.design-sidebar-intro { padding: var(--wp-space-30) var(--wp-space-30) var(--wp-space-20); }
+.design-sidebar-intro h2 { color: var(--wp-gray-200); font-size: var(--wp-font-xl); line-height: var(--wp-line-md); margin: var(--wp-space-30) 0 var(--wp-space-10); }
+.design-sidebar-intro p, .design-nav-label { color: var(--wp-gray-400); }
+.design-sidebar-intro p { margin: 0; font-size: var(--wp-font-md); line-height: var(--wp-line-sm); }
+.design-exit, .design-workspace .sidebar .design-code-link { color: var(--wp-gray-400); text-decoration: none; font-size: var(--wp-font-sm); }
+.design-exit:hover, .design-workspace .sidebar .design-code-link:hover { color: var(--white); }
+.design-workspace .design-context-nav { flex: 1; padding: var(--wp-space-10) var(--wp-space-15) var(--wp-space-30); }
+.design-nav-label { font-size: var(--wp-font-xs); font-weight: var(--wp-weight-medium); text-transform: uppercase; padding-inline: var(--wp-space-20); margin-bottom: var(--wp-space-10); }
+.design-workspace .design-context-nav ul { display: block; padding: 0; margin: 0; }
+.design-workspace .design-context-nav li + li { margin-top: 0; }
+.design-workspace .design-context-nav a { min-height: 40px; display: flex; align-items: center; padding: var(--wp-space-10) var(--wp-space-20); color: var(--wp-gray-400); font-size: var(--wp-font-md); line-height: var(--wp-line-sm); border-radius: var(--wp-radius-sm); }
+.design-workspace .design-context-nav a:hover, .design-workspace .design-context-nav a[aria-current] { background: var(--wp-gray-800); color: var(--wp-gray-100); }
+.design-workspace .sidebar :focus-visible { outline-color: var(--blue-2); }
+.design-workspace .design-context-nav .design-code-link { margin-top: var(--wp-space-20); border-top: 1px solid var(--wp-gray-800); border-radius: 0; padding-top: var(--wp-space-20); }
+.design-primary-actions { display: flex; flex-direction: column; flex-shrink: 0; gap: var(--wp-space-10); padding: var(--wp-space-20); border-top: 1px solid var(--wp-gray-800); }
+.design-primary-actions button { width: 100%; }
+.design-workspace .design-primary-actions button.secondary { color: var(--wp-gray-100); background: transparent; border-color: var(--wp-gray-600); }
+.design-workspace .design-primary-actions button.secondary:hover { background: var(--wp-gray-800); }
+.design-primary-actions a { color: var(--wp-gray-100); font-size: var(--wp-font-sm); text-align: center; padding: var(--wp-space-10); }
+.design-save-state { margin: 0; color: var(--wp-gray-400); font-size: var(--wp-font-xs); line-height: var(--wp-line-xs); }
+.design-save-state[data-dirty=true] { color: var(--white); }
+.design-workspace [data-design-panel] { scroll-margin-top: var(--wp-space-30); }
+.design-workspace-ready #design-form > .settings-grid { display: block; }
+.design-template-list { list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--wp-space-20); padding: 0; margin: var(--wp-space-30) 0; }
+.design-template-list li { padding: var(--wp-space-20); border: 1px solid var(--line); border-radius: var(--wp-radius-lg); font-size: var(--wp-font-md); font-weight: var(--wp-weight-medium); }
+.design-workspace [hidden] { display: none !important; }
+@media (max-width: 760px) {
+  .design-workspace .sidebar { width: auto; flex: none; }
+  .design-workspace .menu-toggle { color: var(--wp-gray-100); border-color: var(--wp-gray-600); }
+  .design-workspace .menu-toggle:hover { color: var(--wp-gray-100); background: var(--wp-gray-800); }
+  .design-sidebar-intro { padding: var(--wp-space-10) var(--wp-space-20); }
+  .design-sidebar-intro h2, .design-sidebar-intro p { display: none; }
+  .design-workspace .design-context-nav ul { display: grid; grid-template-columns: 1fr 1fr; }
+  .design-workspace .design-context-nav a { min-height: 44px; }
+  .design-primary-actions { display: grid; grid-template-columns: 1fr 1fr; padding: var(--wp-space-15) var(--wp-space-20); }
+  .design-save-state, .design-primary-actions a { grid-column: 1 / -1; }
+}

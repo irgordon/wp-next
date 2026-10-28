@@ -40,6 +40,12 @@ Media accepts JPEG, PNG, WebP, and GIF (10 MB, 40 megapixels, 12000-pixel maximu
 
 ## Site design
 
+**Design → Site design** opens a focused workspace with charcoal navigation for Theme, Styles, Navigation, Header, Footer, Templates and History. Back to admin returns to the normal Content, Media, Design and Settings groups. Code & files uses the normal administration shell.
+
+Selecting a section keeps the same design form and its unsaved values. Save draft and Publish design remain available in the sidebar; native validation reveals the section containing the first invalid field. A saved draft exposes the existing private Preview design link. These actions retain their existing permissions, revision checks and explicit publication behavior. Without JavaScript, all form sections remain available with ordinary anchor links and native submission.
+
+Templates lists only the current published theme's curated choices. Assign one through the individual Page editor. This workspace does not create templates or edit their PHP source. Patterns is deferred and has no navigation destination; see [the inclusion review](reviews/PATTERNS_INCLUSION_REVIEW.md) for its prerequisites and open decisions.
+
 Administrators choose the Default or Studio theme, logo, accent/background, width (640–1400 px), and sans/serif typography. Accent/background text contrast must reach 4.5:1. Choose latest Posts or a published Page as the homepage. Select up to 20 published Pages and assign their navigation order. Publication status is rechecked during public navigation rendering.
 
 Only installed themes with valid confined real paths and required header/footer/index files are selectable. WP_DEFAULT_THEME supplies the fallback. Theme functions.php is loaded as trusted source. Templates share get_header(), get_footer(), wp_head(), the loop, featured images, permalinks, and pagination helpers.

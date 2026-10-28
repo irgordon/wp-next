@@ -36,6 +36,8 @@ The requested compact administration density uses the reference Body SM token (1
 
 These mappings apply the system to existing product workflows. They do not add demonstration filters, bulk actions or view switches that the application's data model does not implement. Uploaded content remains dynamic rather than being replaced by reference photography. The established upload queue and charcoal code window retain their functions while adopting compatible foundation tokens.
 
+Site design separately adopts the charcoal SiteEditor sidebar (`16314:43026`, Sidebar master `15877:14447`) at its 288px desktop width. The normal admin keeps its light 240px rail and logical groups. Focused section links, persistent native form actions and a route back to administration adapt the reference to the existing design controller. Templates remains a read-only view of the published theme's curated choices; Patterns is deferred in [its inclusion review](reviews/PATTERNS_INCLUSION_REVIEW.md).
+
 Search and number enhancements keep the same native input, label, name, form and events. Number buttons use the browser's stepping API and dispatch ordinary input/change events. Read-only and disabled fields cannot be stepped. Inputs with `step="any"` retain their original control. Without JavaScript, the original forms remain usable.
 
 ## Supplied reference inventory

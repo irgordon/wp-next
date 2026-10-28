@@ -196,7 +196,7 @@ async function main() {
 		await page.getByRole( 'button', { name: 'Save changes', exact: true } ).click();
 		check( await page.locator( '#post_content' ).isVisible() && ( await page.locator( '#post_content' ).inputValue() ).includes( 'Keep this rejected input' ), 'Invalid raw content stays intact and its correction field is revealed before saving' );
 		await page.locator( '#post_content' ).fill( validCanvasDocument );
-		await page.goto( base + '/wp-admin/themes.php' ); await page.getByLabel( 'Studio', { exact: true } ).check(); await page.getByLabel( 'Content width in pixels', { exact: true } ).fill( '1040' ); await page.getByLabel( 'Type style' ).selectOption( 'serif' ); await page.getByLabel( 'Homepage', { exact: true } ).selectOption( id ); await page.getByLabel( 'Browser Page', { exact: true } ).check();
+		await page.goto( base + '/wp-admin/themes.php' ); await page.getByLabel( 'Studio', { exact: true } ).check(); await chooseDesignPanel( page, 'Styles' ); await page.getByLabel( 'Content width in pixels', { exact: true } ).fill( '1040' ); await page.getByLabel( 'Type style' ).selectOption( 'serif' ); await chooseDesignPanel( page, 'Navigation' ); await page.getByLabel( 'Homepage', { exact: true } ).selectOption( id ); await page.getByLabel( 'Browser Page', { exact: true } ).check();
 		await Promise.all( [ page.waitForNavigation(), page.getByRole( 'button', { name: 'Publish design', exact: true } ).click() ] ); await page.goto( base + '/' );
 		check( await page.locator( 'link[rel=stylesheet]' ).getAttribute( 'href' ).then( url => url.includes( '/studio/' ) ) && await page.getByRole( 'heading', { name: 'Browser Page', exact: true } ).isVisible(), 'Theme selection and static homepage affect the public site' );
 		if ( process.env.QA_DIR ) { fs.mkdirSync( process.env.QA_DIR, { recursive: true } ); await page.screenshot( { path: path.join( process.env.QA_DIR, 'public-desktop.png' ), fullPage: true } ); }
@@ -304,6 +304,7 @@ async function main() {
 		await capture( page, 'categories-mobile' );
         await page.setViewportSize({width:1440,height:1000});
         await page.goto(base+'/wp-admin/themes.php');
+        await chooseDesignPanel( page, 'Header' );
         await page.getByLabel('Header shared section',{exact:true}).fill('<p>Browser shared section marker</p>');
         const headerMenu=page.locator('[data-menu-editor="header"]');
         await headerMenu.locator('.menu-row').nth(0).getByLabel('Label').fill('Home');await headerMenu.locator('.menu-row').nth(0).getByLabel('Address').fill('/');
@@ -319,9 +320,10 @@ async function main() {
         check((await guestPage.goto(previewAddress)).status()===404,'Design preview refuses anonymous browser');
         await guestPage.goto(base+'/');check(!await guestPage.getByText('Browser shared section marker',{exact:true}).count(),'Draft composition stays out of anonymous output');
         await page.goto(previewAddress);check(await page.getByText('Browser shared section marker',{exact:true}).isVisible(),'Authorized browser renders private design preview');await capture(page,'design-preview-desktop');
-        await page.goto(base+'/wp-admin/themes.php');await page.getByRole('link',{name:/^Edit draft [0-9]+$/}).first().click();
+        await page.goto(base+'/wp-admin/themes.php');await chooseDesignPanel( page, 'History' );await page.getByRole('link',{name:/^Edit draft [0-9]+$/}).first().click();
         check((await page.getByLabel('Header shared section',{exact:true}).inputValue()).includes('Browser shared section marker'),'Saved design draft reopens with retained input');
         check((await page.locator('[data-menu-editor="header"] .menu-row').nth(0).getByLabel('Label').inputValue())==='Home','Saved design draft reopens with menu rows retained');
+        await chooseDesignPanel( page, 'Header' );
         const headerSection=page.locator('[data-section-editor]').first();
         await headerSection.locator('.section-builder-root > .builder-toolbar select').selectOption('paragraph');
         await headerSection.locator('.section-builder-root > .builder-toolbar').getByRole('button',{name:'Add block',exact:true}).click();
@@ -330,7 +332,7 @@ async function main() {
         check(await page.getByRole('status').filter({hasText:'Design draft saved'}).isVisible(),'Section blocks save into the design draft');
         const builderPreview=await page.getByRole('link',{name:'Preview design',exact:true}).getAttribute('href');
         await page.goto(builderPreview);check(await page.getByText('Builder-built section text',{exact:true}).isVisible(),'Block-built section renders in the private preview');
-        await page.goto(base+'/wp-admin/themes.php');await page.getByRole('link',{name:/^Edit draft [0-9]+$/}).first().click();
+        await page.goto(base+'/wp-admin/themes.php');await chooseDesignPanel( page, 'History' );await page.getByRole('link',{name:/^Edit draft [0-9]+$/}).first().click();
         await Promise.all([page.waitForNavigation(),page.getByRole('button',{name:'Publish design',exact:true}).click()]);
         check(await page.getByRole('status').filter({hasText:'Site design published'}).isVisible(),'Browser explicitly publishes design');
         await page.goto(base+'/');check(await page.getByText('Browser shared section marker',{exact:true}).isVisible(),'Published shared section reaches live output');
@@ -362,6 +364,7 @@ async function main() {
         await page.goto(base+'/browser-page/');check(await page.locator('.entry-title').evaluate(el=>getComputedStyle(el).color)==='rgb(34, 34, 34)','Published draft becomes the live stylesheet');
         await page.setViewportSize({width:390,height:844});await page.goto(base+'/wp-admin/file-editor.php');check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Managed file editor fits mobile width');await capture(page,'file-editor-mobile');
         await page.goto(base+'/wp-admin/themes.php');
+        await chooseDesignPanel( page, 'History' );
         await Promise.all([page.waitForNavigation(),page.getByRole('button',{name:'Restore design',exact:true}).last().click()]);
         const restoredDesign=await page.getByRole('status').filter({hasText:'Design restored as a new live version'}).isVisible();
         await page.goto(base+'/');check(restoredDesign && await page.getByText('Browser shared section marker',{exact:true}).count()===0,'Browser design rollback restores the earlier composition');
@@ -384,4 +387,10 @@ async function captureFailure( page ) {
 	fs.mkdirSync( process.env.QA_DIR, { recursive: true } );
 	await page.screenshot( { path: path.join( process.env.QA_DIR, 'failure.png' ), fullPage: true } );
 	fs.writeFileSync( path.join( process.env.QA_DIR, 'failure.html' ), await page.content() );
+}
+
+async function chooseDesignPanel( page, name ) {
+	const navigation = page.getByRole( 'navigation', { name: 'Design workspace' } );
+	if ( ! await navigation.isVisible() ) { await page.getByRole( 'button', { name: 'Menu', exact: true } ).click(); }
+	await navigation.getByRole( 'link', { name, exact: true } ).click();
 }

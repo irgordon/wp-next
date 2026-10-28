@@ -2,6 +2,7 @@
 @import url("wordpress-foundations.css");
 @import url("visual-builder.css");
 @import url("admin-widgets.css");
+@import url("design-workspace.css");
 
 :root { font-family: var(--font-ui); font-size: var(--wp-font-sm); color: var(--ink); }
 * { box-sizing: border-box; }

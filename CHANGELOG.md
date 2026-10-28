@@ -2,10 +2,11 @@
 
 ## v0.0.2
 
-Recorded October 26, 2026. Compact administration typography, a dedicated visual page builder, media upload feedback, grouped navigation and editable code windows. Schema remains 8.
+Updated October 27, 2026. Compact administration typography, a dedicated visual page builder, media upload feedback, grouped navigation and editable code windows. Schema remains 8.
 
 ### Changed
 
+- Added focused charcoal navigation to Site design, with section selection, retained form values, persistent native Save draft / Publish design actions and a route back to the main administration groups. Templates remains restricted to the published theme's curated choices. Patterns is deferred in a [dedicated inclusion review](docs/reviews/PATTERNS_INCLUSION_REVIEW.md).
 - Aligned administration foundations and component treatments with the supplied WordPress Figma design system: system typography, neutral frames, theme/feedback colors, a 4px spacing grid, semantic radii and elevation. Compact base text remains 12px; public-theme typography retains its own scale.
 - Applied the reference navigation/content-frame dimensions, card and menu treatments, form labels, input focus/error states and editor toolbar icons. Search and numeric controls use locally stored 24px WordPress assets; number stepping preserves the original native field and its bounds.
 - Reduced the administration base type from 16px to 12px, with 10–11px supporting text and controls. Headings retain their hierarchy, and mobile controls retain usable hit areas. Public page typography remains controlled by the selected theme.

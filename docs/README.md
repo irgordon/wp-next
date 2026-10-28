@@ -38,6 +38,10 @@ that certification.
 
 ## Current Build Records
 
+- [v0.0.2 — focused charcoal design navigation](reviews/V0_0_2_FOCUSED_DESIGN_REVIEW.md)
+
+- [Patterns inclusion review — deferred](reviews/PATTERNS_INCLUSION_REVIEW.md)
+
 - [v0.0.2 — WordPress Figma alignment](reviews/V0_0_2_WORDPRESS_DESIGN_REVIEW.md)
 
 - [v0.0.2 — uploads, navigation and code windows](reviews/V0_0_2_ADMIN_WIDGETS_REVIEW.md)
