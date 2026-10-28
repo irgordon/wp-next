@@ -24,6 +24,7 @@ const WP_PORTABILITY_MAX_ITEMS = 2000;
 
 require_once __DIR__ . '/portability-references.php';
 require_once __DIR__ . '/portability-recovery.php';
+require_once __DIR__ . '/portability-export.php';
 
 /** Private scratch directory for archives being imported or exported. */
 function wp_portability_workdir(): string
@@ -312,6 +313,10 @@ function wp_portability_build_export(): array|WP_Error
 	if ( ! current_user_can( 'administrator' ) ) {
 		return new WP_Error( 'unauthorized', 'Only an administrator can export the site.' );
 	}
+	$limit_error = wp_portability_export_count_error();
+	if ( null !== $limit_error ) {
+		return $limit_error;
+	}
 	$authors = [];
 	foreach ( $wpdb->get_results( 'SELECT * FROM users ORDER BY id' ) as $user ) {
 		$authors[] = [
@@ -405,16 +410,16 @@ function wp_portability_build_export(): array|WP_Error
 		'media'       => $media,
 		'posts'       => $posts
 	];
-	$path = wp_portability_workdir() . '/export-' . bin2hex( random_bytes( 8 ) ) . '.zip';
-	$zip = new ZipArchive();
-	if ( true !== $zip->open( $path, ZipArchive::CREATE | ZipArchive::OVERWRITE ) ) {
-		return new WP_Error( 'export_failed', 'The export archive could not be created.' );
+	$manifest_json = wp_json_encode( $manifest, JSON_PRETTY_PRINT );
+	$limit_error = wp_portability_export_size_error( $manifest_json, $files );
+	if ( null !== $limit_error ) {
+		return $limit_error;
 	}
-	$zip->addFromString( 'manifest.json', wp_json_encode( $manifest, JSON_PRETTY_PRINT ) );
-	foreach ( $files as $entry => $blob ) {
-		$zip->addFile( $blob, $entry );
+	try {
+		$path = wp_portability_write_archive( $manifest_json, $files );
+	} catch ( Throwable $error ) {
+		return wp_failure( 'export_failed', $error, 'The export archive could not be completed.' );
 	}
-	$zip->close();
 	return [
 		'path'     => $path,
 		'filename' => 'wordpress-next-export-' . gmdate( 'Ymd-His' ) . '.zip',
