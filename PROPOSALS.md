@@ -2,8 +2,9 @@
 
 Accompanies the rollup of the current application state (October 26, 2026).
 This document began as packaging-level proposals. The October 26 rulings below
-are now approved implementation choices for the remaining scope. G2 and H1
-are not implemented by this verification update. Delivered fixes are recorded
+are now approved implementation choices for the remaining scope. G2 was
+implemented on October 28, 2026 (see its section below); H1 is not
+implemented yet. Delivered fixes are recorded
 in `CHANGELOG.md`; the approved scope remains in `docs/adr/V1_SCOPE.md`.
 The earlier gate counts below describe the supplied baseline, not the new
 verification run. See `docs/reviews/V0_0_1_VERIFICATION.md` for new evidence.
@@ -25,6 +26,12 @@ verification run. See `docs/reviews/V0_0_1_VERIFICATION.md` for new evidence.
   optional single-use sign-in links (off by default), disable, and separately
   confirmed deletion with reassignment and a minimal audit tombstone.
   Operator recovery via `bin/wp user:reset-link`.
+- Portability (G2): native ZIP + versioned JSON manifest export/import and
+  a WordPress WXR importer on one pipeline — preflight before writes,
+  explicit ID mapping, media only from the supplied archive through the
+  normal intake, unmapped authors as ordinary accounts with unusable
+  passwords, resumable runs. Admin screen plus `bin/wp export` /
+  `bin/wp import`.
 - Gates on this tree, all by exit code and completion line: composer check 0
   (PHP smoke 27, hardening 18, PHP assets 30; PHPStan and PHPCS clean),
   accounts 60, HTTP 53, permalinks 96, profiles 43, design 45, documents
@@ -34,9 +41,18 @@ verification run. See `docs/reviews/V0_0_1_VERIFICATION.md` for new evidence.
 
 Open items carried in `CHANGELOG.md` (Open Findings): the intermittent
 theme-settings failure remains unresolved; real PHP-FPM + HTTPS certification
-(J1) is outstanding; G2 and H1 below are approved scope, not yet built.
+(J1) is outstanding; H1 below is approved scope, not yet built.
 
-## Proposed: G2 — native export/import + WordPress WXR importer
+## Delivered: G2 — native export/import + WordPress WXR importer
+
+Delivered October 28, 2026: the engine in `wp-includes/portability.php`, the
+administrator screen at `wp-admin/portability.php`, `bin/wp export` /
+`bin/wp import`, the format contract in `docs/PORTABILITY_FORMAT.md`, and
+the release-test suite `tests/portability-http.py`
+(`composer test:portability`). The design below is the proposal it was built
+from; where they differ, the format document and the changelog govern. One
+deviation from the proposal text: remote fetching was not built at all (off
+is the only behavior), per the October 26 ruling.
 
 Per `docs/adr/V1_SCOPE.md` §G2. Proposed design:
 
@@ -83,7 +99,8 @@ Per `docs/adr/V1_SCOPE.md` §G2. Proposed design:
 Approved October 26: ZIP plus a versioned JSON manifest; preflight before
 writes; ordinary unmapped-author accounts with unusable passwords; skip exact
 duplicates and suffix colliding slugs by default. Remote fetching stays off
-by default. These are implementation requirements, not delivered features.
+by default. These were the implementation requirements for the delivery
+recorded above.
 
 ## Proposed: H1 — feeds, sitemap, metadata
 

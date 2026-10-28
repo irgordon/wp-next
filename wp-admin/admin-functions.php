@@ -113,6 +113,12 @@ const WP_ADMIN_MENU_GROUPS = [
 			'capability' => 'administrator'
 		],
 		[
+			'key'        => 'portability',
+			'label'      => 'Export / Import',
+			'url'        => 'portability.php',
+			'capability' => 'administrator'
+		],
+		[
 			'key'        => 'profile',
 			'label'      => 'Your profile',
 			'url'        => 'profile.php',

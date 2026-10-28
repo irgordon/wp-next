@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0"
+	xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:wp="http://wordpress.org/export/1.2/"
+>
+<channel>
+	<title>Fixture WordPress Site</title>
+	<link>http://example.com</link>
+	<wp:wxr_version>1.2</wp:wxr_version>
+	<wp:author>
+		<wp:author_id>11</wp:author_id>
+		<wp:author_login><![CDATA[wxrauthor]]></wp:author_login>
+		<wp:author_email><![CDATA[wxr.author@example.test]]></wp:author_email>
+		<wp:author_display_name><![CDATA[WXR Author]]></wp:author_display_name>
+		<wp:author_first_name><![CDATA[Wren]]></wp:author_first_name>
+		<wp:author_last_name><![CDATA[Exporter]]></wp:author_last_name>
+	</wp:author>
+	<wp:author>
+		<wp:author_id>12</wp:author_id>
+		<wp:author_login><![CDATA[editorjane]]></wp:author_login>
+		<wp:author_email><![CDATA[jane@example.test]]></wp:author_email>
+		<wp:author_display_name><![CDATA[Jane Editor]]></wp:author_display_name>
+		<wp:author_first_name><![CDATA[Jane]]></wp:author_first_name>
+		<wp:author_last_name><![CDATA[Editor]]></wp:author_last_name>
+	</wp:author>
+	<wp:category>
+		<wp:term_id>21</wp:term_id>
+		<wp:category_nicename><![CDATA[news]]></wp:category_nicename>
+		<wp:category_parent><![CDATA[]]></wp:category_parent>
+		<wp:cat_name><![CDATA[News]]></wp:cat_name>
+		<wp:category_description><![CDATA[News category]]></wp:category_description>
+	</wp:category>
+	<wp:category>
+		<wp:term_id>22</wp:term_id>
+		<wp:category_nicename><![CDATA[local]]></wp:category_nicename>
+		<wp:category_parent><![CDATA[news]]></wp:category_parent>
+		<wp:cat_name><![CDATA[Local]]></wp:cat_name>
+	</wp:category>
+	<wp:tag>
+		<wp:term_id>23</wp:term_id>
+		<wp:tag_slug><![CDATA[featured]]></wp:tag_slug>
+		<wp:tag_name><![CDATA[Featured]]></wp:tag_name>
+	</wp:tag>
+	<item>
+		<title>WXR Hello</title>
+		<link>http://example.com/wxr-hello/</link>
+		<dc:creator><![CDATA[wxrauthor]]></dc:creator>
+		<content:encoded><![CDATA[<p>WXR first paragraph.</p>[gallery ids="201"]<!-- wp:acme/widget {"id":1} --><div>Widget fallback</div><!-- /wp:acme/widget -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[WXR excerpt]]></excerpt:encoded>
+		<wp:post_id>101</wp:post_id>
+		<wp:post_date_gmt><![CDATA[2024-05-01 12:00:00]]></wp:post_date_gmt>
+		<wp:post_name><![CDATA[wxr-hello]]></wp:post_name>
+		<wp:status><![CDATA[publish]]></wp:status>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<category domain="category" nicename="local"><![CDATA[Local]]></category>
+		<category domain="post_tag" nicename="featured"><![CDATA[Featured]]></category>
+		<wp:postmeta>
+			<wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key>
+			<wp:meta_value><![CDATA[201]]></wp:meta_value>
+		</wp:postmeta>
+		<wp:postmeta>
+			<wp:meta_key><![CDATA[_edit_lock]]></wp:meta_key>
+			<wp:meta_value><![CDATA[1714500000:11]]></wp:meta_value>
+		</wp:postmeta>
+		<wp:postmeta>
+			<wp:meta_key><![CDATA[custom_note]]></wp:meta_key>
+			<wp:meta_value><![CDATA[keep me]]></wp:meta_value>
+		</wp:postmeta>
+	</item>
+	<item>
+		<title>WXR Landing</title>
+		<link>http://example.com/wxr-landing/</link>
+		<dc:creator><![CDATA[editorjane]]></dc:creator>
+		<content:encoded><![CDATA[<p>Landing body.</p>]]></content:encoded>
+		<excerpt:encoded><![CDATA[]]></excerpt:encoded>
+		<wp:post_id>102</wp:post_id>
+		<wp:post_date_gmt><![CDATA[2024-05-02 09:30:00]]></wp:post_date_gmt>
+		<wp:post_name><![CDATA[wxr-landing]]></wp:post_name>
+		<wp:status><![CDATA[publish]]></wp:status>
+		<wp:post_type><![CDATA[page]]></wp:post_type>
+	</item>
+	<item>
+		<title>WXR Secret Post</title>
+		<link>http://example.com/wxr-secret/</link>
+		<dc:creator><![CDATA[wxrauthor]]></dc:creator>
+		<content:encoded><![CDATA[<p>Private in WordPress.</p>]]></content:encoded>
+		<excerpt:encoded><![CDATA[]]></excerpt:encoded>
+		<wp:post_id>103</wp:post_id>
+		<wp:post_date_gmt><![CDATA[2024-05-03 08:00:00]]></wp:post_date_gmt>
+		<wp:post_name><![CDATA[wxr-secret]]></wp:post_name>
+		<wp:status><![CDATA[private]]></wp:status>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+	</item>
+	<item>
+		<title>WXR Product</title>
+		<link>http://example.com/product/wxr-product/</link>
+		<dc:creator><![CDATA[wxrauthor]]></dc:creator>
+		<content:encoded><![CDATA[<p>A product.</p>]]></content:encoded>
+		<excerpt:encoded><![CDATA[]]></excerpt:encoded>
+		<wp:post_id>104</wp:post_id>
+		<wp:post_date_gmt><![CDATA[2024-05-04 08:00:00]]></wp:post_date_gmt>
+		<wp:post_name><![CDATA[wxr-product]]></wp:post_name>
+		<wp:status><![CDATA[publish]]></wp:status>
+		<wp:post_type><![CDATA[product]]></wp:post_type>
+	</item>
+	<item>
+		<title>wxr-photo.png</title>
+		<link>http://example.com/wxr-photo/</link>
+		<dc:creator><![CDATA[wxrauthor]]></dc:creator>
+		<content:encoded><![CDATA[]]></content:encoded>
+		<excerpt:encoded><![CDATA[Photo caption]]></excerpt:encoded>
+		<wp:post_id>201</wp:post_id>
+		<wp:post_date_gmt><![CDATA[2024-05-01 11:00:00]]></wp:post_date_gmt>
+		<wp:post_name><![CDATA[wxr-photo]]></wp:post_name>
+		<wp:status><![CDATA[inherit]]></wp:status>
+		<wp:post_type><![CDATA[attachment]]></wp:post_type>
+		<wp:attachment_url><![CDATA[http://example.com/wp-content/uploads/2024/05/wxr-photo.png]]></wp:attachment_url>
+		<wp:postmeta>
+			<wp:meta_key><![CDATA[_wp_attachment_image_alt]]></wp:meta_key>
+			<wp:meta_value><![CDATA[Harbor at dawn]]></wp:meta_value>
+		</wp:postmeta>
+	</item>
+	<item>
+		<title>wxr-notes.txt</title>
+		<link>http://example.com/wxr-notes/</link>
+		<dc:creator><![CDATA[editorjane]]></dc:creator>
+		<content:encoded><![CDATA[]]></content:encoded>
+		<excerpt:encoded><![CDATA[]]></excerpt:encoded>
+		<wp:post_id>202</wp:post_id>
+		<wp:post_date_gmt><![CDATA[2024-05-01 11:30:00]]></wp:post_date_gmt>
+		<wp:post_name><![CDATA[wxr-notes]]></wp:post_name>
+		<wp:status><![CDATA[inherit]]></wp:status>
+		<wp:post_type><![CDATA[attachment]]></wp:post_type>
+		<wp:attachment_url><![CDATA[http://example.com/wp-content/uploads/2024/05/wxr-notes.txt]]></wp:attachment_url>
+	</item>
+	<item>
+		<title>wxr-absent.png</title>
+		<link>http://example.com/wxr-absent/</link>
+		<dc:creator><![CDATA[wxrauthor]]></dc:creator>
+		<content:encoded><![CDATA[]]></content:encoded>
+		<excerpt:encoded><![CDATA[]]></excerpt:encoded>
+		<wp:post_id>203</wp:post_id>
+		<wp:post_date_gmt><![CDATA[2024-05-01 11:45:00]]></wp:post_date_gmt>
+		<wp:post_name><![CDATA[wxr-absent]]></wp:post_name>
+		<wp:status><![CDATA[inherit]]></wp:status>
+		<wp:post_type><![CDATA[attachment]]></wp:post_type>
+		<wp:attachment_url><![CDATA[http://example.com/wp-content/uploads/2024/05/wxr-absent.png]]></wp:attachment_url>
+	</item>
+</channel>
+</rss>

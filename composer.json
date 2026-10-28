@@ -10,6 +10,7 @@
     "ext-libxml": "*",
     "ext-pdo_sqlite": "*",
     "ext-tokenizer": "*",
+    "ext-zip": "*",
     "php": ">=8.4"
   },
   "require-dev": {
@@ -58,6 +59,7 @@
     "test:accounts": [
       "python3 tests/accounts-http.py",
       "python3 tests/account-boundaries-http.py"
-    ]
+    ],
+    "test:portability": "python3 tests/portability-http.py"
   }
 }

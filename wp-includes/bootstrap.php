@@ -2,7 +2,7 @@
 /** Request admission, runtime verification, and service bindings. */
 declare( strict_types=1 );
 require_once dirname( __DIR__ ) . '/wp-config.php';
-foreach ( [ 'class-wp-error.php', 'l10n.php', 'formatting.php', 'security.php', 'psr/container-interface.php', 'psr/event-dispatcher-interfaces.php', 'class-wp-sqlite-db.php', 'schema.php', 'operations.php', 'class-wp-admission-gate.php', 'class-wp-authorization-service.php', 'class-wp-job-queue.php', 'class-wp-event-dispatcher.php', 'class-wp-plugin-activator.php', 'class-wp-post-mutation-service.php', 'class-wp-job-worker.php', 'theme.php', 'content.php', 'media.php', 'assets.php', 'user.php', 'mail.php', 'account-tokens.php', 'post.php', 'plugin.php' ] as $file ) {
+foreach ( [ 'class-wp-error.php', 'l10n.php', 'formatting.php', 'security.php', 'psr/container-interface.php', 'psr/event-dispatcher-interfaces.php', 'class-wp-sqlite-db.php', 'schema.php', 'operations.php', 'class-wp-admission-gate.php', 'class-wp-authorization-service.php', 'class-wp-job-queue.php', 'class-wp-event-dispatcher.php', 'class-wp-plugin-activator.php', 'class-wp-post-mutation-service.php', 'class-wp-job-worker.php', 'theme.php', 'content.php', 'media.php', 'assets.php', 'user.php', 'mail.php', 'account-tokens.php', 'post.php', 'portability.php', 'plugin.php' ] as $file ) {
 	require_once __DIR__ . '/' . $file;
 }
 use WordPress\Database\WP_SQLite_DB;

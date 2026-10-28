@@ -2,12 +2,12 @@
 
 This is the main index for the current build: a pre-1.0.0 development line
 (schema 8) implementing the approved v1.0.0 scope in order — the P1 document
-library, B1 image tools, C1 live visual editing, D1 stylesheet drafts, and
-E1/F1 account email and user deletion are built and covered by the suites
-below. G2 (export/import) and H1 (feeds and metadata) are not built yet, and
-J1 production certification (real nginx/Apache → PHP-FPM over HTTPS) is
-still outstanding; the server suites in this repository are fixtures, not
-that certification.
+library, B1 image tools, C1 live visual editing, D1 stylesheet drafts,
+E1/F1 account email and user deletion, and G2 native export/import with the
+WordPress WXR importer are built and covered by the suites below. H1 (feeds
+and metadata) is not built yet, and J1 production certification (real
+nginx/Apache → PHP-FPM over HTTPS) is still outstanding; the server suites
+in this repository are fixtures, not that certification.
 
 ## Start here
 
@@ -20,6 +20,9 @@ that certification.
   implementation must keep.
 - [Quality gates](QUALITY.md): the check suites, what each one covers, and
   what passing them does and does not establish.
+- [Portability archive format](PORTABILITY_FORMAT.md): the versioned ZIP +
+  JSON manifest contract for native export/import, its caps and its
+  compatibility rules.
 - [Themes and the builder](THEMES_AND_BUILDER.md): theme manifests,
   templates, shared sections, and the design workflow.
 - [Administration design system](DESIGN_SYSTEM.md): verified WordPress Figma

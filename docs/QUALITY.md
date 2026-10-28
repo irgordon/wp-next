@@ -53,6 +53,20 @@ The Apache fixture runs the complete documented vhost security rules with `Allow
 `composer test:design` runs the design/file HTTP boundary suite, including v5 upgrade, preview isolation, health failure, concurrent-version rejection, draft recovery/discard, template assignment, shared-image references, managed CSS validation/rollback and database backup retention. The browser suite now includes design draft/preview/publication, reopening saved drafts, Page templates, visible managed CSS changes and rollback, and mobile file editing. CI runs this additional suite. PHPStan level 5 and the existing formatting subset remain unchanged.
 
 
+## v0.0.3 Portability
+
+`composer test:portability` runs `tests/portability-http.py` against three
+disposable sites plus a CLI-only target. It covers the named G2 release tests
+individually: a native round-trip (content, terms with hierarchy, media with
+visibility, authorship through the ID map, featured relationships, dates),
+a representative WXR fixture with a supplied media archive, per-item
+reporting of missing media and unsupported content (custom post types,
+shortcodes, plugin meta, status downgrades), hostile inputs (zip-slip, XXE,
+absurd manifest counts, non-ZIP uploads — all refused without writes), quota
+exhaustion, exact-duplicate skipping, slug-collision suffixing, and resume
+of a completed archive without duplication. CI runs the suite alongside the
+other HTTP suites.
+
 ## v0.0.1 Boundary Verification
 
 `composer test:accounts` now runs the original account suite and six additional

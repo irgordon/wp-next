@@ -4,7 +4,7 @@ declare( strict_types=1 );
 global $wpdb, $wp_job_queue, $wp_admission_gate;
 $command = $argv[1] ?? 'help';
 if ( 'help' === $command ) {
-	echo "Commands: upgrade, queue:work [limit], queue:retry, backup, maintain, sessions:revoke, status\n";
+	echo "Commands: upgrade, queue:work [limit], queue:retry, backup, maintain, sessions:revoke, status, export [path], import <archive> [--commit] [--media=<zip>]\n";
 	exit;
 }
 if ( in_array( $command, [ 'upgrade', 'sessions:revoke' ], true ) ) {
@@ -54,6 +54,52 @@ break;
 			echo 'One-time reset link (expires in an hour, works once): ' . wp_home_url( '/wp-admin/login.php?action=rp&token=' . $token ) . "\n";
 break;
 		case 'backup': echo 'Backup: ' . wp_create_backup( $wpdb ) . "\n";
+break;
+		case 'export':
+		case 'import':
+			$admin = $wpdb->get_row( "SELECT id FROM users WHERE disabled=0 AND capabilities LIKE '%\"administrator\"%' ORDER BY id LIMIT 1" );
+			if ( null === $admin || null === wp_set_current_user( (int) $admin['id'] ) ) {
+				echo "No enabled administrator account is available.\n";
+				break;
+			}
+			if ( 'export' === $command ) {
+				$export = wp_portability_build_export();
+				if ( is_wp_error( $export ) ) {
+					echo 'Export failed: ' . $export->get_error_message() . "\n";
+					break;
+				}
+				$target = (string) ( $argv[2] ?? $export['filename'] );
+				if ( ! copy( $export['path'], $target ) ) {
+					echo "Export failed: the archive could not be written to the target path.\n";
+					break;
+				}
+				unlink( $export['path'] );
+				echo 'Export: ' . $target . "\n";
+				break;
+			}
+			$archive = (string) ( $argv[2] ?? '' );
+			$commit = in_array( '--commit', $argv, true );
+			$media_zip = null;
+			foreach ( $argv as $argument ) {
+				if ( str_starts_with( (string) $argument, '--media=' ) ) {
+					$media_zip = substr( (string) $argument, 8 );
+				}
+			}
+			$parsed = str_ends_with( strtolower( $archive ), '.xml' ) || str_ends_with( strtolower( $archive ), '.wxr' ) ? wp_portability_parse_wxr( $archive, $media_zip ) : wp_portability_parse_native( $archive );
+			if ( is_wp_error( $parsed ) ) {
+				echo 'Import failed: ' . $parsed->get_error_message() . "\n";
+				break;
+			}
+			if ( ! $commit ) {
+				echo wp_json_encode( wp_portability_preflight( $parsed['model'] ), JSON_PRETTY_PRINT ) . "\n";
+				echo "Preflight only. Re-run with --commit to import.\n";
+			} else {
+				$run = wp_portability_run( $parsed );
+				foreach ( $run['results'] as $result ) {
+					echo $result['kind'] . ' "' . $result['label'] . '": ' . $result['status'] . ' — ' . $result['detail'] . "\n";
+				}
+			}
+			wp_portability_remove_tree( (string) $parsed['directory'] );
 break;
 		case 'maintain':
 			$wpdb->query( 'DELETE FROM user_sessions WHERE expires_at<=unixepoch()' );

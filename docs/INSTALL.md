@@ -135,7 +135,7 @@ server {
         fastcgi_pass unix:/run/php/php8.4-fpm.sock;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
     }
-    location ~ ^/(index\.php|wp-admin/(index|install|edit|post|post-new|media|themes|options-general|options-permalink|edit-tags|file-editor|users|profile|activity|block-preview)\.php)$ {
+    location ~ ^/(index\.php|wp-admin/(index|install|edit|post|post-new|media|themes|options-general|options-permalink|edit-tags|file-editor|users|profile|activity|portability|block-preview)\.php)$ {
         try_files $uri =404;
         include fastcgi_params;
         fastcgi_pass unix:/run/php/php8.4-fpm.sock;
@@ -148,6 +148,8 @@ server {
 Denial regexes must precede the PHP handler. Run `nginx -t` and actual requests. The supplied static fixture test checks these denial rules; it does not certify PHP-FPM or TLS integration. Disable directory indexes and direct upstream access.
 
 Live Site design preview posts to the existing `wp-admin/themes.php` route using a dedicated action-bound nonce. It returns private, non-cacheable JSON for a sandboxed `srcdoc` frame. No additional public PHP endpoint or relaxation of the site-wide frame-protection headers is required.
+
+Export / Import lives at `wp-admin/portability.php`, which the allowlist above includes; omitting it returns 404 before PHP runs. The screen is administrator-only, and export archives include private document bytes, so treat downloaded archives like backups. Import requires the PHP `zip` extension on the server; without it the screen reports the feature as unavailable and changes nothing. Uploaded archives are stored under the private data directory (`var/portability`) so an interrupted import can be resumed; prune that folder like other operator state.
 
 ## 4. Workers and housekeeping
 

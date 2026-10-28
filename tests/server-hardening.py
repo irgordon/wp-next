@@ -63,7 +63,7 @@ with tempfile.TemporaryDirectory(prefix='wp-nginx-') as temp_name:
         # Positive controls: allowlisted PHP endpoints must leave nginx and reach the
         # configured FastCGI handler. This fixture has no live FPM backend, so a
         # 500/502 proves routing only; it is not a PHP-FPM success claim.
-        for endpoint in ['media.php','block-preview.php']:
+        for endpoint in ['media.php','block-preview.php','portability.php']:
             (site/'wp-admin'/endpoint).write_text('harmless fixture')
             try: response=opener.open(f'http://127.0.0.1:{port}/wp-admin/{endpoint}',data=b'',timeout=5)
             except urllib.error.HTTPError as error: response=error
@@ -76,7 +76,7 @@ with tempfile.TemporaryDirectory(prefix='wp-nginx-') as temp_name:
             statuses.append(response.status)
         assert 429 in statuses, statuses
         print('PASS: Login requests are rate-limited before any PHP backend is available')
-        print(f'{len(fixtures)+3} Nginx delivery/rate checks passed.')
+        print(f'{len(fixtures)+4} Nginx delivery/rate checks passed.')
     finally:
         process.terminate()
         process.wait(timeout=5)

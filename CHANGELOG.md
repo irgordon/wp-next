@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.0.3
+
+Updated October 28, 2026. G2 portability: native export/import and the WordPress WXR importer. Schema remains 8; no schema change was needed.
+
+### Added
+
+- Native export/import in a versioned ZIP archive with a JSON manifest (`wpnext-portability`, format version 1): Posts, Pages, block and legacy-HTML content, categories/tags with hierarchy, authors, publication dates, slugs, metadata, featured media and referenced media, with media bytes content-addressed and deduplicated in the archive. The format and its compatibility rules are documented in [the portability format document](docs/PORTABILITY_FORMAT.md).
+- A WordPress WXR importer on the same pipeline: posts/pages, statuses, dates, slugs, authors, categories/tags, excerpts and attachment references, with attachment bytes supplied in a separate media archive matched by file name. WordPress-private items import as drafts with the downgrade reported; content that cannot become a native block is kept as sanitized legacy HTML.
+- Preflight before any import writes: item inventory, author mapping plan, duplicate and slug-collision outcomes, missing media, unsupported elements and a quota projection. Import runs only after a separate confirm step with its own nonce.
+- Per-item results and resumable runs: run state is keyed by archive digest plus author mapping in a site option, so re-running the same archive reports completed items as already imported instead of duplicating them. Exact duplicates are skipped; colliding slugs are suffixed `-imported`, then `-imported-2`, and so on.
+- The administrator screen at `wp-admin/portability.php` (registered in the Settings navigation group) and the `bin/wp export` / `bin/wp import` operator commands (preflight by default, `--commit` to run).
+- Archive and XML safety caps: entry count/size limits, refusal of absolute or parent-traversing entry paths, manifest count verification, and WXR parsing with network access and entity expansion disabled. Imported PHP, shortcodes and plugin data are never executed, and unsupported or missing items are reported per item rather than silently discarded.
+- The release-test suite `tests/portability-http.py` (`composer test:portability`, also in CI) covering the named G2 release tests individually: native round-trip, a representative WXR fixture, missing/unsupported reporting, hostile archive/XML inputs, quota exhaustion, slug collisions and exact duplicates, and interrupted-run resume.
+
+### Changed
+
+- Unmapped authors become ordinary accounts with an unusable password (a hash of discarded random bytes); source role data is never carried into the target, and authorship is applied only through the import's explicit ID map.
+- Media enters only from the supplied archive through the normal intake validators, dedupe and quota; there is no remote fetching code path. Image masters are exported without their derived variants, which regenerate on import.
+- The nginx allowlist in [the installation document](docs/INSTALL.md) now includes `portability.php`, and the nginx fixture asserts it reaches the configured FastCGI handler like the other allowlisted endpoints (routing only, not an FPM claim).
+- `composer.json` declares the `ext-zip` requirement the importer uses; the lock file hash was refreshed without dependency changes.
+
+### Fixed During Verification
+
+- The first WXR run failed because uploaded WordPress exports commonly carry a `.wxr` file name while the screen only recognized `.xml`; both extensions are now accepted in the admin screen and the CLI.
+- A quota-exhausted image initially reported as a generic registration failure, because the intake wraps its errors; the quota outcome is now surfaced as its own per-item result.
+
 ## v0.0.2
 
 Updated October 28, 2026. Compact administration typography, a dedicated visual page builder, media upload feedback, grouped navigation and editable code windows. Schema remains 8.
@@ -192,4 +218,4 @@ This file replaces the previously split current/history changelogs and their ret
 The following remain open in the supplied package. Proposed work is not a delivered change.
 - An intermittent theme-settings HTTP check failed once in an earlier run. Later passes have not established its cause; the failure remains unresolved.
 - Static Apache/nginx fixture passes and PHP development-server/browser passes do not certify the required PHP-FPM, TLS and production proxy integration under J1.
-- Native and WordPress import/export (G2) and publishing metadata (H1) remain approved v1.0.0 work. They are not claimed as delivered by this log.
+- Publishing metadata (H1) remains approved v1.0.0 work. It is not claimed as delivered by this log. Native and WordPress import/export (G2) is delivered in v0.0.3 above.

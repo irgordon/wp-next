@@ -22,6 +22,7 @@ jobs:
       - run: composer test:documents
       - run: composer test:images
       - run: composer test:accounts
+      - run: composer test:portability
       - run: composer test:http
       - run: python3 tests/permalinks-http.py
       - run: python3 tests/profiles-taxonomy-http.py
