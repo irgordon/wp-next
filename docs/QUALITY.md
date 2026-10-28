@@ -14,6 +14,7 @@ npm run test:builder
 npm run test:widgets
 npm run test:browser
 npm run test:widgets:browser
+npm run test:preview:browser
 python3 tests/server-hardening.py /absolute/path/to/nginx
 python3 tests/apache-hardening.py /absolute/path/to/apache2 /absolute/path/to/apache/modules
 ```
@@ -87,3 +88,9 @@ The HTTP smoke suite includes builder read isolation, capability and CSRF checks
 The current browser suites additionally check the 240px navigation area, native system type, local 24px reference icons, numeric min/max boundaries, read-only controls, retained form values, single-border numeric fields, focused search geometry and card radii. The general suite uses a 1x viewport and the focused suite uses a 2x viewport. Focus assertions account for Chromium's fractional-outline quantization. [The alignment review](reviews/V0_0_2_WORDPRESS_DESIGN_REVIEW.md) records the 210 model/browser assertions, initial failures and corrections. [The design-system map](DESIGN_SYSTEM.md) records the full reference inventory and intentional compact-density mapping.
 
 The focused Site design follow-up verifies the scoped 288px charcoal rail, unchanged main groups, section switching without value loss, structural saved/unsaved state, first-invalid-field recovery, curated-only template inventory, absence of Patterns UI, responsive menu contrast and native sidebar submission without JavaScript. The existing design HTTP and browser suites retain preview, publication, stale-version refusal and rollback coverage. [The focused navigation review](reviews/V0_0_2_FOCUSED_DESIGN_REVIEW.md) records the 309 executed assertions and first failures.
+
+## Private live design preview
+
+`composer test:design` now also runs `tests/design-preview-http.py`. It checks unsaved rendering without persistence, selected-theme function loading, homepage read isolation, token/menu/section output, private cache headers, retained global frame protections, stripped active content, separate preview and persistence nonces, capability revocation, invalid settings, stale versions and explicit publication.
+
+`npm run test:preview:browser` verifies the actual rendered site beside the controls, live changes, read-only frame behavior, font-stable scroll restoration, desktop/mobile viewport sizes, visible width changes, response ordering even when cancellation is ignored, retained controls, actionable errors, refresh recovery and public output changing only after Publish design. It uses disposable state and the same PHP_BINARY, BROWSER_PATH, BROWSER_ARGS and QA_DIR options as the other browser suites. CI runs this suite with web security enabled.

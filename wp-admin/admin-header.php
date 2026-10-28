@@ -8,7 +8,7 @@ $title = $admin_page_title ?? 'Overview';
 $section = $admin_section ?? '';
 $navigation = wp_admin_navigation_state( $section, $title );
 ?>
-<!doctype html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /><title><?php echo esc_html( $title . ' · WordPress Next' ); ?></title><link rel="stylesheet" href="css/admin.css" /><script src="js/admin.js" defer></script><script type="module" src="js/admin-widgets.js"></script></head><body class="<?php echo ! empty( $admin_builder_mode ) ? 'builder-page' : ( ! empty( $admin_design_workspace ) ? 'design-workspace' : '' ); ?>">
+<!doctype html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /><title><?php echo esc_html( $title . ' · WordPress Next' ); ?></title><link rel="stylesheet" href="css/admin.css?v=<?php echo (int) filemtime( __DIR__ . '/css/admin.css' ); ?>" /><script src="js/admin.js" defer></script><script type="module" src="js/admin-widgets.js"></script></head><body class="<?php echo ! empty( $admin_builder_mode ) ? 'builder-page' : ( ! empty( $admin_design_workspace ) ? 'design-workspace' : '' ); ?>">
 <a class="skip-link" href="#main-content">Skip to main content</a>
 <?php if ( ! empty( $admin_design_workspace ) ) : ?>
 	<?php require __DIR__ . '/design-sidebar.php'; ?>

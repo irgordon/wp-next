@@ -48,7 +48,10 @@
       "python3 tests/assets-integration.py",
       "python3 tests/assets-http.py"
     ],
-    "test:design": "python3 tests/design-files-http.py",
+    "test:design": [
+      "python3 tests/design-files-http.py",
+      "python3 tests/design-preview-http.py"
+    ],
     "test:documents": "python3 tests/documents-http.py",
     "test:images": "python3 tests/images-http.py",
     "test:accounts": [

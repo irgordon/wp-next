@@ -9,7 +9,8 @@
     "test:browser": "node tests/browser.cjs",
     "test:builder": "node tests/visual-builder-model.mjs",
     "test:widgets": "node tests/admin-widgets-model.mjs",
-    "test:widgets:browser": "node tests/admin-widgets-browser.cjs"
+    "test:widgets:browser": "node tests/admin-widgets-browser.cjs",
+    "test:preview:browser": "node tests/design-live-preview-browser.cjs"
   },
   "devDependencies": {
     "playwright": "1.62.1"

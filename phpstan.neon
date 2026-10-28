@@ -11,5 +11,6 @@ parameters:
         - bin
     tmpDir: var/cache/phpstan
     dynamicConstantNames:
+        - WP_DESIGN_LIVE_PREVIEW
         - WP_INSTALLING
         - WP_MAINTENANCE_COMMAND

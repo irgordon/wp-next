@@ -147,6 +147,8 @@ server {
 
 Denial regexes must precede the PHP handler. Run `nginx -t` and actual requests. The supplied static fixture test checks these denial rules; it does not certify PHP-FPM or TLS integration. Disable directory indexes and direct upstream access.
 
+Live Site design preview posts to the existing `wp-admin/themes.php` route using a dedicated action-bound nonce. It returns private, non-cacheable JSON for a sandboxed `srcdoc` frame. No additional public PHP endpoint or relaxation of the site-wide frame-protection headers is required.
+
 ## 4. Workers and housekeeping
 
 Use the same PHP version, extensions, service account, environment, and storage paths as HTTP. Workers process at most the requested number of jobs and 45 seconds per invocation. Lease fencing makes concurrent worker invocations safe; SQLite still has one writer.

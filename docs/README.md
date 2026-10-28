@@ -38,6 +38,8 @@ that certification.
 
 ## Current Build Records
 
+- [v0.0.2 — private live site preview](reviews/V0_0_2_LIVE_DESIGN_PREVIEW_REVIEW.md)
+
 - [v0.0.2 — focused charcoal design navigation](reviews/V0_0_2_FOCUSED_DESIGN_REVIEW.md)
 
 - [Patterns inclusion review — deferred](reviews/PATTERNS_INCLUSION_REVIEW.md)

@@ -54,6 +54,7 @@ function updateDesignState( context ) {
 	const dirty = context.initialState === 'unsaved' || serializeDesignForm( context.form ) !== context.baseline;
 	context.status.dataset.dirty = String( dirty );
 	context.status.textContent = dirty ? STATE_LABELS.unsaved : STATE_LABELS[ context.initialState ];
+	context.form.dispatchEvent( new Event( 'design-form-updated' ) );
 }
 
 function readDesignWorkspace() {

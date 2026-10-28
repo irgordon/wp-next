@@ -429,3 +429,6 @@ function wp_design_ink( string $background, string $preferred ): string
 	}
     return $ratio('#000000') >= $ratio('#ffffff') ? '#000000' : '#ffffff';
 }
+
+require_once __DIR__ . '/design-input.php';
+require_once __DIR__ . '/design-live-preview.php';

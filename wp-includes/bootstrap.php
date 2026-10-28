@@ -108,8 +108,12 @@ $wp_event_dispatcher = new class( $wp_listener_provider ) implements \Psr\EventD
 };
 $wp_post_mutation_service = null !== $wpdb && null !== $wp_job_queue ? new WP_Post_Mutation_Service( $wpdb, $wp_job_queue, $wp_event_dispatcher, $wp_auth_service ) : null;
 if ( $installed && ! $maintenance_command ) {
-	wp_design_preview_init();
-	wp_css_preview_init();
+	if ( wp_design_live_preview_request() ) {
+		wp_design_live_preview_init();
+	} else {
+		wp_design_preview_init();
+		wp_css_preview_init();
+	}
 }
 if ( $installed && ! $maintenance_command && is_file( wp_theme_directory() . '/functions.php' ) ) {
 	try {

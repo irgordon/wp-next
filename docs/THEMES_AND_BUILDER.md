@@ -44,6 +44,16 @@ Media accepts JPEG, PNG, WebP, and GIF (10 MB, 40 megapixels, 12000-pixel maximu
 
 Selecting a section keeps the same design form and its unsaved values. Save draft and Publish design remain available in the sidebar; native validation reveals the section containing the first invalid field. A saved draft exposes the existing private Preview design link. These actions retain their existing permissions, revision checks and explicit publication behavior. Without JavaScript, all form sections remain available with ordinary anchor links and native submission.
 
+### Private live site preview
+
+On wide screens, the actual site preview appears beside the design controls. Changes to the theme, colors, typography, width, spacing, logo, homepage, navigation and shared sections update it after a brief typing pause. Previewing does not save a draft or publish anything. Save draft stores a private version for later; only Publish design changes the public site.
+
+Desktop preview uses a 1440px viewport; Mobile preview uses 390px. The site retains its own styles and responsive rules inside a script-disabled, read-only frame. Scrolling is retained across refreshes of the same theme and homepage, after fonts finish loading. Changing the theme or homepage starts the preview at the top.
+
+On narrower screens, Design controls and Live preview switch between the two views while retaining the same form values. Choosing a design section returns to its controls. Invalid settings or a failed preview request explain the problem and retain the last valid rendering, explicitly marked as not current. Refresh preview retries without saving or publishing.
+
+The preview includes published managed CSS; unpublished file-editor stylesheet drafts retain their separate preview/publication flow. Media keeps the library's existing visibility rules. Without JavaScript, use Save draft followed by the existing private Preview design link.
+
 Templates lists only the current published theme's curated choices. Assign one through the individual Page editor. This workspace does not create templates or edit their PHP source. Patterns is deferred and has no navigation destination; see [the inclusion review](reviews/PATTERNS_INCLUSION_REVIEW.md) for its prerequisites and open decisions.
 
 Administrators choose the Default or Studio theme, logo, accent/background, width (640–1400 px), and sans/serif typography. Accent/background text contrast must reach 4.5:1. Choose latest Posts or a published Page as the homepage. Select up to 20 published Pages and assign their navigation order. Publication status is rechecked during public navigation rendering.
