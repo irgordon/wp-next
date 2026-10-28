@@ -1,6 +1,6 @@
 /** Canonical nested block editor. Server validation remains authoritative. */
 'use strict';
-import { mountVisualWorkspace } from './visual-builder.js';
+import { mountVisualWorkspace } from './visual-builder.js?v=bf00e4b01eab';
 import { refreshCodeField } from './code-editor.js';
 import { createBlock as makeBlock, locateBlock } from './visual-builder-model.js';
 ( function() {
@@ -299,7 +299,8 @@ import { createBlock as makeBlock, locateBlock } from './visual-builder-model.js
 	function updateState() {
 		if ( ! stateLine ) { return; }
 		const statusSelect = form.elements.namedItem( 'post_status' );
-		const label = ! statusSelect ? 'Draft' : 'published' === statusSelect.value ? 'Published' : 'archived' === statusSelect.value ? 'Archived' : 'Draft';
+		const status = form.dataset.designEmbed === '1' ? form.dataset.persistedStatus : statusSelect?.value;
+		const label = status === 'published' ? 'Published' : status === 'archived' ? 'Archived' : 'Draft';
 		stateLine.textContent = label + ' · ' + ( editorSnapshot() !== savedSnapshot ? 'Unsaved changes' : 'All changes saved' );
 	}
 	function showInspector() {

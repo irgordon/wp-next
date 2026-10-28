@@ -27,7 +27,6 @@ function bindEditorCanvas() {
 	const canvas = document.getElementById( 'builder-canvas-frame' );
 	if ( ! canvas || canvas.dataset.designBound ) { return; }
 	canvas.dataset.designBound = '1'; canvas.addEventListener( 'load', applyEditorStyles );
-	document.querySelector( '.builder-save button[type=submit]' )?.replaceChildren( document.createTextNode( 'Save Page' ) );
 	requestAnimationFrame( () => notifyEditor( 'ready' ) );
 	applyEditorStyles();
 }
@@ -44,5 +43,5 @@ function applyEditorStyles() {
 }
 function notifyEditor( type ) {
 	const dirty = document.getElementById( 'editor-state' )?.textContent.includes( 'Unsaved changes' );
-	parent.postMessage( { channel: CHANNEL, type, id: Number( form.elements.ID.value ), title: form.elements.post_title.value, status: form.elements.post_status.value, dirty: Boolean( dirty || document.querySelector( '.notice-error' ) ), listPage: Number( form.dataset.designListPage ), saved: form.dataset.saved === '1', draftKey: 'wp-draft:' + form.dataset.draftKey }, location.origin );
+	parent.postMessage( { channel: CHANNEL, type, id: Number( form.elements.ID.value ), title: form.elements.post_title.value, status: form.dataset.persistedStatus, dirty: Boolean( dirty || document.querySelector( '.notice-error' ) ), listPage: Number( form.dataset.designListPage ), saved: form.dataset.saved === '1', draftKey: 'wp-draft:' + form.dataset.draftKey }, location.origin );
 }

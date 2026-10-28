@@ -13,6 +13,7 @@ if ( ! current_user_can( 'edit_post', $id ) ) {
 	wp_die( 'You cannot read or edit this draft.', 'Access denied', [ 'response' => 403 ] );
 }
 require_once __DIR__ . '/design-pages-functions.php';
+require_once __DIR__ . '/design-page-publication.php';
 $admin_design_editor = wp_design_editor_authorize( $id, $post['post_type'], $admin_builder_mode, $post['status'] );
 $post_type = $post['post_type'];
 $plural = 'page' === $post_type ? 'pages' : 'posts';
@@ -63,6 +64,7 @@ if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
 		if ( 'archive' === $action ) {
 			$form['post_status'] = 'archived';
 		}
+		$form['post_status'] = wp_design_page_submission_status( $admin_design_editor, $action, $form['post_status'] );
 	}
 	if ( 'trashed' === $post['status'] && 'trashed' === $form['post_status'] ) {
 		$error = 'This content is in the Trash. Restore it from the list before editing it.';
@@ -71,8 +73,9 @@ if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
 		$result = wp_update_post( $form + [ 'ID' => $id ] );
 		if ( is_wp_error( $result ) ) {
 			$error = $result->get_error_message();
+			$form['post_status'] = wp_design_page_failed_status( $admin_design_editor, $post['status'], $form['post_status'] );
 		} else {
-			wp_safe_redirect( 'post.php?post=' . $id . '&updated=1' . ( $admin_builder_mode ? '&editor=visual' : '' ) . ( $admin_design_editor ? wp_design_editor_query( $id ) : '' ) );
+			wp_safe_redirect( 'post.php?post=' . $id . '&updated=1' . ( $admin_builder_mode ? '&editor=visual' : '' ) . ( $admin_design_editor ? wp_design_editor_query( $id ) . wp_design_page_result_query( $action ) : '' ) );
 		}
 	}
 }

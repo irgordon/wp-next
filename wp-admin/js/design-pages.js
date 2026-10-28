@@ -92,8 +92,12 @@ function receivePageEditorMessage( event ) {
 	if ( data.type === 'close' ) { guardedEditorAction( returnToPageList ); return; }
 	context.editorData = data;
 	context.editor.querySelector( '[data-page-editor-title]' ).textContent = 'Editing ' + data.title;
-	context.editor.querySelector( '[data-page-editor-status]' ).textContent = 'Page status: ' + data.status + '. Save Page applies that status; site design is published separately.';
+	context.editor.querySelector( '[data-page-editor-status]' ).textContent = pagePublicationStatus( data.status );
 	if ( data.type === 'ready' ) { sendEditorStyles(); if ( data.saved ) { pageEditorSaved( data ); } }
+}
+function pagePublicationStatus( status ) {
+	if ( status === 'published' ) { return 'Published. Update Page makes content changes public. Site design is published separately.'; }
+	return 'Page status: ' + status + '. Save Draft keeps this Page private; Publish Page makes it public. Site design is published separately.';
 }
 function pageEditorSaved( data ) {
 	context.selected = { ...context.selected, title: data.title, status: data.status }; selectPage( context.selected );
