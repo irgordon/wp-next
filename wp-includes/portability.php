@@ -22,6 +22,9 @@ const WP_PORTABILITY_MAX_TOTAL_BYTES = 536870912;
 const WP_PORTABILITY_MAX_MANIFEST_BYTES = 8388608;
 const WP_PORTABILITY_MAX_ITEMS = 2000;
 
+require_once __DIR__ . '/portability-references.php';
+require_once __DIR__ . '/portability-recovery.php';
+
 /** Private scratch directory for archives being imported or exported. */
 function wp_portability_workdir(): string
 {
@@ -241,6 +244,7 @@ function wp_portability_parse_native( string $path ): array|WP_Error
 		}
 		$model['media'][] = [
 			'source_id'     => wp_portability_int( $media['source_id'] ?? null ),
+			'source_url'    => wp_portability_native_source_url( $media, wp_portability_string( $manifest['site']['home'] ?? null ) ),
 			'kind'          => $kind,
 			'format'        => $format,
 			'visibility'    => 'private' === ( $media['visibility'] ?? '' ) ? 'private' : 'public',
@@ -347,6 +351,7 @@ function wp_portability_build_export(): array|WP_Error
 		$files[ $entry ] = $blob;
 		$media[] = [
 			'source_id'     => (int) $asset['id'],
+			'source_url'    => wp_portability_asset_url( $asset ),
 			'kind'          => (string) $asset['kind'],
 			'format'        => (string) $asset['format'],
 			'visibility'    => (string) $asset['visibility'],
@@ -361,7 +366,7 @@ function wp_portability_build_export(): array|WP_Error
 	foreach ( $wpdb->get_results( "SELECT * FROM posts WHERE status<>'trashed' ORDER BY id" ) as $post ) {
 		$metadata = isset( $post['metadata'] ) ? json_decode( (string) $post['metadata'], true ) : null;
 		if ( is_array( $metadata ) ) {
-			unset( $metadata['render_epoch'] );
+			unset( $metadata['render_epoch'], $metadata[ WP_PORTABILITY_IMPORT_RECEIPT ] );
 		}
 		$posts[] = [
 			'source_id'          => (int) $post['id'],
@@ -561,7 +566,7 @@ function wp_portability_parse_wxr( string $xml_path, ?string $media_zip_path ): 
 		$url = wp_portability_child_text( $item, $wp, 'attachment_url' );
 		$filename = basename( (string) parse_url( $url, PHP_URL_PATH ) );
 		$format = strtolower( pathinfo( $filename, PATHINFO_EXTENSION ) );
-		$kind = in_array( $format, [ 'jpg', 'png', 'webp', 'gif' ], true ) ? 'image' : ( isset( wp_document_formats()[ $format ] ) ? 'document' : '' );
+		$kind = in_array( $format, [ 'jpg', 'jpeg', 'png', 'webp', 'gif' ], true ) ? 'image' : ( isset( wp_document_formats()[ $format ] ) ? 'document' : '' );
 		if ( $id <= 0 || '' === $kind ) {
 			$model['unsupported'][] = 'Attachment "' . (string) $item->title . '" has an unsupported file type and was not imported.';
 			continue;
@@ -576,6 +581,7 @@ function wp_portability_parse_wxr( string $xml_path, ?string $media_zip_path ): 
 		$attachments[ $id ] = count( $model['media'] );
 		$model['media'][] = [
 			'source_id'     => $id,
+			'source_url'    => $url,
 			'kind'          => $kind,
 			'format'        => 'jpg' === $format || 'jpeg' === $format ? 'jpg' : $format,
 			'visibility'    => 'public',
@@ -686,7 +692,7 @@ function wp_portability_parse_wxr( string $xml_path, ?string $media_zip_path ): 
 		'format'    => 'wxr',
 		'model'     => $model,
 		'directory' => $directory,
-		'sha256'    => (string) hash_file( 'sha256', $xml_path )
+		'sha256'    => hash( 'sha256', (string) hash_file( 'sha256', $xml_path ) . '|' . ( null !== $media_zip_path ? (string) hash_file( 'sha256', $media_zip_path ) : '' ) )
 	];
 }
 
@@ -1092,17 +1098,17 @@ function wp_portability_create_author( array $author, string $username ): int|WP
  * whose media did not import are dropped and reported; other content is
  * untouched. Legacy HTML carries no media IDs and passes through unchanged.
  */
-function wp_portability_remap_content( string $content, array $media_map, array $media_source_ids ): array
+function wp_portability_remap_content( string $content, array $media_map, array $media_source_ids, array $targets = [] ): array
 {
 	if ( ! str_starts_with( ltrim( $content ), '{' ) ) {
-		return [ $content, [] ];
+		return wp_portability_remap_legacy( $content, $targets );
 	}
 	$document = json_decode( $content, true );
 	if ( ! is_array( $document ) || ! is_array( $document['blocks'] ?? null ) ) {
 		return [ $content, [] ];
 	}
 	$dropped = [];
-	$walk = static function ( array $blocks ) use ( &$walk, &$dropped, $media_map, $media_source_ids ): array {
+	$walk = static function ( array $blocks ) use ( &$walk, &$dropped, $media_map, $targets ): array {
 		$output = [];
 		foreach ( $blocks as $block ) {
 			if ( ! is_array( $block ) ) {
@@ -1118,6 +1124,10 @@ function wp_portability_remap_content( string $content, array $media_map, array 
 				$output[] = $block;
 				continue;
 			}
+			if ( 'html' === ( $block['type'] ?? '' ) ) {
+				[ $block['html'], $missing ] = wp_portability_remap_legacy( (string) ( $block['html'] ?? '' ), $targets );
+				$dropped = array_merge( $dropped, $missing );
+			}
 			if ( in_array( $block['type'] ?? '', [ 'image', 'file' ], true ) && isset( $block['media_id'] ) ) {
 				$source = (int) $block['media_id'];
 				if ( isset( $media_map[ $source ] ) ) {
@@ -1125,10 +1135,8 @@ function wp_portability_remap_content( string $content, array $media_map, array 
 					$output[] = $block;
 					continue;
 				}
-				if ( in_array( $source, $media_source_ids, true ) ) {
-					$dropped[] = $source;
-					continue;
-				}
+				$dropped[] = $source;
+				continue;
 			}
 			$output[] = $block;
 		}
@@ -1144,7 +1152,7 @@ function wp_portability_remap_content( string $content, array $media_map, array 
  * mapping reports completed items as already imported and does not
  * duplicate them.
  */
-function wp_portability_run( array $parsed, array $mapping = [] ): array
+function wp_portability_apply_run( array $parsed, array $mapping = [] ): array
 {
 	global $wpdb;
 	$model = $parsed['model'];
@@ -1280,6 +1288,7 @@ function wp_portability_run( array $parsed, array $mapping = [] ): array
 	foreach ( $pending_terms as $term ) {
 		$record( 'term', $term['source_id'], $term['taxonomy'] . ':' . $term['slug'], 'failed', 'Its parent term could not be imported.' );
 	}
+	$media_targets = wp_portability_media_targets( $model['media'], $media_map );
 	// Posts last, through the existing mutation path.
 	foreach ( $model['posts'] as $post ) {
 		$label = '' !== $post['title'] ? $post['title'] : 'content #' . $post['source_id'];
@@ -1287,7 +1296,13 @@ function wp_portability_run( array $parsed, array $mapping = [] ): array
 		if ( null !== $existing ) {
 			continue;
 		}
-		[ $content, $dropped ] = wp_portability_remap_content( (string) $post['content_raw'], $media_map, $media_source_ids );
+		$recovered = wp_portability_find_receipt( $key, (int) $post['source_id'] );
+		if ( null !== $recovered ) {
+			wp_portability_complete_post( $recovered, $post, $author_map );
+			$record( 'post', $post['source_id'], $label, 'imported', 'Recovered the previously committed item.', $recovered );
+			continue;
+		}
+		[ $content, $dropped ] = wp_portability_remap_content( (string) $post['content_raw'], $media_map, $media_source_ids, $media_targets );
 		$notes = $post['notes'];
 		foreach ( $dropped as $dropped_id ) {
 			$notes[] = 'A media block referencing source media #' . $dropped_id . ' was removed because that media did not import.';
@@ -1343,25 +1358,14 @@ function wp_portability_run( array $parsed, array $mapping = [] ): array
 		if ( 'post' === $post['type'] ) {
 			$insert['term_ids'] = $term_ids;
 		}
-		if ( is_array( $post['metadata'] ?? null ) && [] !== $post['metadata'] ) {
-			$insert['metadata'] = $post['metadata'];
-		}
+		$insert['metadata'] = wp_portability_import_metadata( $post['metadata'] ?? null, $media_targets, $key, (int) $post['source_id'] );
+		$notes = array_merge( $notes, wp_portability_metadata_notes( $post['metadata'] ?? null, $insert['metadata'] ) );
 		$created = wp_insert_post( $insert );
 		if ( is_wp_error( $created ) ) {
 			$record( 'post', $post['source_id'], $label, 'failed', $created->get_error_message() . ( [] !== $notes ? ' ' . implode( ' ', $notes ) : '' ) );
 			continue;
 		}
-		// The mutation service attributes new content to the acting user and
-		// stamps its own dates; imports restore the mapped author and the
-		// source timestamps as a correction on the record just created.
-		$author_target = $author_map[ $post['author_source_id'] ] ?? get_current_user_id();
-		$wpdb->query( 'UPDATE posts SET author_id=:author,published_at=:published,created_at=:created,updated_at=:updated WHERE id=:id', [
-			':author'    => $author_target,
-			':published' => 'published' === $post['status'] && $post['published_at'] > 0 ? $post['published_at'] : ( 'published' === $post['status'] ? time() : null ),
-			':created'   => $post['created_at'] > 0 ? $post['created_at'] : time(),
-			':updated'   => $post['updated_at'] > 0 ? $post['updated_at'] : time(),
-			':id'        => $created
-		] );
+		wp_portability_complete_post( $created, $post, $author_map );
 		$record( 'post', $post['source_id'], $label, 'imported', [] !== $notes ? implode( ' ', $notes ) : 'Imported.', $created );
 	}
 	wp_audit( 'portability_import', 0, [
