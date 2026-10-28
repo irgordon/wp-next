@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.0.5
+
+Updated October 28, 2026. Local review checkpoint. Schema remains 8.
+
+- Recorded 1,153 passing local assertions and four unresolved import/export defects in [the review](docs/reviews/V0_0_5_REVIEW.md), with a portable manual reproduction tool. Runtime fixes remain pending.
+
 ## v0.0.4
 
 Updated October 28, 2026. H1 public discovery and metadata. Schema remains 8.

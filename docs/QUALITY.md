@@ -139,3 +139,7 @@ The Page HTTP/browser suites also cover **New Page**: fixed private-draft defaul
 The Page suites also verify explicit **Save Draft / Publish Page / Update Page** actions: submitted-status overrides, stale publication and repeat-update fencing, original CSRF/authentication checks, transactional publication failure, retained content and actual saved status after refusal, positive anonymous delivery after publication, the save shortcut remaining private for drafts, responsive controls and unchanged design configuration. [The publication verification record](reviews/V0_0_2_PUBLISH_PAGE_REVIEW.md) records the follow-up results.
 
 The Page suites also check **View Page**: published-only availability, canonical public URLs, a real new tab showing saved content, no opener/admin referrer, retained workspace URL/editor scroll/unsaved content/design controls, no implicit save, distinct Preview behavior and toolbar fit at 320px/390px. [The live-view record](reviews/V0_0_2_VIEW_PAGE_REVIEW.md) records the follow-up evidence.
+
+## v0.0.5 Review Checkpoint
+
+[The local review](reviews/V0_0_5_REVIEW.md) records 1,153 passing supplied assertions and four additional fault-confirmation probes against application snapshot `55ee2bb`. Run the manual diagnostic with `python3 tools/review/portability_v004_probes.py /absolute/path/to/php`. Exit 0 with four CONFIRMED results means the known failures reproduced; it is not an application correctness gate or a substitute for fixing the P1 findings. Runtime/schema behavior is unchanged by the documentation checkpoint.

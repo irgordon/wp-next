@@ -10,6 +10,10 @@ the suites below. J1 production certification (real
 nginx/Apache → PHP-FPM over HTTPS) is still outstanding; the server suites
 in this repository are fixtures, not that certification.
 
+The v0.0.5 [local review checkpoint](reviews/V0_0_5_REVIEW.md) records four
+confirmed import/export defects despite passing supplied suites. The G2
+release gate remains open until the two P1 findings are resolved.
+
 ## Start here
 
 - [Installation and operations](INSTALL.md): blank installation, server

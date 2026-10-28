@@ -43,6 +43,14 @@ Open items carried in `CHANGELOG.md` (Open Findings): the intermittent
 theme-settings failure remains unresolved; real PHP-FPM + HTTPS certification
 (J1) is outstanding.
 
+## v0.0.5 Review Checkpoint — Open Import Findings
+
+Local review of v0.0.4 reproduced four defects: lost WXR inline images,
+duplicate collision imports after an interrupted checkpoint, unmapped social
+image IDs and exports exceeding their own importer limits. The supplied
+suites pass, but the two P1 findings keep G2's release gate open. See
+[the review and manual reproductions](docs/reviews/V0_0_5_REVIEW.md).
+
 ## Delivered: G2 — native export/import + WordPress WXR importer
 
 Delivered October 28, 2026: the engine in `wp-includes/portability.php`, the
