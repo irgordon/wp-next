@@ -15,6 +15,7 @@ Updated October 28, 2026. Compact administration typography, a dedicated visual 
 
 ### Added
 
+- Added View Page beside Update Page after publication. It opens the saved public permalink in a separate tab, retaining workspace location, editor scroll, unsaved Page edits and private design settings. Drafts and failed publications do not expose the live-view action; Preview remains available separately.
 - Added explicit Save Draft and Publish Page actions in the workspace visual editor. Draft saving stays private; publication saves the current Page content through the existing revision-checked controller. Published Pages show Update Page. Failures retain edits and report the actual saved status, while Page publication leaves unsaved site-design settings private.
 - Added New Page to the Site design workspace. It creates an Untitled Page as a private draft and opens the embedded visual editor, retaining unsaved design settings. Pending creation disables repeat activation; failures retain the workspace and a lost acknowledgement gives recovery guidance without an automatic retry. The new or renamed Page is revealed on its actual list page.
 - Added searchable, paginated Pages beside the private Site design preview. Select published, draft or archived Pages without changing the homepage; open the visual editor inside the workspace, retain unsaved design controls, and save Page content through the existing protected controller. Unsaved Page edits require a keep/discard choice before leaving. Page content and site-design publication remain separate.

@@ -51,6 +51,10 @@ function wp_design_page_show_publish( string $persisted, bool $permission ): boo
 	}
 	return $permission;
 }
+function wp_design_page_show_live_view( string $persisted ): bool
+{
+	return WP_DESIGN_PAGE_PUBLISHED === $persisted;
+}
 function wp_design_page_save_notice( bool $workspace, string $action, string $persisted ): string
 {
 	if ( ! $workspace ) {

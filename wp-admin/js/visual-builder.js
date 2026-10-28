@@ -465,14 +465,19 @@ function placeWorkspaceActions( context ) {
 	placeWorkspacePreview( context );
 	moveInto( context, '.builder-save', context.saveButton );
 	placeWorkspacePublish( context );
+	placeWorkspaceView( context );
 }
 function placeWorkspacePreview( context ) {
-	const preview = context.api.form.querySelector( '.builder-page-settings .actions a' );
+	const preview = context.api.form.querySelector( '.builder-page-settings .actions a:not([data-page-view])' );
 	if ( preview ) { preview.className = 'button button-secondary'; moveInto( context, '.builder-save', preview ); }
 }
 function placeWorkspacePublish( context ) {
 	const publish = context.api.form.querySelector( '[data-page-publish]' );
 	if ( publish ) { moveInto( context, '.builder-save', publish ); }
+}
+function placeWorkspaceView( context ) {
+	const link = context.api.form.querySelector( '[data-page-view]' );
+	if ( link ) { moveInto( context, '.builder-save', link ); }
 }
 async function requestBlockPreview( context ) {
 	const payload = new URLSearchParams( { _wpnonce: document.getElementById( 'block-preview-nonce' ).value, content: JSON.stringify( previewDocument( context.api.read() ) ) } );

@@ -66,6 +66,8 @@ The button shows Creating draft while the request is pending and ignores repeat 
 
 **Save Draft** keeps a working Page private. **Publish Page** saves the current content and makes the Page public without leaving the workspace. These separate buttons appear for an unpublished Page, replacing manual status selection in this focused editor. The header and footer report the actual saved status. Command/Ctrl+S uses Save Draft while the Page is unpublished.
 
+After publication, **View Page** opens the saved public Page in a new tab beside the workspace. It stays available next to Update Page when reopening a published Page. The workspace keeps its selection, editor scroll, unsaved Page edits and private design settings; viewing does not save or publish anything. Preview remains a separate action. The live tab shows the saved public content and published design, so unsaved edits stay in the workspace.
+
 After publication, **Update Page** replaces those actions. Typing stays in the editor until Update Page (or the save shortcut) applies the edits to the public Page. This workflow does not create a separate unpublished revision of an already published Page. Archiving and other status administration remain available through the normal Content screens.
 
 Page saving/publication does not save or publish the site design. A published Page uses the live site design for visitors while the workspace continues previewing your unsaved design. The selected Page preview and list refresh after saving. Success feedback distinguishes Draft saved, Page published and Page updated. A failed publish retains the submitted content, reports the saved status and keeps the retry actions; original capability, nonce, media and revision checks still apply.
