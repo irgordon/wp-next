@@ -15,6 +15,7 @@ npm run test:widgets
 npm run test:browser
 npm run test:widgets:browser
 npm run test:preview:browser
+npm run test:pages:browser
 python3 tests/server-hardening.py /absolute/path/to/nginx
 python3 tests/apache-hardening.py /absolute/path/to/apache2 /absolute/path/to/apache/modules
 ```
@@ -94,3 +95,9 @@ The focused Site design follow-up verifies the scoped 288px charcoal rail, uncha
 `composer test:design` now also runs `tests/design-preview-http.py`. It checks unsaved rendering without persistence, selected-theme function loading, homepage read isolation, token/menu/section output, private cache headers, retained global frame protections, stripped active content, separate preview and persistence nonces, capability revocation, invalid settings, stale versions and explicit publication.
 
 `npm run test:preview:browser` verifies the actual rendered site beside the controls, live changes, read-only frame behavior, font-stable scroll restoration, desktop/mobile viewport sizes, visible width changes, response ordering even when cancellation is ignored, retained controls, actionable errors, refresh recovery and public output changing only after Publish design. It uses disposable state and the same PHP_BINARY, BROWSER_PATH, BROWSER_ARGS and QA_DIR options as the other browser suites. CI runs this suite with web security enabled.
+
+## Pages in Site design
+
+`composer test:design` also runs `tests/design-pages-http.py`: bounded inventory/search/status filtering, literal SQL wildcards, native GET fallback, private draft/archive selection, unchanged public output, Page-specific signed editor links, default DENY versus scoped SAMEORIGIN framing, capability revocation, original save CSRF, context-preserving redirects and stale-revision retention.
+
+`npm run test:pages:browser` covers list pagination, empty results, selection without changing the homepage, embedded editing, current unsaved typography, keep/discard behavior, independent Page/design saves, refreshed titles/previews, retained controls and desktop/mobile fit. CI runs this suite using the same disposable-fixture and browser options as the other UI suites. [The verification record](reviews/V0_0_2_DESIGN_PAGES_REVIEW.md) records executed results and initial failures.

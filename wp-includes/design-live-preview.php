@@ -41,6 +41,7 @@ function wp_design_preview_initialize(): void
 	$GLOBALS['wp_design_preview'] = $config;
 	$GLOBALS['wp_live_design_preview'] = [
 		'version'      => $expected,
+        'page_id'      => wp_design_preview_page_id(),
 		'theme'        => $config['active_theme'],
 		'id'           => wp_generate_uuid4(),
 		'buffer_level' => ob_get_level()
@@ -127,7 +128,8 @@ function wp_design_preview_capture(): string
 }
 function wp_design_preview_homepage(): void
 {
-	$home = wp_design_preview_home_row( (int) get_option( 'homepage_id', 0 ) );
+	$selected = (int) ( $GLOBALS['wp_live_design_preview']['page_id'] ?? 0 );
+	$home = $selected > 0 ? wp_design_preview_page_row( $selected ) : wp_design_preview_home_row( (int) get_option( 'homepage_id', 0 ) );
 	wp_set_loop_posts( null !== $home ? [ $home ] : wp_design_preview_posts() );
 	$GLOBALS['wp_current_post'] = $home;
 	$GLOBALS['wp_canonical'] = wp_home_url();
@@ -145,6 +147,26 @@ function wp_design_preview_document( string $html, string $id ): string
 	wp_design_preview_remove_active_content( $document );
 	wp_design_preview_insert_head( $document, $id );
 	return (string) $document->saveHTML();
+}
+function wp_design_preview_page_id(): int
+{
+    $id = filter_var( wp_input( $_POST, 'preview_page', '0' ), FILTER_VALIDATE_INT );
+    if ( false === $id || $id < 0 ) {
+		throw new WP_Design_Preview_Exception( 'Choose an available Page.', 422 );
+	}
+    if ( $id > 0 ) {
+		wp_design_preview_page_row( $id );
+	}
+    return $id;
+}
+function wp_design_preview_page_row( int $id ): array
+{
+    global $wpdb;
+    $row = $wpdb->get_row( "SELECT * FROM posts WHERE id=:id AND post_type='page' AND status<>'trashed'", [ ':id' => $id ] );
+    if ( null === $row || ! current_user_can( 'edit_post', $id ) ) {
+		throw new WP_Design_Preview_Exception( 'This Page is unavailable for preview.', 404 );
+	}
+    return $row;
 }
 function wp_design_preview_home_row( int $id ): ?array
 {

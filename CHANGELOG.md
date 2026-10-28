@@ -15,6 +15,7 @@ Updated October 27, 2026. Compact administration typography, a dedicated visual 
 
 ### Added
 
+- Added searchable, paginated Pages beside the private Site design preview. Select published, draft or archived Pages without changing the homepage; open the visual editor inside the workspace, retain unsaved design controls, and save Page content through the existing protected controller. Unsaved Page edits require a keep/discard choice before leaving. Page saves follow their selected status; site-design publication remains separate.
 - Added private live site preview beside Site design controls, using the actual theme, homepage, navigation and shared-section renderer. Unsaved changes are rendered without storing a draft or changing published options. The read-only frame supports desktop/mobile views, scroll retention, stale-response fencing, actionable errors and refresh recovery; publication remains explicit.
 - Direct canvas editing for page titles, paragraphs, headings, lists, quotes, code, captions, document labels and legacy HTML. Public renderer output and published theme styles supply the preview. Canvas typing retains focus across preview refreshes.
 - Drag-and-drop insertion and movement, nested columns, duplication, removal, undo/redo and keyboard save/history commands. Image/document selection uses the existing media library. Desktop/mobile previews use real 960px/390px layout viewports.

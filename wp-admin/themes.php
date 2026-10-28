@@ -8,6 +8,10 @@ if ( WP_DESIGN_LIVE_PREVIEW ) {
 }
 global $wpdb;
 wp_admin_require_cap('administrator');
+require_once __DIR__ . '/design-pages-functions.php';
+if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && 'list_pages' === wp_input( $_POST, 'design_action' ) ) {
+	wp_design_pages_response();
+}
 $admin_page_title = 'Site design';
 $admin_section = 'design';
 $admin_design_workspace = true;
@@ -168,6 +172,7 @@ wp_admin_field('spacing','Section spacing',$form['spacing'],'number','12–80 pi
 <div data-section-editor data-target="section-<?php echo $location; ?>"><div class="section-builder-root" data-media-url="media.php?format=json" data-documents-url="media.php?format=json&kind=documents"></div><p class="builder-status description" role="status" aria-live="polite"></p><details open><summary>Raw block document</summary><label for="section-<?php echo $location; ?>"><?php echo $label; ?> shared section</label><textarea id="section-<?php echo $location; ?>" name="section_<?php echo $location; ?>" rows="5"><?php echo esc_textarea($form[ 'section_'.$location ]); ?></textarea><p class="description">Supported HTML or a version 1 block document. Shared edits affect the site only when published. Page revision history stays unchanged.</p></details></div></section><?php
 endforeach; ?>
 </form>
+<?php require __DIR__ . '/design-page-list.php'; ?>
 <?php require __DIR__ . '/design-templates.php'; ?>
 <section class="panel" id="design-history" data-design-panel="history"><h2>Saved drafts</h2><?php foreach ( $wpdb->get_results('SELECT id,base_version FROM design_revisions WHERE actor_id=:actor AND published=0 ORDER BY id DESC LIMIT 30',[':actor' => get_current_user_id()]) as $draft ) :
 	?><div class="toolbar"><a href="themes.php?draft=<?php echo (int)$draft['id']; ?>">Edit draft <?php echo (int)$draft['id']; ?></a><span>Based on live version <?php echo (int)$draft['base_version']; ?></span><form method="post"><?php wp_nonce_field('design'); ?><input type="hidden" name="draft_id" value="<?php echo (int)$draft['id']; ?>" /><button type="submit" name="design_action" value="discard">Discard draft</button></form></div><?php
@@ -176,11 +181,12 @@ endforeach; ?>
 	?><form method="post" class="inline-form"><?php wp_nonce_field('design'); ?><input type="hidden" name="expected_version" value="<?php echo wp_design_version(); ?>" /><input type="hidden" name="restore_revision" value="<?php echo (int)$revision['id']; ?>" /><span>Design revision <?php echo (int)$revision['id']; ?><?php echo (int)get_option('design_live_revision',0) === (int)$revision['id'] ? ' · Current live design' : ''; ?></span><button type="submit" name="design_action" value="restore">Restore design</button></form><?php
                                                                                                                                                                                                                                                                                                                                    endforeach; ?></section>
 
-</div><?php require __DIR__ . '/design-live-preview.php'; ?></div>
+</div><?php require __DIR__ . '/design-live-preview.php'; ?><?php require __DIR__ . '/design-page-editor.php'; ?></div>
 
 <dialog id="media-picker" aria-labelledby="media-picker-title"><div class="toolbar"><h2 id="media-picker-title">Choose an image</h2><button type="button" id="close-media-picker">Close</button></div><div class="inline-form"><label for="media-picker-search">Search images</label><input id="media-picker-search" type="search" /><button id="media-picker-search-button" type="button">Search images</button></div><div id="media-picker-items" class="media-grid"></div><button id="media-picker-more" type="button" class="hidden">Load more images</button><p><a href="media.php" target="_blank" rel="noopener">Upload or manage media ↗</a></p></dialog>
 <dialog id="document-picker" aria-labelledby="document-picker-title"><div class="toolbar"><h2 id="document-picker-title">Choose a document</h2><button type="button" id="close-document-picker">Close</button></div><div class="inline-form"><label for="document-picker-search">Search documents</label><input id="document-picker-search" type="search" /><button id="document-picker-search-button" type="button">Search documents</button></div><div id="document-picker-items" class="media-grid"></div><button id="document-picker-more" type="button" class="hidden">Load more documents</button><p><a href="media.php?kind=documents" target="_blank" rel="noopener">Upload or manage documents ↗</a></p></dialog>
 <script type="module" src="js/page-builder.js"></script>
 <script type="module" src="js/design-workspace.js?v=<?php echo (int) filemtime( __DIR__ . '/js/design-workspace.js' ); ?>"></script>
 <script type="module" src="js/design-live-preview.js?v=<?php echo (int) filemtime( __DIR__ . '/js/design-live-preview.js' ); ?>"></script>
+<script type="module" src="js/design-pages.js?v=<?php echo (int) filemtime( __DIR__ . '/js/design-pages.js' ); ?>"></script>
 <?php require __DIR__ . '/admin-footer.php';

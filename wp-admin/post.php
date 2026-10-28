@@ -12,6 +12,8 @@ if ( null === $post ) {
 if ( ! current_user_can( 'edit_post', $id ) ) {
 	wp_die( 'You cannot read or edit this draft.', 'Access denied', [ 'response' => 403 ] );
 }
+require_once __DIR__ . '/design-pages-functions.php';
+$admin_design_editor = wp_design_editor_authorize( $id, $post['post_type'], $admin_builder_mode, $post['status'] );
 $post_type = $post['post_type'];
 $plural = 'page' === $post_type ? 'pages' : 'posts';
 $error = '';
@@ -70,7 +72,7 @@ if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
 		if ( is_wp_error( $result ) ) {
 			$error = $result->get_error_message();
 		} else {
-			wp_safe_redirect( 'post.php?post=' . $id . '&updated=1' . ( $admin_builder_mode ? '&editor=visual' : '' ) );
+			wp_safe_redirect( 'post.php?post=' . $id . '&updated=1' . ( $admin_builder_mode ? '&editor=visual' : '' ) . ( $admin_design_editor ? wp_design_editor_query( $id ) : '' ) );
 		}
 	}
 }
@@ -79,4 +81,7 @@ $admin_page_title = $admin_builder_mode ? 'Visual builder' : $admin_page_title;
 $admin_section = $post_type;
 require __DIR__ . '/admin-header.php';
 require __DIR__ . '/post-editor.php';
+if ( $admin_design_editor ) {
+	echo '<script type="module" src="js/design-page-editor.js?v=' . (int) filemtime( __DIR__ . '/js/design-page-editor.js' ) . '"></script>';
+}
 require __DIR__ . '/admin-footer.php';

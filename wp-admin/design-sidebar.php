@@ -7,6 +7,7 @@ if ( ! defined( 'WP_ROOT_DIR' ) ) {
 $design_draft_id = (int) ( $draft_id ?? 0 );
 $design_error = (string) ( $error ?? '' );
 $design_sections = [
+	'pages'      => 'Pages',
 	'theme'      => 'Theme',
 	'styles'     => 'Styles',
 	'navigation' => 'Navigation',

@@ -1,15 +1,15 @@
 <?php
 /** Request boundaries, CSRF tokens, cookies, and deployment headers. */
 declare( strict_types=1 );
-function wp_security_headers(): void
+function wp_security_headers( bool $same_origin_frame = false ): void
 {
 	if ( 'cli' === PHP_SAPI ) {
 		return;
 	}
 	header( 'X-Content-Type-Options: nosniff' );
-	header( 'X-Frame-Options: DENY' );
+	header( 'X-Frame-Options: ' . ( $same_origin_frame ? 'SAMEORIGIN' : 'DENY' ) );
 	header( 'Referrer-Policy: strict-origin-when-cross-origin' );
-	header( "Content-Security-Policy: default-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'" );
+	header( "Content-Security-Policy: default-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors " . ( $same_origin_frame ? "'self'" : "'none'" ) . "; form-action 'self'" );
 	if ( wp_is_https() ) {
 		header( 'Strict-Transport-Security: max-age=31536000' );
 	}

@@ -22,6 +22,8 @@ function presentPreview( context ) {
 	context.frame.addEventListener( 'load', () => loadPreviewFrame( context ) );
 }
 function connectPreview( context ) {
+	document.addEventListener( 'design-page-selected', event => { context.pageId = event.detail?.id || 0; queuePreview( context, true ); } );
+	document.addEventListener( 'design-page-saved', () => queuePreview( context, true ) );
 	context.form.addEventListener( 'design-form-updated', () => queuePreview( context ) );
 	context.form.addEventListener( 'submit', () => cancelPreviewRequest( context ) );
 	context.element.querySelector( '[data-preview-refresh]' ).addEventListener( 'click', () => queuePreview( context, true ) );
@@ -31,10 +33,10 @@ function connectPreview( context ) {
 	new ResizeObserver( () => resizePreviewFrame( context ) ).observe( context.viewport );
 }
 function queuePreview( context, force = false ) {
-	const signature = previewFormSignature( context.form );
+	const signature = previewFormSignature( context.form ) + '|' + context.pageId;
 	if ( ! force && signature === context.signature ) { return; }
 	context.signature = signature;
-	context.target = previewTarget( context.form );
+	context.target = previewTarget( context.form ) + '|' + context.pageId;
 	cancelPreviewRequest( context );
 	const sequence = ++context.sequence;
 	setPreviewPending( context );
@@ -53,6 +55,7 @@ async function requestPreview( context, sequence ) {
 }
 async function fetchPreviewPayload( context, signal ) {
 	const data = new FormData( context.form );
+	data.set( 'preview_page', String( context.pageId ) );
 	data.set( 'design_action', 'live_preview' ); data.set( '_wpnonce', context.element.dataset.nonce );
 	const response = await fetch( new URL( context.element.dataset.endpoint, location.href ), { method: 'POST', credentials: 'same-origin', redirect: 'error', headers: { Accept: 'application/json' }, body: data, signal } );
 	const payload = await readPreviewJson( response );
@@ -75,6 +78,8 @@ function applyPreviewPayload( context, payload, sequence ) {
 	context.frame.srcdoc = payload.html;
 	if ( ! context.frame.isConnected ) { context.viewport.append( context.frame ); }
 	context.frame.dataset.theme = payload.theme;
+	context.frame.dataset.pageId = context.pageId;
+	document.dispatchEvent( new CustomEvent( 'design-preview-rendered', { detail: { html: payload.html } } ) );
 }
 function loadPreviewFrame( context ) {
 	const document = context.frame.contentDocument;
@@ -135,7 +140,7 @@ function cancelPreviewRequest( context ) {
 function readPreviewContext() {
 	const element = document.querySelector( '[data-design-preview]' ), form = document.getElementById( 'design-form' );
 	if ( ! element || ! form ) { return null; }
-	return { element, form, viewport: element.querySelector( '.design-preview-viewport' ), layout: document.querySelector( '.design-live-layout' ), status: element.querySelector( '.design-preview-status' ), error: element.querySelector( '.design-preview-error' ), frame: document.createElement( 'iframe' ), width: PREVIEW_WIDTH.desktop, sequence: 0, frameSequence: -1, signature: null, controller: null, timer: null, renderId: null, scrollTop: 0, target: null, frameTarget: null };
+	return { element, form, viewport: element.querySelector( '.design-preview-viewport' ), layout: document.querySelector( '.design-live-layout' ), status: element.querySelector( '.design-preview-status' ), error: element.querySelector( '.design-preview-error' ), frame: document.createElement( 'iframe' ), width: PREVIEW_WIDTH.desktop, sequence: 0, frameSequence: -1, signature: null, controller: null, timer: null, renderId: null, scrollTop: 0, target: null, frameTarget: null, pageId: 0 };
 }
 function previewFormSignature( form ) {
 	return new URLSearchParams( new FormData( form ) ).toString();

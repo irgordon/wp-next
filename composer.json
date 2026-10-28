@@ -50,7 +50,8 @@
     ],
     "test:design": [
       "python3 tests/design-files-http.py",
-      "python3 tests/design-preview-http.py"
+      "python3 tests/design-preview-http.py",
+      "python3 tests/design-pages-http.py"
     ],
     "test:documents": "python3 tests/documents-http.py",
     "test:images": "python3 tests/images-http.py",

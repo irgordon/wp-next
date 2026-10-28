@@ -40,7 +40,7 @@ Media accepts JPEG, PNG, WebP, and GIF (10 MB, 40 megapixels, 12000-pixel maximu
 
 ## Site design
 
-**Design → Site design** opens a focused workspace with charcoal navigation for Theme, Styles, Navigation, Header, Footer, Templates and History. Back to admin returns to the normal Content, Media, Design and Settings groups. Code & files uses the normal administration shell.
+**Design → Site design** opens a focused workspace with charcoal navigation for Pages, Theme, Styles, Navigation, Header, Footer, Templates and History. Back to admin returns to the normal Content, Media, Design and Settings groups. Code & files uses the normal administration shell.
 
 Selecting a section keeps the same design form and its unsaved values. Save draft and Publish design remain available in the sidebar; native validation reveals the section containing the first invalid field. A saved draft exposes the existing private Preview design link. These actions retain their existing permissions, revision checks and explicit publication behavior. Without JavaScript, all form sections remain available with ordinary anchor links and native submission.
 
@@ -53,6 +53,16 @@ Desktop preview uses a 1440px viewport; Mobile preview uses 390px. The site reta
 On narrower screens, Design controls and Live preview switch between the two views while retaining the same form values. Choosing a design section returns to its controls. Invalid settings or a failed preview request explain the problem and retain the last valid rendering, explicitly marked as not current. Refresh preview retries without saving or publishing.
 
 The preview includes published managed CSS; unpublished file-editor stylesheet drafts retain their separate preview/publication flow. Media keeps the library's existing visibility rules. Without JavaScript, use Save draft followed by the existing private Preview design link.
+
+### Pages in the design workspace
+
+Choose **Pages** to search titles, filter by Published, Draft or Archived, and browse 20 Pages at a time. Trash and Posts are excluded. Selecting a Page updates the private preview with its content and the current unsaved design. It does not change the Homepage setting or save anything. Preview homepage restores the normal site preview.
+
+**Open visual editor** opens the selected Page inside the same design workspace. The charcoal navigation remains visible, and all site-design controls stay mounted. The canvas uses the current private design styles. Back to page list returns to the selection. Unsaved Page edits show a Keep editing / Discard Page edits dialog before returning, changing design sections or submitting the design. Discarding Page edits preserves unsaved site-design controls.
+
+**Save Page follows the Page's Status.** A Draft stays private; saving a Published Page updates its public content. Page saving does not save or publish the site design. Use the Page settings to inspect its status. The selected Page preview and list refresh after saving. Normal capability, action nonce and revision checks still apply. A conflicting save retains the submitted content for correction.
+
+Without JavaScript, title/status search and pagination use native GET forms; Open visual editor uses the existing full-page editor.
 
 Templates lists only the current published theme's curated choices. Assign one through the individual Page editor. This workspace does not create templates or edit their PHP source. Patterns is deferred and has no navigation destination; see [the inclusion review](reviews/PATTERNS_INCLUSION_REVIEW.md) for its prerequisites and open decisions.
 

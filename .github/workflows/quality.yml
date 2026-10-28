@@ -38,3 +38,4 @@ jobs:
       - run: npm run test:browser
       - run: npm run test:widgets:browser
       - run: npm run test:preview:browser
+      - run: npm run test:pages:browser

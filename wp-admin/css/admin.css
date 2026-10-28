@@ -4,6 +4,7 @@
 @import url("admin-widgets.css");
 @import url("design-workspace.css");
 @import url("design-live-preview.css");
+@import url("design-pages.css");
 
 :root { font-family: var(--font-ui); font-size: var(--wp-font-sm); color: var(--ink); }
 * { box-sizing: border-box; }

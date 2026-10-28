@@ -291,3 +291,5 @@ php bin/wp user:reset-link <username-or-email>
 ```
 
 Deliver the printed link to the account holder through a trusted channel.
+
+The optional embedded Page editor reuses `wp-admin/post.php`, so no endpoint allowlist change is needed. Authorized workspace-mode Page responses use SAMEORIGIN and CSP frame-ancestors self; ordinary editor and other application responses retain DENY and frame-ancestors none. An upstream server that overrides every response with DENY will block this embedded editor; preserve the scoped application policy rather than relaxing framing globally.

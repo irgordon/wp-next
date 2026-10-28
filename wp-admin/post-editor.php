@@ -9,13 +9,14 @@ $is_new = null === $post;
 $nonce_action = $is_new ? 'create:' . $post_type : 'post:' . $post['id'];
 $action_url = $is_new ? 'post-new.php?post_type=' . $post_type : 'post.php?post=' . $post['id'];
 $action_url .= ! empty( $admin_builder_mode ) ? '&editor=visual' : '';
+$action_url .= ! empty( $admin_design_editor ) ? wp_design_editor_query( (int) $post['id'] ) : '';
 wp_admin_notice( $error, true );
 if ( isset( $_GET['updated'] ) || isset( $_GET['created'] ) ) {
 	wp_admin_notice( 'Content saved.' );
 }
 $media_items = $wpdb->get_results( "SELECT * FROM media WHERE kind='image' AND state='ready' AND (id=:selected OR id IN (SELECT id FROM media ORDER BY id DESC LIMIT 100)) ORDER BY id DESC", [ ':selected' => (int) $form['featured_media_id'] ] );
 ?>
-<div class="editor-grid"><form id="post-editor" class="editor-form" method="post" action="<?php echo esc_url( $action_url ); ?>" data-editor-view="<?php echo ! empty( $admin_builder_mode ) ? 'visual' : 'form'; ?>" data-draft-key="<?php echo esc_attr( get_current_user_id() . ':' . ( $post['id'] ?? 'new-' . $post_type ) ); ?>" data-saved="<?php echo isset( $_GET['updated'] ) || isset( $_GET['created'] ) ? '1' : '0'; ?>">
+<div class="editor-grid"><form id="post-editor" class="editor-form" method="post" action="<?php echo esc_url( $action_url ); ?>" data-design-embed="<?php echo ! empty( $admin_design_editor ) ? '1' : '0'; ?>" data-editor-view="<?php echo ! empty( $admin_builder_mode ) ? 'visual' : 'form'; ?>" data-draft-key="<?php echo esc_attr( get_current_user_id() . ':' . ( $post['id'] ?? 'new-' . $post_type ) ); ?>" data-saved="<?php echo isset( $_GET['updated'] ) || isset( $_GET['created'] ) ? '1' : '0'; ?>">
 <?php wp_nonce_field( $nonce_action ); ?><input type="hidden" name="post_type" value="<?php echo esc_attr( $post_type ); ?>" />
 <?php if ( ! $is_new ) :
 	?><input type="hidden" name="ID" value="<?php echo (int) $post['id']; ?>" /><input type="hidden" name="expected_revision" value="<?php echo esc_attr( $form['expected_revision'] ); ?>" /><?php

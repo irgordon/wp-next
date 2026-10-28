@@ -67,3 +67,5 @@ Each link targets the page supplied by the user; actual child frames/components 
 | BlockEditor | `15620:61349` |
 
 The large DataViews response was expanded into its Table, Grid and List children for full design context. The documentation boards themselves are specifications rather than application screens; their cover artwork, labels and sample content are not implementation assets.
+
+The Pages section now occupies the controls column beside the private live preview. It adds title search, status filtering, a selected row and bounded pagination using existing tokens. Its editor expands across the content area while retaining the charcoal rail and mounted design controls. No additional Figma component library, template choice or Patterns destination is introduced.
