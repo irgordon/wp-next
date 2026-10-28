@@ -60,7 +60,10 @@
       "python3 tests/accounts-http.py",
       "python3 tests/account-boundaries-http.py"
     ],
-    "test:portability": "python3 tests/portability-http.py",
+    "test:portability": [
+      "python3 tests/portability-http.py",
+      "python3 tests/portability-regressions.py"
+    ],
     "test:discovery": "python3 tests/discovery-http.py"
   }
 }
