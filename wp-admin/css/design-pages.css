@@ -1,3 +1,7 @@
+.design-pages-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--wp-space-10); }
+.design-pages-heading h2 { margin: 0; }
+.design-pages-heading button { min-height: 36px; font-size: var(--wp-font-sm); padding: var(--wp-space-05) var(--wp-space-15); }
+[data-page-create-feedback]:empty { display: none; }
 .design-pages-search { display: grid; gap: var(--wp-space-10); }
 .design-pages-search label { margin: 0; }
 .design-pages-search .wp-search-control { max-width: none; }

@@ -1,5 +1,6 @@
 /** Page selection and trusted editor lifecycle; the design form stays mounted. */
 const CHANNEL = 'wp-next-design-editor';
+const CREATION_UNCONFIRMED_MESSAGE = 'The creation response could not be confirmed. Check the Page list for an Untitled Page before trying again.';
 let context;
 
 initializeDesignPages();
@@ -10,6 +11,58 @@ function initializeDesignPages() {
 	document.body.classList.add( 'design-pages-enabled' );
 	connectPageList(); connectPageEditor();
 	readPageRows();
+	connectPageCreation();
+}
+function connectPageCreation() {
+	context.createButton.hidden = false;
+	context.createButton.addEventListener( 'click', () => guardedEditorAction( createWorkspacePage ) );
+}
+async function createWorkspacePage() {
+	if ( context.creating ) { return; }
+	setPageCreationPending( true );
+	try { acceptCreatedPage( await requestPageCreation() ); }
+	catch ( error ) { showPageCreationError( error.message ); }
+	finally { setPageCreationPending( false ); }
+}
+function acceptCreatedPage( result ) {
+	clearPageFilters();
+	selectPage( result.item );
+	loadPages( result.item.listPage );
+	openPageEditor();
+}
+function setPageCreationPending( pending ) {
+	context.creating = pending; context.createButton.disabled = pending;
+	context.createButton.setAttribute( 'aria-busy', String( pending ) );
+	context.createButton.textContent = pending ? 'Creating draft…' : 'New Page';
+	context.element.querySelector( '[data-page-create-feedback]' ).textContent = pending ? 'Creating a private Page draft…' : '';
+	if ( pending ) { context.element.querySelector( '[data-page-create-error]' ).hidden = true; }
+}
+function clearPageFilters() {
+	context.search.elements.search.value = '';
+	context.search.elements.status.value = 'all';
+}
+async function requestPageCreation() {
+	const response = await postPageCreation();
+	return readPageCreationResult( response );
+}
+async function postPageCreation() {
+	const data = new FormData(); data.set( 'design_action', 'create_page' ); data.set( '_wpnonce', context.createButton.dataset.nonce );
+	try { return await fetch( new URL( 'themes.php', location.href ), { method: 'POST', credentials: 'same-origin', redirect: 'error', headers: { Accept: 'application/json' }, body: data } ); }
+	catch ( error ) { throw new Error( CREATION_UNCONFIRMED_MESSAGE ); }
+}
+async function readPageCreationResult( response ) {
+	const result = await readPageCreationJson( response );
+	if ( response.ok && result?.ok && Number.isInteger( result.item?.id ) && result.item.status === 'draft' && Number.isInteger( result.item.listPage ) && typeof result.item.editorUrl === 'string' ) { return result; }
+	if ( ! response.ok && typeof result?.error === 'string' ) { throw new Error( result.error ); }
+	throw new Error( CREATION_UNCONFIRMED_MESSAGE );
+}
+async function readPageCreationJson( response ) {
+	try { return await response.json(); }
+	catch ( error ) { throw new Error( CREATION_UNCONFIRMED_MESSAGE ); }
+}
+function showPageCreationError( message ) {
+	const notice = context.element.querySelector( '[data-page-create-error]' );
+	notice.textContent = message; notice.hidden = false;
 }
 function connectPageList() {
 	context.search.addEventListener( 'submit', event => { event.preventDefault(); loadPages( 1 ); } );
@@ -44,7 +97,11 @@ function receivePageEditorMessage( event ) {
 }
 function pageEditorSaved( data ) {
 	context.selected = { ...context.selected, title: data.title, status: data.status }; selectPage( context.selected );
-	loadPages( context.page ); document.dispatchEvent( new Event( 'design-page-saved' ) );
+	loadPages( savedPageListPosition( data ) ); document.dispatchEvent( new Event( 'design-page-saved' ) );
+}
+function savedPageListPosition( data ) {
+	if ( context.search.elements.search.value || context.search.elements.status.value !== 'all' ) { return context.page; }
+	return data.listPage > 0 ? data.listPage : context.page;
 }
 async function loadPages( page ) {
 	clearTimeout( context.timer ); context.controller?.abort();
@@ -153,7 +210,7 @@ function closePageEditor() {
 function readPagesContext() {
 	const element = document.querySelector( '[data-design-pages]' );
 	if ( ! element ) { return null; }
-	return { element, search: element.querySelector( 'form' ), rows: element.querySelector( '.design-pages-items' ), feedback: element.querySelector( '.design-pages-feedback' ), error: element.querySelector( '.design-pages-error' ), designForm: document.getElementById( 'design-form' ), editor: document.querySelector( '.design-page-editor-region' ), dialog: document.querySelector( '.design-page-discard' ), items: new Map(), page: Number( element.dataset.page ), sequence: 0, selected: null, frame: null, editorData: null, pending: null, previewHtml: document.querySelector( '.design-preview-viewport iframe' )?.srcdoc || '', controller: null, timer: null };
+	return { element, search: element.querySelector( 'form' ), rows: element.querySelector( '.design-pages-items' ), feedback: element.querySelector( '.design-pages-feedback' ), error: element.querySelector( '.design-pages-error' ), designForm: document.getElementById( 'design-form' ), editor: document.querySelector( '.design-page-editor-region' ), dialog: document.querySelector( '.design-page-discard' ), createButton: element.querySelector( '[data-page-create]' ), creating: false, items: new Map(), page: Number( element.dataset.page ), sequence: 0, selected: null, frame: null, editorData: null, pending: null, previewHtml: document.querySelector( '.design-preview-viewport iframe' )?.srcdoc || '', controller: null, timer: null };
 }
 function formatPageCount( total ) {
 	return total + ( total === 1 ? ' Page' : ' Pages' );

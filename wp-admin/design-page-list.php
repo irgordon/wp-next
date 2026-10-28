@@ -9,7 +9,11 @@ $design_page_status = wp_input( $_GET, 'status', 'all' );
 $design_page_result = wp_design_pages_inventory( $design_page_search, $design_page_status, (int) wp_input( $_GET, 'page', '1' ) );
 ?>
 <section class="panel design-pages" id="design-pages" data-design-panel="pages" data-design-pages data-page="<?php echo (int) $design_page_result['page']; ?>" data-nonce="<?php echo esc_attr( wp_nonce( 'design-pages' ) ); ?>">
-<h2>Pages</h2><p>Select a Page to preview it with your current design.</p>
+<header class="design-pages-heading"><h2>Pages</h2><button type="button" data-page-create data-nonce="<?php echo esc_attr( wp_nonce( WP_DESIGN_CREATE_PAGE_ACTION ) ); ?>" hidden>New Page</button></header>
+<p>Select a Page to preview it with your current design. New Pages start as private drafts.</p>
+<p data-page-create-feedback class="description" role="status" aria-live="polite"></p>
+<p data-page-create-error class="design-pages-error" role="alert" hidden></p>
+<noscript><p><a href="post-new.php?post_type=page&amp;editor=visual">New Page in full editor</a></p></noscript>
 <form id="design-pages-search" class="design-pages-search" action="themes.php#design-pages" method="get">
 <label for="design-page-search">Search Pages</label>
 <input type="search" id="design-page-search" name="search" value="<?php echo esc_attr( $design_page_search ); ?>" />

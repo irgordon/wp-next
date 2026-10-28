@@ -44,5 +44,5 @@ function applyEditorStyles() {
 }
 function notifyEditor( type ) {
 	const dirty = document.getElementById( 'editor-state' )?.textContent.includes( 'Unsaved changes' );
-	parent.postMessage( { channel: CHANNEL, type, id: Number( form.elements.ID.value ), title: form.elements.post_title.value, status: form.elements.post_status.value, dirty: Boolean( dirty || document.querySelector( '.notice-error' ) ), saved: form.dataset.saved === '1', draftKey: 'wp-draft:' + form.dataset.draftKey }, location.origin );
+	parent.postMessage( { channel: CHANNEL, type, id: Number( form.elements.ID.value ), title: form.elements.post_title.value, status: form.elements.post_status.value, dirty: Boolean( dirty || document.querySelector( '.notice-error' ) ), listPage: Number( form.dataset.designListPage ), saved: form.dataset.saved === '1', draftKey: 'wp-draft:' + form.dataset.draftKey }, location.origin );
 }

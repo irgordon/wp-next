@@ -2,7 +2,7 @@
 
 ## v0.0.2
 
-Updated October 27, 2026. Compact administration typography, a dedicated visual page builder, media upload feedback, grouped navigation and editable code windows. Schema remains 8.
+Updated October 28, 2026. Compact administration typography, a dedicated visual page builder, media upload feedback, grouped navigation and editable code windows. Schema remains 8.
 
 ### Changed
 
@@ -15,6 +15,7 @@ Updated October 27, 2026. Compact administration typography, a dedicated visual 
 
 ### Added
 
+- Added New Page to the Site design workspace. It creates an Untitled Page as a private draft and opens the embedded visual editor, retaining unsaved design settings. Pending creation disables repeat activation; failures retain the workspace and a lost acknowledgement gives recovery guidance without an automatic retry. The new or renamed Page is revealed on its actual list page.
 - Added searchable, paginated Pages beside the private Site design preview. Select published, draft or archived Pages without changing the homepage; open the visual editor inside the workspace, retain unsaved design controls, and save Page content through the existing protected controller. Unsaved Page edits require a keep/discard choice before leaving. Page saves follow their selected status; site-design publication remains separate.
 - Added private live site preview beside Site design controls, using the actual theme, homepage, navigation and shared-section renderer. Unsaved changes are rendered without storing a draft or changing published options. The read-only frame supports desktop/mobile views, scroll retention, stale-response fencing, actionable errors and refresh recovery; publication remains explicit.
 - Direct canvas editing for page titles, paragraphs, headings, lists, quotes, code, captions, document labels and legacy HTML. Public renderer output and published theme styles supply the preview. Canvas typing retains focus across preview refreshes.

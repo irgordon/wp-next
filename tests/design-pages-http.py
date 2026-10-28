@@ -32,6 +32,7 @@ with tempfile.TemporaryDirectory(prefix='wp-design-pages-http-') as directory:
             _,body,_=admin.request('/wp-admin/themes.php')
             list_nonce=re.search(r'data-design-pages[^>]*data-nonce="([^"]+)"',body)[1]
             preview_nonce=re.search(r'data-design-preview[^>]*data-nonce="([^"]+)"',body)[1]
+            create_nonce=re.search(r'data-page-create data-nonce="([^"]+)"',body)[1]
             def inventory(**updates):
                 status,body,headers=admin.request('/wp-admin/themes.php',dict({'design_action':'list_pages','_wpnonce':list_nonce},**updates))
                 assert status==200,body
@@ -93,11 +94,44 @@ with tempfile.TemporaryDirectory(prefix='wp-design-pages-http-') as directory:
             check(status==200 and 'notice-error' in stale and 'STALE-UNSAVED' in stale and dbrow(database,'SELECT revision FROM posts WHERE id=?',(draft,))['revision']==row['revision'],'Revision conflicts retain submitted edits without overwriting the saved Page')
             after=snapshot()
             check(after['options']==before['options'] and after['design_revisions']==before['design_revisions'] and guest.request('/')[1]==public_before,'Saving a draft Page does not publish the Page or site design')
+            # Creation is an explicit mutation; caller fields cannot change the draft policy.
+            with sqlite3.connect(database) as db:
+                db.execute("INSERT INTO options(option_name,option_value) VALUES('default_status','published') ON CONFLICT(option_name) DO UPDATE SET option_value='published'")
+            creation={'design_action':'create_page','_wpnonce':create_nonce,'post_status':'published','post_type':'post','post_author':'999','post_title':'FORGED-TITLE','homepage_id':str(draft)}
+            creation_before=snapshot()
+            admin.request('/wp-admin/themes.php?design_action=create_page')
+            check(snapshot()==creation_before,'GET cannot create a workspace draft')
+            for wrong in ['',list_nonce,preview_nonce]:
+                check(admin.request('/wp-admin/themes.php',dict(creation,_wpnonce=wrong))[0]==403,'Draft creation rejects a missing or wrong-action nonce')
+            check(guest.request('/wp-admin/themes.php',creation)[0] in [302,403] and snapshot()==creation_before,'Unauthenticated draft creation cannot persist a Page')
+            with sqlite3.connect(database) as db:
+                db.execute("CREATE TRIGGER fixture_refuse_creation BEFORE INSERT ON posts WHEN NEW.post_type='page' BEGIN SELECT RAISE(ABORT,'fixture refused draft insert'); END")
+            rejected,rejected_body,_=admin.request('/wp-admin/themes.php',creation)
+            with sqlite3.connect(database) as db: db.execute('DROP TRIGGER fixture_refuse_creation')
+            check(rejected==422 and not json.loads(rejected_body)['ok'] and 'could not be created' in json.loads(rejected_body)['error'] and snapshot()==creation_before,'Mutation-service failure returns a recoverable error and rolls back Page creation')
+            status,body,headers=admin.request('/wp-admin/themes.php',creation)
+            created=json.loads(body)['item']; new_row=dbrow(database,'SELECT * FROM posts WHERE id=?',(created['id'],))
+            check(status==201 and created['status']=='draft' and new_row['status']=='draft' and new_row['published_at'] is None,'New Page stays a private draft even when the default and submitted status are Published')
+            check(new_row['post_type']=='page' and new_row['author_id']==1 and new_row['title']=='Untitled Page','Creation uses the authenticated actor and fixed Page defaults')
+            check(json.loads(new_row['content_raw'])=={'version':1,'blocks':[]} and json.loads(new_row['metadata'])['page_template']=='standard','The new Page starts with an editable empty block document and curated Standard template')
+            check(created['listPage']>1 and any(item['id']==created['id'] for item in inventory(page=created['listPage'])[0]['items']),'Creation locates the new Page in the bounded sorted inventory')
+            check('private' in headers.get('Cache-Control','') and 'no-store' in headers.get('Cache-Control','') and headers.get('X-Frame-Options')=='DENY','The creation response is private and retains default frame denial')
+            opened,markup,embedded_headers=admin.request('/wp-admin/'+created['editorUrl'])
+            check(opened==200 and 'data-design-embed="1"' in markup and embedded_headers.get('X-Frame-Options')=='SAMEORIGIN','The returned signed URL opens the new draft in the workspace editor')
+            check(guest.request('/'+new_row['slug']+'/')[0]==404 and guest.request('/')[1]==public_before,'Draft creation exposes neither a public Page nor a changed homepage')
+            creation_after=snapshot()
+            check(len(creation_after['posts'])==len(creation_before['posts'])+1 and creation_after['options']==creation_before['options'] and creation_after['design_revisions']==creation_before['design_revisions'],'Creating one Page leaves site-design options and revisions unchanged')
+            check(admin.request('/wp-admin/themes.php',dict(creation,design_action='publish'))[0]==403,'The creation nonce cannot publish the site design')
+            second=json.loads(admin.request('/wp-admin/themes.php',creation)[1])['item']
+            second_row=dbrow(database,'SELECT * FROM posts WHERE id=?',(second['id'],))
+            check(second['id']!=created['id'] and second_row['slug']!=new_row['slug'] and second_row['status']=='draft','A separate intentional creation uses the normal unique-slug workflow')
             caps=dbrow(database,'SELECT capabilities FROM users WHERE id=1')['capabilities']
             with sqlite3.connect(database) as db: db.execute('UPDATE users SET capabilities=? WHERE id=1',(json.dumps(['edit_posts']),))
             denied,_,headers=admin.request(editor)
             check(denied==403 and headers.get('X-Frame-Options')=='DENY','Revoked administrator permission invalidates a still-signed editor link')
             check(admin.request('/wp-admin/themes.php',{'design_action':'list_pages','_wpnonce':list_nonce})[0]==403,'Page inventory rechecks current administrator permission')
+            revoked=snapshot()
+            check(admin.request('/wp-admin/themes.php',creation)[0]==403 and snapshot()==revoked,'A valid creation nonce cannot bypass revoked administrator access')
             print('Page workspace HTTP contract checks passed.')
         finally:
             server.terminate(); server.wait(timeout=5)

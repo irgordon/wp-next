@@ -40,6 +40,7 @@ that certification.
 
 - [v0.0.2 — private live site preview](reviews/V0_0_2_LIVE_DESIGN_PREVIEW_REVIEW.md)
 
+- [v0.0.2 — New Page inside Site design](reviews/V0_0_2_NEW_PAGE_REVIEW.md)
 - [v0.0.2 — Pages inside the design workspace](reviews/V0_0_2_DESIGN_PAGES_REVIEW.md)
 - [v0.0.2 — focused charcoal design navigation](reviews/V0_0_2_FOCUSED_DESIGN_REVIEW.md)
 

@@ -9,6 +9,10 @@ if ( WP_DESIGN_LIVE_PREVIEW ) {
 global $wpdb;
 wp_admin_require_cap('administrator');
 require_once __DIR__ . '/design-pages-functions.php';
+require_once __DIR__ . '/design-page-create.php';
+if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && 'create_page' === wp_input( $_POST, 'design_action' ) ) {
+	wp_design_create_page_response();
+}
 if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && 'list_pages' === wp_input( $_POST, 'design_action' ) ) {
 	wp_design_pages_response();
 }

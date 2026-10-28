@@ -87,6 +87,15 @@ function wp_design_page_inventory_item( array $row ): array
 		'editorUrl' => 'post.php?post=' . $id . '&editor=visual' . wp_design_editor_query( $id )
 	];
 }
+function wp_design_page_list_position( array $row ): int
+{
+	global $wpdb;
+	$count = $wpdb->get_row( "SELECT COUNT(*) AS n FROM posts WHERE post_type='page' AND status<>'trashed' AND (title COLLATE NOCASE < :title OR (title COLLATE NOCASE = :title AND id<=:id))", [
+		':title' => $row['title'],
+		':id'    => $row['id']
+	] );
+	return max( 1, (int) ceil( (int) $count['n'] / WP_DESIGN_PAGES_LIMIT ) );
+}
 function wp_design_editor_query( int $id ): string
 {
 	return '&design_workspace=1&_design_nonce=' . rawurlencode( wp_nonce( 'design-editor:' . $id ) );
