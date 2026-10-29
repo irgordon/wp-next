@@ -4,7 +4,7 @@ declare( strict_types=1 );
 require_once __DIR__ . '/admin.php';
 global $wpdb;
 wp_admin_require_cap( 'administrator' );
-$admin_page_title = 'General settings';
+$admin_page_title = 'General Settings';
 $admin_section = 'settings';
 $error = '';
 $message = '';

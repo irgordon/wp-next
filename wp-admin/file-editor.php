@@ -60,7 +60,7 @@ if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
 		}
 	}
 }
-$admin_page_title = 'Code & files';
+$admin_page_title = 'Code & Files';
 $admin_section = 'files';
 require __DIR__ . '/admin-header.php';
 wp_admin_notice( $error, true );
@@ -86,10 +86,10 @@ endif; ?>
 	?> <button type="submit" name="file_action" value="draft" class="secondary">Save as draft</button><?php 
                     endif; ?></form>
 <?php if ( 'custom.css' === $file && null !== $draft ) : ?>
-<section class="panel"><h2>Stylesheet draft</h2><p>Saved <?php echo esc_html( gmdate( 'Y-m-d H:i', (int) $draft['updated_at'] ) ); ?> UTC. The draft is private: the public site keeps using the published stylesheet until this draft is published.</p><p><a href="<?php echo esc_url( wp_home_url( '/?css_preview=1&_wpnonce=' . wp_nonce( 'css-preview' ) ) ); ?>" target="_blank" rel="noopener">Preview draft on the site ↗</a></p><form class="inline-form" method="post"><?php wp_nonce_field('file-edit:'.$file); ?><input type="hidden" name="expected_version" value="<?php echo (int) wp_managed_file_version( $file ); ?>" /><button type="submit" name="file_action" value="publish_draft">Publish draft</button></form> <form class="inline-form" method="post"><?php wp_nonce_field('file-edit:'.$file); ?><button type="submit" name="file_action" value="discard_draft">Discard draft</button></form></section>
+<section class="panel"><h2>Stylesheet Draft</h2><p>Saved <?php echo esc_html( gmdate( 'Y-m-d H:i', (int) $draft['updated_at'] ) ); ?> UTC. The draft is private: the public site keeps using the published stylesheet until this draft is published.</p><p><a href="<?php echo esc_url( wp_home_url( '/?css_preview=1&_wpnonce=' . wp_nonce( 'css-preview' ) ) ); ?>" target="_blank" rel="noopener">Preview draft on the site ↗</a></p><form class="inline-form" method="post"><?php wp_nonce_field('file-edit:'.$file); ?><input type="hidden" name="expected_version" value="<?php echo (int) wp_managed_file_version( $file ); ?>" /><button type="submit" name="file_action" value="publish_draft">Publish draft</button></form> <form class="inline-form" method="post"><?php wp_nonce_field('file-edit:'.$file); ?><button type="submit" name="file_action" value="discard_draft">Discard draft</button></form></section>
 <?php endif; ?>
 <p><a href="<?php echo esc_url(wp_home_url('/site-assets/'.$file)); ?>">View published file</a></p></section>
-<section class="panel"><h2>File history</h2><p>Restore creates another version and never deletes history. File history covers only this file and is independent of design history: restoring a file never changes the design, and restoring a design never changes a published file.</p><?php foreach ( $wpdb->get_results('SELECT id,created_at FROM managed_file_versions WHERE filename=:file ORDER BY id DESC LIMIT 30',[':file' => $file]) as $revision ) :
+<section class="panel"><h2>File History</h2><p>Restore creates another version and never deletes history. File history covers only this file and is independent of design history: restoring a file never changes the design, and restoring a design never changes a published file.</p><?php foreach ( $wpdb->get_results('SELECT id,created_at FROM managed_file_versions WHERE filename=:file ORDER BY id DESC LIMIT 30',[':file' => $file]) as $revision ) :
 	?><form class="inline-form" method="post"><?php wp_nonce_field('file-edit:'.$file); ?><input type="hidden" name="expected_version" value="<?php echo wp_managed_file_version($file); ?>" /><input type="hidden" name="revision_id" value="<?php echo (int)$revision['id']; ?>" /><span>Revision <?php echo (int)$revision['id']; ?></span><button type="submit" name="file_action" value="restore">Restore file revision</button></form><?php 
                                                                                                                                                                                                                                                                                         endforeach; ?></section>
 <?php require __DIR__ . '/admin-footer.php';

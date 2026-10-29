@@ -28,9 +28,9 @@ require __DIR__ . '/admin-header.php';
 <?php endforeach; ?>
 <?php if ( current_user_can( 'administrator' ) ) :
 	$pending = (int) $wpdb->get_row( "SELECT COUNT(*) AS n FROM job_queue WHERE status IN ('pending','reserved','failed')" )['n']; ?>
-<section class="panel metric"><h2>Background work</h2><strong><?php echo $pending; ?></strong><a href="activity.php">View queue status</a></section>
+<section class="panel metric"><h2>Background Work</h2><strong><?php echo $pending; ?></strong><a href="activity.php">View queue status</a></section>
 <?php endif; ?></div>
-<section class="panel"><h2>Your publishing workspace</h2><p>Write content, build pages, and keep the public site consistent with your chosen design.</p><div class="actions">
+<section class="panel"><h2>Your Publishing Workspace</h2><p>Write content, build pages, and keep the public site consistent with your chosen design.</p><div class="actions">
 <?php if ( current_user_can( 'edit_posts' ) ) :
 	?><a class="button" href="post-new.php?post_type=post">Write a post</a><?php
 endif; ?>

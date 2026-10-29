@@ -4,7 +4,7 @@ declare( strict_types=1 );
 require_once __DIR__ . '/admin.php';
 global $wpdb;
 wp_admin_require_cap( 'administrator' );
-$admin_page_title = 'Permalink settings';
+$admin_page_title = 'Permalink Settings';
 $admin_section = 'permalinks';
 $error = '';
 $message = '';
@@ -78,7 +78,7 @@ wp_admin_notice( $error, true );
 wp_admin_notice( $message );
 ?>
 <nav class="actions settings-navigation" aria-label="Settings"><a href="options-general.php">General</a><a href="options-permalink.php" aria-current="page">Permalinks</a></nav>
-<section class="panel"><h2>Common settings</h2><p>Choose the permanent address format for posts. Pages keep their slug addresses; Plain uses an ID query for both.</p>
+<section class="panel"><h2>Common Settings</h2><p>Choose the permanent address format for posts. Pages keep their slug addresses; Plain uses an ID query for both.</p>
 <form method="post"><?php wp_nonce_field( 'permalinks' ); ?>
 <fieldset class="permalink-options"><legend>Post permalink format</legend>
 <?php foreach ( $presets as $key => [ $label, $pattern ] ) : ?>

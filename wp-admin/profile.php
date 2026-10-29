@@ -12,7 +12,7 @@ $user = $wpdb->get_row( 'SELECT * FROM users WHERE id=:id', [ ':id' => $id ] );
 if ( null === $user ) {
 	wp_die( 'Profile not found.', 'Not found', [ 'response' => 404 ] ); 
 }
-$admin_page_title = $id === $actor ? 'Your profile' : 'Edit profile';
+$admin_page_title = $id === $actor ? 'Your Profile' : 'Edit Profile';
 $admin_section = 'profile';
 $error = '';
 $message = '';

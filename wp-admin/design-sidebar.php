@@ -25,7 +25,7 @@ $design_state_labels = [
 ?>
 <aside class="sidebar design-sidebar"><div class="sidebar-stick">
 <div class="sidebar-header"><a class="brand" href="index.php">WordPress <strong>Next</strong></a><button type="button" class="menu-toggle" aria-controls="admin-navigation" aria-expanded="true">Menu</button></div>
-<div class="design-sidebar-intro"><a href="index.php" class="design-exit">← Back to admin</a><h2>Site design</h2><p>Shape your site's appearance.</p></div>
+<div class="design-sidebar-intro"><a href="index.php" class="design-exit">← Back to admin</a><h2>Site Design</h2><p>Shape your site's appearance.</p></div>
 <nav id="admin-navigation" class="design-context-nav" aria-label="Design workspace"><p class="design-nav-label">Design</p><ul>
 <?php foreach ( $design_sections as $design_key => $design_label ) : ?>
 <li><a href="#design-<?php echo esc_attr( $design_key ); ?>" data-design-target="<?php echo esc_attr( $design_key ); ?>"><?php echo esc_html( $design_label ); ?></a></li>

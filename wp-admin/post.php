@@ -81,8 +81,8 @@ if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
 		}
 	}
 }
-$admin_page_title = 'Edit ' . ( 'page' === $post_type ? 'page' : 'post' );
-$admin_page_title = $admin_builder_mode ? 'Visual builder' : $admin_page_title;
+$admin_page_title = 'Edit ' . ( 'page' === $post_type ? 'Page' : 'Post' );
+$admin_page_title = $admin_builder_mode ? 'Visual Builder' : $admin_page_title;
 $admin_section = $post_type;
 require __DIR__ . '/admin-header.php';
 require __DIR__ . '/post-editor.php';

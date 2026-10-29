@@ -17,7 +17,7 @@ const FIELD_SPEC = {
 };
 const WORKSPACE_MARKUP = [
 	'<section class="builder-workspace" aria-label="Visual page builder">',
-	'<header class="builder-topbar"><div class="builder-back"></div><div class="builder-page-label"><strong>Visual builder</strong><span id="builder-page-name"></span></div>',
+	'<header class="builder-topbar"><div class="builder-back"></div><div class="builder-page-label"><strong>Visual Builder</strong><span id="builder-page-name"></span></div>',
 	'<div class="builder-history"><button type="button" id="builder-undo" aria-label="Undo change" title="Undo (⌘/Ctrl Z)">↶</button><button type="button" id="builder-redo" aria-label="Redo change" title="Redo (⌘/Ctrl Shift Z)">↷</button></div>',
 	'<div class="builder-devices"></div><div class="builder-save"></div></header>',
 	'<div class="builder-mobile-tools"><button type="button" data-drawer="blocks" aria-expanded="false">Blocks</button><button type="button" data-drawer="settings" aria-expanded="false">Settings</button></div>',

@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.0.7
+
+Updated October 29, 2026. Installer welcome copy, breadcrumb and heading polish. Schema remains 8.
+
+### Changed
+
+- Installer step 1 now opens with a benefit-led welcome — zero setup, secure from day one, ready in 60 seconds — and its advance button reads "Let's get started".
+- The breadcrumb root crumb is labeled Home, and the visual builder's compact breadcrumb size is unified with the standard breadcrumb at 11px.
+- Admin page titles, navigation labels and headings use Title Case consistently (for example Site Design, Code & Files, General Settings and Visual Builder).
+
 ## v0.0.6
 
 Updated October 28, 2026. Import/export boundary fixes. Schema remains 8; native format remains version 1.

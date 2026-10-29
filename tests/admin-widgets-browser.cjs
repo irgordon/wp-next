@@ -42,7 +42,7 @@ async function main() {
 		browser = await chromium.launch( { executablePath: process.env.BROWSER_PATH || undefined, args: process.env.BROWSER_ARGS ? JSON.parse( process.env.BROWSER_ARGS ) : [], headless: true } );
 		const context = await browser.newContext( { viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 2 } );
 		page = await context.newPage(); page.on( 'pageerror', error => errors.push( error.message ) );
-		await page.goto( base + '/wp-admin/install.php' ); await page.getByRole( 'button', { name: 'Next', exact: true } ).click();
+		await page.goto( base + '/wp-admin/install.php' ); await page.getByRole( 'button', { name: "Let's get started", exact: true } ).click();
 		await page.getByLabel( 'Site title', { exact: true } ).fill( 'Widget studio' ); await page.getByLabel( 'Administrator username' ).fill( 'admin' ); await page.getByLabel( 'Administrator email' ).fill( 'admin@example.test' ); await page.getByLabel( 'Password', { exact: true } ).fill( 'disposable-test-password' );
 		await Promise.all( [ page.waitForNavigation(), page.getByRole( 'button', { name: 'Install site', exact: true } ).click() ] );
 		await page.getByRole( 'link', { name: 'Log in', exact: true } ).click();
@@ -121,7 +121,7 @@ async function main() {
 		await capture( page, 'figma-media-desktop' );
 		check( await page.getByRole( 'heading', { name: 'Your image library is empty' } ).isVisible(), 'An empty library has an explicit useful state' );
 		check( await page.locator( '.upload-card' ).evaluate( element => element.getBoundingClientRect().width >= 600 ), 'The desktop upload card uses the available panel width' );
-		check( await page.getByRole( 'navigation', { name: 'Breadcrumb' } ).innerText().then( text => text.includes( 'Workspace' ) && text.includes( 'Media' ) && text.includes( 'Images' ) ), 'Breadcrumbs reflect the active media hierarchy' );
+		check( await page.getByRole( 'navigation', { name: 'Breadcrumb' } ).innerText().then( text => text.includes( 'Home' ) && text.includes( 'Media' ) && text.includes( 'Images' ) ), 'Breadcrumbs reflect the active media hierarchy' );
 		await page.getByRole( 'button', { name: 'Upload image', exact: true } ).click();
 		check( await page.getByRole( 'alert' ).filter( { hasText: 'Choose at least one file' } ).isVisible(), 'Submitting no files produces an in-place error' );
 		await page.getByLabel( 'Image file', { exact: true } ).setInputFiles( { name: 'unsupported.zip', mimeType: 'application/zip', buffer: Buffer.from( 'not an image' ) } );

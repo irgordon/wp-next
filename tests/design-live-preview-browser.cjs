@@ -43,7 +43,7 @@ async function main() {
 		browser = await chromium.launch( { executablePath: process.env.BROWSER_PATH || undefined, args: process.env.BROWSER_ARGS ? JSON.parse( process.env.BROWSER_ARGS ) : [], headless: true } );
 		const context = await browser.newContext( { viewport: { width: 1680, height: 1050 } } );
 		page = await context.newPage(); page.on( 'pageerror', error => errors.push( error.message ) );
-		await page.goto( base + '/wp-admin/install.php' ); await page.getByRole( 'button', { name: 'Next', exact: true } ).click();
+		await page.goto( base + '/wp-admin/install.php' ); await page.getByRole( 'button', { name: "Let's get started", exact: true } ).click();
 		await page.getByLabel( 'Site title', { exact: true } ).fill( 'Private preview studio' ); await page.getByLabel( 'Administrator username' ).fill( 'admin' ); await page.getByLabel( 'Administrator email' ).fill( 'admin@example.test' ); await page.getByLabel( 'Password', { exact: true } ).fill( 'disposable-test-password' );
 		await Promise.all( [ page.waitForNavigation(), page.getByRole( 'button', { name: 'Install site', exact: true } ).click() ] );
 		await page.getByRole( 'link', { name: 'Log in', exact: true } ).click(); await page.getByLabel( 'Username or email' ).fill( 'admin' ); await page.getByLabel( 'Password', { exact: true } ).fill( 'disposable-test-password' );

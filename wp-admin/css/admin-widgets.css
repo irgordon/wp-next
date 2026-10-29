@@ -33,7 +33,7 @@
 .breadcrumb-menu a { display: block; padding: var(--wp-space-10) var(--wp-space-15); font-size: var(--wp-font-md); line-height: var(--wp-line-sm); }
 .breadcrumb-menu a:hover { background: var(--blue-4); }
 .builder-page .wrap > .admin-breadcrumbs { display: none; }
-.builder-page-label .admin-breadcrumbs { margin: 0; font-size: 10px; }
+.builder-page-label .admin-breadcrumbs { margin: 0; font-size: 11px; }
 .builder-page-label .admin-breadcrumbs > ol { flex-wrap: nowrap; gap: 4px; }
 .builder-page-label .admin-breadcrumbs > ol > li { gap: 4px; }
 .builder-page-label .admin-breadcrumbs .crumb-middle { display: none; }

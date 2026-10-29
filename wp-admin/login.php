@@ -20,7 +20,7 @@ if ( get_current_user_id() > 0 && ! in_array( $action, [ 'rp', 'ml', 'invite' ],
 if ( 'lostpassword' === $action || 'magic' === $action ) {
 	$purpose = 'lostpassword' === $action ? 'reset' : 'magic';
 	if ( 'magic' === $purpose && '1' !== (string) get_option( 'magic_links_enabled', '0' ) ) {
-		wp_admin_auth_header( 'Sign-in links' );
+		wp_admin_auth_header( 'Sign-In Links' );
 		wp_admin_notice( 'Email sign-in links are not enabled on this site.', true );
 		echo '<p><a href="login.php">Back to sign in</a></p>';
 		wp_admin_auth_footer();
@@ -36,7 +36,7 @@ if ( 'lostpassword' === $action || 'magic' === $action ) {
 		$notice = 'If an account exists for that email address, a link is on its way.';
 	}
 	$form_nonce = wp_nonce( $action );
-	wp_admin_auth_header( 'reset' === $purpose ? 'Reset password' : 'Sign-in link' );
+	wp_admin_auth_header( 'reset' === $purpose ? 'Reset Password' : 'Sign-In Link' );
 	wp_admin_notice( $error, true );
 	wp_admin_notice( $notice );
 	?>
@@ -65,7 +65,7 @@ if ( 'rp' === $action || 'ml' === $action || 'invite' === $action ) {
 		}
 	}
 	if ( null === $row ) {
-		wp_admin_auth_header( 'Link unavailable' );
+		wp_admin_auth_header( 'Link Unavailable' );
 		wp_admin_notice( 'This link is invalid, expired, or already used. Request a new one from the sign-in page.', true );
 		echo '<p><a href="login.php">Back to sign in</a></p>';
 		wp_admin_auth_footer();

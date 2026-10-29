@@ -43,14 +43,14 @@ if ( $success ) {
 <p class="wizard-step-label" role="status">Step <span data-wizard-current>1</span> of 2</p>
 <form action="install.php" method="post"><input type="hidden" name="_wpnonce" value="<?php echo esc_attr( $nonce ); ?>" />
 <section class="wizard-step" data-wizard-step="1" aria-label="Welcome">
-<h2>Welcome to WordPress Next</h2>
-<p>WordPress Next is a publishing workspace for your content, pages, and design: a focused admin, a block editor for posts and pages, a media library, and themes you can restyle — without plug-in sprawl or a separate database server to run.</p>
+<h2>Welcome to WordPress Next!</h2>
+<p>We’ve reimagined the publishing experience so you can focus entirely on your content. Enjoy a streamlined workspace with a powerful block editor, beautiful themes, and a central media library—all without the clutter of complicated databases or plugin sprawl.</p>
 <ul class="wizard-points">
-<li><strong>Nothing to configure for storage.</strong> Your content lives in a single SQLite database file, created during this setup and protected by a unique per-install secret.</li>
-<li><strong>Hardened by default.</strong> Hashed sessions, login throttling, and strict content sanitizing are on from the first request.</li>
-<li><strong>About a minute.</strong> Next, you will name your site and create the administrator account — that is the whole setup.</li>
+<li><strong>Zero setup required.</strong> Say goodbye to server configuration. Your site’s storage is completely self-contained and ready to go the moment you start.</li>
+<li><strong>Secure from day one.</strong> Built-in protection works seamlessly in the background. We automatically handle the technical heavy lifting to keep your site safe from your very first click.</li>
+<li><strong>Ready in 60 seconds.</strong> Next, you’ll simply name your site and create your login. That’s the entire setup!</li>
 </ul>
-<div class="wizard-actions"><span></span><button type="button" data-wizard-next>Next</button></div>
+<div class="wizard-actions"><span></span><button type="button" data-wizard-next>Let's get started</button></div>
 </section>
 <section class="wizard-step" data-wizard-step="2" aria-label="Site and administrator">
 <p>A publishing workspace for your content, pages, and design.</p>

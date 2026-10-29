@@ -10,7 +10,7 @@ $jobs = $wpdb->get_results( 'SELECT status,COUNT(*) AS count FROM job_queue GROU
 $entries = $wpdb->get_results( 'SELECT a.*,u.username FROM audit_log a LEFT JOIN users u ON u.id=a.actor_id ORDER BY a.id DESC LIMIT 100' );
 require __DIR__ . '/admin-header.php';
 ?>
-<section class="panel"><h2>Background queue</h2><?php foreach ( $jobs as $job ) :
+<section class="panel"><h2>Background Queue</h2><?php foreach ( $jobs as $job ) :
 	?><p><strong><?php echo esc_html( ucfirst( $job['status'] ) ); ?>:</strong> <?php echo (int) $job['count']; ?></p><?php
 												endforeach;
 												if ( [] === $jobs ) {

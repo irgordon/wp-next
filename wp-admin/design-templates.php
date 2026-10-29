@@ -5,7 +5,7 @@ if ( ! defined( 'WP_ROOT_DIR' ) ) {
 	exit;
 }
 ?>
-<section class="panel" id="design-templates" data-design-panel="templates"><h2>Curated Page templates</h2>
+<section class="panel" id="design-templates" data-design-panel="templates"><h2>Curated Page Templates</h2>
 <p>These choices belong to the current published theme. Assign a template in each Page's editing settings.</p>
 <ul class="design-template-list">
 <?php foreach ( wp_curated_templates() as $design_template_id => $design_template_file ) : ?>

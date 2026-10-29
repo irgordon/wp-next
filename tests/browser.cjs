@@ -34,7 +34,7 @@ async function main() {
 		page = await context.newPage(); page.on( 'pageerror', error => errors.push( error.message ) );
 		await page.goto( base + '/wp-admin/install.php' );
 		await capture( page, 'install-desktop' );
-		await page.getByRole( 'button', { name: 'Next', exact: true } ).click();
+		await page.getByRole( 'button', { name: "Let's get started", exact: true } ).click();
 		await page.getByLabel( 'Site title', { exact: true } ).fill( 'Browser Site' ); await page.getByLabel( 'Administrator username' ).fill( 'admin' ); await page.getByLabel( 'Administrator email' ).fill( 'admin@example.test' ); await page.getByLabel( 'Password', { exact: true } ).fill( 'disposable-test-password' );
 		await Promise.all( [ page.waitForNavigation(), page.getByRole( 'button', { name: 'Install site', exact: true } ).click() ] );
 		check( await page.getByRole( 'heading', { name: 'Installation complete' } ).isVisible(), 'Browser completes the blank installer' );
@@ -229,7 +229,7 @@ async function main() {
 		check( await page.getByLabel( 'Title', { exact: true } ).inputValue() === 'Recover this draft' && await page.getByRole( 'textbox', { name: 'paragraph content' } ).innerText().then( text => text.includes( 'Unsaved browser text' ) ), 'Draft recovery restores title and content' );
 		await page.goto( base + '/wp-admin/options-general.php' );
 		await page.getByRole( 'navigation', { name: 'Administration' } ).getByRole( 'link', { name: 'Permalinks', exact: true } ).click();
-		check( await page.getByRole( 'heading', { name: 'Permalink settings', exact: true } ).isVisible(), 'General settings opens the Permalinks screen' );
+		check( await page.getByRole( 'heading', { name: 'Permalink Settings', exact: true } ).isVisible(), 'General settings opens the Permalinks screen' );
 		await page.getByRole( 'radio', { name: 'Day and name', exact: false } ).check();
 		await Promise.all( [ page.waitForNavigation(), page.getByRole( 'button', { name: 'Save permalink settings' } ).click() ] );
 		const example = page.getByRole( 'link', { name: 'View current example', exact: false } );

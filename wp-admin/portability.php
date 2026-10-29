@@ -131,7 +131,7 @@ require __DIR__ . '/admin-header.php';
 wp_admin_notice( $notice );
 wp_admin_notice( $error, true );
 ?>
-<section class="panel"><h2>Export this site</h2>
+<section class="panel"><h2>Export This Site</h2>
 <p>Downloads one ZIP archive with a versioned JSON manifest and the media bytes it references (image masters only; derived sizes regenerate on import). Private document bytes <strong>are</strong> included: treat the archive like a backup. Export is administrator-only and changes nothing on this site.</p>
 <form id="portability-export" method="post"><?php wp_nonce_field( 'portability-export' ); ?><input type="hidden" name="portability_action" value="export" /><button type="submit">Download export archive</button></form></section>
 <section class="panel"><h2>Import</h2>
@@ -141,7 +141,7 @@ wp_admin_notice( $error, true );
 <div class="form-field"><label for="media_archive">Media ZIP for WXR attachments (optional)</label><input id="media_archive" name="media_archive" type="file" accept=".zip" /></div>
 <button type="submit">Run preflight</button></form></section>
 <?php if ( null !== $preflight && null !== $parsed ) : ?>
-<section class="panel"><h2>Preflight report</h2>
+<section class="panel"><h2>Preflight Report</h2>
 <p><?php echo esc_html( ucfirst( (string) $parsed['format'] ) ); ?> archive: <?php echo count( $parsed['model']['authors'] ); ?> author(s), <?php echo count( $parsed['model']['terms'] ); ?> term(s), <?php echo count( $parsed['model']['media'] ); ?> media item(s), <?php echo count( $parsed['model']['posts'] ); ?> content item(s). No changes have been made.</p>
 	<?php if ( [] !== $preflight['unsupported'] ) :
 		?><h3>Will not be imported</h3><ul><?php foreach ( $preflight['unsupported'] as $item ) :
@@ -180,7 +180,7 @@ wp_admin_notice( $error, true );
 <button type="submit">Confirm import</button></form></section>
 <?php endif; ?>
 <?php if ( null !== $run_results ) : ?>
-<section class="panel"><h2>Import results</h2>
+<section class="panel"><h2>Import Results</h2>
 <table><thead><tr><th scope="col">Item</th><th scope="col">Kind</th><th scope="col">Result</th><th scope="col">Detail</th></tr></thead><tbody>
 	<?php foreach ( $run_results as $result ) : ?>
 <tr><td><?php echo esc_html( $result['label'] ); ?></td><td><?php echo esc_html( $result['kind'] ); ?></td><td><?php echo esc_html( $result['status'] ); ?></td><td><?php echo esc_html( $result['detail'] ); ?></td></tr>

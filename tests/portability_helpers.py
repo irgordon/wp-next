@@ -59,10 +59,10 @@ def preflight_and_import(site_obj, files, expect_ok=True):
     _, page, _ = admin.request('/wp-admin/portability.php')
     status, report, _ = multipart(admin, '/wp-admin/portability.php', page, 'portability-preflight', {'portability_action': 'preflight'}, files)
     if not expect_ok: return status, report, None
-    assert 'Preflight report' in report, report[-2000:]
+    assert 'Preflight Report' in report, report[-2000:]
     fields = form_fields(report, 'portability-import')
     status, results, _ = admin.request('/wp-admin/portability.php', {'_wpnonce': token(report, 'portability-import'), 'portability_action': 'import', 'archive_key': fields['archive_key'], 'media_key': fields['media_key']})
-    assert 'Import results' in results, results[-2000:]
+    assert 'Import Results' in results, results[-2000:]
     return status, report, results
 
 def post_form(client, title, slug, status_value, blocks, featured=None, terms=None):

@@ -76,13 +76,13 @@ const WP_ADMIN_MENU_GROUPS = [
 	'Design'   => [
 		[
 			'key'        => 'design',
-			'label'      => 'Site design',
+			'label'      => 'Site Design',
 			'url'        => 'themes.php',
 			'capability' => 'administrator'
 		],
 		[
 			'key'        => 'files',
-			'label'      => 'Code & files',
+			'label'      => 'Code & Files',
 			'url'        => 'file-editor.php',
 			'capability' => 'administrator'
 		]
@@ -120,14 +120,14 @@ const WP_ADMIN_MENU_GROUPS = [
 		],
 		[
 			'key'        => 'profile',
-			'label'      => 'Your profile',
+			'label'      => 'Your Profile',
 			'url'        => 'profile.php',
 			'capability' => ''
 		]
 	]
 ];
 const WP_ADMIN_HOME_CRUMB = [
-	'label' => 'Workspace',
+	'label' => 'Home',
 	'url'   => 'index.php'
 ];
 const WP_ADMIN_OVERVIEW = [

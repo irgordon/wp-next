@@ -236,13 +236,13 @@ $fmt_bytes = static fn( int $bytes ): string => $bytes >= 1048576 ? round( $byte
 <?php
 if ( 'documents' === $kind ) :
 	?>
-<section class="panel upload-panel"><h2>Upload a document</h2><p>PDF, text, Markdown, or CSV, up to 25 MB. Documents are stored unmodified in protected storage and delivered only through the checked download route. They are <strong>not scanned for malware</strong>; treat every download as unscanned. Private documents are visible only to you and media managers; public documents can be linked from published content.</p><form class="inline-form" method="post" enctype="multipart/form-data" data-xhr-upload="1" data-upload-kind="<?php echo esc_attr( $kind ); ?>">
+<section class="panel upload-panel"><h2>Upload a Document</h2><p>PDF, text, Markdown, or CSV, up to 25 MB. Documents are stored unmodified in protected storage and delivered only through the checked download route. They are <strong>not scanned for malware</strong>; treat every download as unscanned. Private documents are visible only to you and media managers; public documents can be linked from published content.</p><form class="inline-form" method="post" enctype="multipart/form-data" data-xhr-upload="1" data-upload-kind="<?php echo esc_attr( $kind ); ?>">
 	<?php
 	wp_nonce_field( 'media' );
 	?>
 <input type="hidden" name="action" value="upload_document" /><label for="document">Document file</label><input id="document" name="document[]" type="file" accept=".pdf,.txt,.md,.csv,application/pdf,text/plain,text/csv" required multiple /><label for="document-visibility">Visibility</label><select id="document-visibility" name="visibility"><option value="private" selected>Private</option><option value="public">Public</option></select><button type="submit">Upload document</button></form><div class="upload-results" role="status" aria-live="polite"></div></section>
 <?php else : ?>
-<section class="panel upload-panel"><h2>Upload an image</h2><p>Nonanimated JPEG, PNG, WebP, or GIF, up to 10 MB and 12 megapixels. Images are decoded and re-encoded to remove metadata. JPEG orientation is preserved. Published content uses local uploads only. Uploaded images are publicly accessible.</p><form class="inline-form" method="post" enctype="multipart/form-data" data-xhr-upload="1" data-upload-kind="<?php echo esc_attr( $kind ); ?>">
+<section class="panel upload-panel"><h2>Upload an Image</h2><p>Nonanimated JPEG, PNG, WebP, or GIF, up to 10 MB and 12 megapixels. Images are decoded and re-encoded to remove metadata. JPEG orientation is preserved. Published content uses local uploads only. Uploaded images are publicly accessible.</p><form class="inline-form" method="post" enctype="multipart/form-data" data-xhr-upload="1" data-upload-kind="<?php echo esc_attr( $kind ); ?>">
 	<?php
 	wp_nonce_field( 'media' );
 	?>
