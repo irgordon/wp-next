@@ -123,6 +123,11 @@ unresolved; controlled health failures are deliberate probes, not its diagnosis.
    and [package inventory](https://github.com/shivammathur/setup-php/blob/main/src/configs/php_packages)
    include FPM. This failure occurred before the HTTPS gate, not in application
    execution. The follow-up commit retains the v0.0.9 version and failure record.
+9. The next CI run on `d5a8316` ([run 40960865022](https://github.com/irgordon/wp-next/actions/runs/40960865022))
+   confirmed FPM was present, then exposed the harness's Mac-only
+   `/private/tmp` directory before starting a service. Temporary directories now
+   use `/tmp` on both platforms and resolve the canonical path (retaining the
+   Mac server rules' physical paths). The local four-topology gate was repeated.
 
 Evidence is outside the source distribution in
 `.local-sync/2026-10-29-j1/`: numbered first-run logs, native/Homebrew Apache

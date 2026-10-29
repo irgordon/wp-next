@@ -23,8 +23,8 @@ from http_helpers import Client, NoRedirect, ROOT
 
 @contextmanager
 def deployed_site(options, stack, mode, backup=None):
-    with tempfile.TemporaryDirectory(prefix='wp-fpm-https-', dir='/private/tmp') as directory, ExitStack() as services:
-        fixture = prepare_fixture(options, stack, mode, Path(directory))
+    with tempfile.TemporaryDirectory(prefix='wp-fpm-https-', dir='/tmp') as directory, ExitStack() as services:
+        fixture = prepare_fixture(options, stack, mode, Path(directory).resolve())
         try:
             if backup is not None:
                 restore_fixture(fixture, backup)
