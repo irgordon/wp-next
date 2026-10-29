@@ -1,7 +1,7 @@
 @import url("../../wp-content/assets/design-tokens.css");
 @import url("wordpress-foundations.css");
 @import url("visual-builder.css");
-@import url("admin-widgets.css");
+@import url("admin-widgets.css?v=eda253ed7a8d");
 @import url("design-workspace.css");
 @import url("design-live-preview.css");
 @import url("design-pages.css?v=ddc5167c1b82");

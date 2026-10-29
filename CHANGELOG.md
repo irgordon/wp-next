@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.0.7.1
+
+### Fixed
+
+- Refreshed the cache-version tokens for the UI assets changed in v0.0.7: the visual-builder module import now carries its current content digest, and the admin-widgets stylesheet import is versioned like its sibling imports — warm caches pick up the updated builder label and breadcrumb size after upgrade.
+
 ## v0.0.7
 
 Updated October 29, 2026. Installer welcome copy, breadcrumb and heading polish. Schema remains 8.

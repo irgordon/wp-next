@@ -1,6 +1,6 @@
 /** Canonical nested block editor. Server validation remains authoritative. */
 'use strict';
-import { mountVisualWorkspace } from './visual-builder.js?v=647f27df7f24';
+import { mountVisualWorkspace } from './visual-builder.js?v=d925ffcd01c6';
 import { refreshCodeField } from './code-editor.js';
 import { createBlock as makeBlock, locateBlock } from './visual-builder-model.js';
 ( function() {
