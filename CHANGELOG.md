@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.0.6
+
+Updated October 28, 2026. Import/export boundary fixes. Schema remains 8; native format remains version 1.
+
+- Preserve supplied WXR inline images and attachment links, remap social-image overrides, recover committed imports without duplicate content, and refuse exports exceeding native format limits.
+- Added 29 positive regression checks to the portability CI gate. [Verification and compatibility notes](docs/reviews/V0_0_6_REVIEW.md).
+
 ## v0.0.5
 
 Updated October 28, 2026. Local review checkpoint. Schema remains 8.

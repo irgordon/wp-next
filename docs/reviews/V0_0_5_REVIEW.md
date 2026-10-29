@@ -1,5 +1,7 @@
 # v0.0.5 — Local Review Checkpoint
 
+Historical snapshot: all four findings below were repaired in [v0.0.6](V0_0_6_REVIEW.md). The original fault-confirmation tool is preserved in commit `886a71f`; its current path forwards to the positive regression suite.
+
 Recorded October 28, 2026. This patch publishes the local review of application code at v0.0.4 (`55ee2bb`). Schema remains 8. The four defects below remain unresolved.
 
 **Verdict:** The supplied suites and GitHub CI are green, but four independent probes reproduce import/export defects. The WXR content-loss and interrupted-resume cases fail explicit G2 release requirements. I would not sign off G2 as complete until they are corrected. Application runtime code was unchanged by the review; v0.0.5 publishes its findings and manual reproduction tool.

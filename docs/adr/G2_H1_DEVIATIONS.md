@@ -114,3 +114,7 @@ Both builds:
   were left untouched in both builds; the fix is Ian's call.
 - The intermittent http-smoke theme-settings failure from October 25
   did not recur in either build and remains unresolved.
+
+## v0.0.6 Corrections
+
+The local review found four boundary failures beyond the original acceptance suites. [The v0.0.6 record](../reviews/V0_0_6_REVIEW.md) closes them with positive regressions. Imported social IDs now use the media map rather than relying on a ready-ID collision check. WXR attachment references are rewritten before normal sanitization. Generated import provenance is committed with each new Post so a failed later bookkeeping/checkpoint step can recover the original item. The separate source-author/date correction remains, is retryable, and preserves later operator edits. Export now refuses output outside the version-1 importer bounds. These repairs retain format version 1, schema 8, the supplied-media-only policy and the approved scope.

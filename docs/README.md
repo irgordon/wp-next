@@ -10,9 +10,9 @@ the suites below. J1 production certification (real
 nginx/Apache → PHP-FPM over HTTPS) is still outstanding; the server suites
 in this repository are fixtures, not that certification.
 
-The v0.0.5 [local review checkpoint](reviews/V0_0_5_REVIEW.md) records four
-confirmed import/export defects despite passing supplied suites. The G2
-release gate remains open until the two P1 findings are resolved.
+The v0.0.6 [boundary-fix review](reviews/V0_0_6_REVIEW.md) closes the four
+import/export findings from the v0.0.5 review and adds positive CI regressions.
+Production PHP-FPM/HTTPS certification remains a separate open gate.
 
 ## Start here
 

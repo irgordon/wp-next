@@ -43,13 +43,15 @@ Open items carried in `CHANGELOG.md` (Open Findings): the intermittent
 theme-settings failure remains unresolved; real PHP-FPM + HTTPS certification
 (J1) is outstanding.
 
-## v0.0.5 Review Checkpoint — Open Import Findings
+## v0.0.6 — Closed Import Review Findings
 
-Local review of v0.0.4 reproduced four defects: lost WXR inline images,
-duplicate collision imports after an interrupted checkpoint, unmapped social
-image IDs and exports exceeding their own importer limits. The supplied
-suites pass, but the two P1 findings keep G2's release gate open. See
-[the review and manual reproductions](docs/reviews/V0_0_5_REVIEW.md).
+The four v0.0.5 findings are repaired: supplied legacy attachments and social
+images use explicit media maps; generated Post provenance supports interrupted
+retry without duplicate collision items; exports enforce native format bounds.
+The 29 positive regressions run in the portability CI gate. See the
+[verification and compatibility record](docs/reviews/V0_0_6_REVIEW.md).
+Previously created duplicates and old uncheckpointed imports without receipts
+still require operator review; this patch does not modify them automatically.
 
 ## Delivered: G2 — native export/import + WordPress WXR importer
 
