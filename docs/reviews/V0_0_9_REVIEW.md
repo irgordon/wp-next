@@ -63,7 +63,7 @@ and maintenance checks and is not counted again.
 
 The development-router/browser results are separate from real FPM evidence.
 Repeated intermediate passes are not added to the final assertion total.
-CI now installs FPM and runs the same deployment gate, retaining diagnostic
+CI now uses setup-php's matching FPM and runs the same deployment gate, retaining diagnostic
 artifacts even on failure. A local pass does not establish a remote CI result.
 
 ## Certification Coverage And Remaining Host Work
@@ -115,6 +115,14 @@ unresolved; controlled health failures are deliberate probes, not its diagnosis.
    the new design. It is the initial baseline. The test now verifies rollback
    removes the new header, then restores the later revision and requires its
    header to return. The application had correctly restored the baseline.
+8. The first CI run on `6df0afa` ([run 40960438417](https://github.com/irgordon/wp-next/actions/runs/40960438417))
+   passed the application checks, then failed package setup: Ubuntu 26.04's
+   configured apt sources could not locate `php8.4-fpm`. The workflow now
+   verifies and uses the matching FPM supplied by setup-php instead of trying
+   to reinstall it from unrelated OS sources. setup-php's [runtime setup](https://github.com/shivammathur/setup-php/blob/main/src/scripts/linux.sh)
+   and [package inventory](https://github.com/shivammathur/setup-php/blob/main/src/configs/php_packages)
+   include FPM. This failure occurred before the HTTPS gate, not in application
+   execution. The follow-up commit retains the v0.0.9 version and failure record.
 
 Evidence is outside the source distribution in
 `.local-sync/2026-10-29-j1/`: numbered first-run logs, native/Homebrew Apache

@@ -5,7 +5,7 @@
 Updated October 29, 2026. Repeatable local J1 deployment verification. Schema remains 8.
 
 - Add real nginx/Apache → PHP-FPM tests for direct HTTPS and trusted TLS termination, strict certificate/hostname validation, production request boundaries and application workflows.
-- Restore actual backup data, assets and the matching secret into fresh sites; run upgrade/session revocation before checking HTTPS delivery again. Include the deployment gate and retained diagnostics in CI.
+- Restore actual backup data, assets and the matching secret into fresh sites; run upgrade/session revocation before checking HTTPS delivery again. Include the deployment gate and retained diagnostics in CI, using setup-php's matching FPM runtime.
 - Make the Apache static fixture accept the host MIME-types path and keep its runtime files local. [Verification and remaining J1 host checks](docs/reviews/V0_0_9_REVIEW.md).
 
 ## v0.0.8

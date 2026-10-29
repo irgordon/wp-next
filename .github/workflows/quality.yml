@@ -29,7 +29,9 @@ jobs:
       - run: python3 tests/profiles-taxonomy-http.py
       - run: python3 tests/upgrade-smoke.py
       - run: python3 tests/migration-regressions.py
-      - run: sudo apt-get update && sudo apt-get install -y apache2 nginx php8.4-fpm
+      - name: Verify the matching FPM runtime
+        run: php-fpm8.4 -v
+      - run: sudo apt-get update && sudo apt-get install -y apache2 nginx
       - run: python3 tests/server-hardening.py nginx
       - run: python3 tests/apache-hardening.py apache2 /usr/lib/apache2/modules
       - name: Real PHP-FPM over HTTPS on both stacks

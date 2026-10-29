@@ -24,7 +24,7 @@ For real PHP-FPM and verified HTTPS on nginx and Apache, run
 `composer test:deployment --` with the explicit paths shown in
 [Installation](INSTALL.md#real-php-fpm-and-https-verification). This is separate
 from the static fixtures and the PHP development-server/browser suites. CI
-installs FPM and executes both direct and terminated TLS modes, retaining
+uses setup-php's matching FPM and executes both direct and terminated TLS modes, retaining
 configuration/process/error logs as an artifact even on failure. No private
 keys, databases, uploaded fixtures or site secrets are retained in that artifact.
 
