@@ -89,11 +89,25 @@ function receivePageEditorMessage( event ) {
 	if ( event.origin !== location.origin || event.source !== context.frame?.contentWindow || event.data?.channel !== CHANNEL ) { return; }
 	const data = event.data;
 	if ( data.id !== context.selected?.id ) { return; }
+	if ( ! acceptEditorDocument( data ) ) { return; }
 	if ( data.type === 'close' ) { guardedEditorAction( returnToPageList ); return; }
+	if ( data.type === 'saving' ) { context.editor.dataset.editorReady = 'false'; return; }
 	context.editorData = data;
 	context.editor.querySelector( '[data-page-editor-title]' ).textContent = 'Editing ' + data.title;
 	context.editor.querySelector( '[data-page-editor-status]' ).textContent = pagePublicationStatus( data.status );
 	if ( data.type === 'ready' ) { sendEditorStyles(); if ( data.saved ) { pageEditorSaved( data ); } }
+	if ( data.type === 'ready' || data.type === 'snapshot' ) { acknowledgeEditorState(); }
+}
+function acceptEditorDocument( data ) {
+	if ( data.type !== 'ready' ) { return data.documentId === context.documentId; }
+	if ( context.retiredDocuments.has( data.documentId ) ) { return false; }
+	if ( context.documentId && context.documentId !== data.documentId ) { context.retiredDocuments.add( context.documentId ); }
+	context.documentId = data.documentId; return true;
+}
+function acknowledgeEditorState() {
+	context.editor.dataset.editorReady = 'true';
+	const action = context.requestedAction; context.requestedAction = null;
+	if ( action ) { decideEditorAction( action ); }
 }
 function pagePublicationStatus( status ) {
 	if ( status === 'published' ) { return 'Published. Update Page makes content changes public. Site design is published separately.'; }
@@ -160,11 +174,13 @@ function openPageEditor() {
 	closePageEditor();
 	const address = new URL( context.selected.editorUrl, location.href );
 	if ( address.origin !== location.origin || ! address.pathname.endsWith( '/wp-admin/post.php' ) ) { return; }
+	context.bridgeUnavailable = false;
 	context.editor.querySelector( '.design-page-editor-error' ).hidden = true;
 	context.frame = document.createElement( 'iframe' ); context.frame.title = 'Visual editor for ' + context.selected.title;
 	context.frame.src = address.href; context.editor.hidden = false;
 	document.body.classList.add( 'design-page-editing' );
 	context.editor.querySelector( '[data-page-editor-title]' ).textContent = 'Editing ' + context.selected.title;
+	context.editor.dataset.editorReady = 'false';
 	context.editor.querySelector( '.design-page-editor-host' ).append( context.frame );
 	context.frame.addEventListener( 'load', checkEditorLoad );
 	context.editor.querySelector( '[data-page-editor-close]' ).focus();
@@ -175,8 +191,11 @@ function returnToPageList() {
 	context.rows.querySelector( '[data-page-id="' + context.selected?.id + '"] button' )?.focus();
 }
 function checkEditorLoad() {
-	try { if ( ! context.frame?.contentDocument?.querySelector( '[data-design-embed="1"]' ) ) { throw new Error( 'Editor unavailable.' ); }
-	} catch ( error ) { const notice = context.editor.querySelector( '.design-page-editor-error' ); notice.textContent = 'The Page editor could not load. Return to the list and retry, or reload Site design to restore access.'; notice.hidden = false; }
+	try { if ( ! context.frame?.contentDocument?.querySelector( 'body.design-embedded-editor [data-design-embed="1"]' ) ) { throw new Error( 'Editor unavailable.' ); }
+	} catch ( error ) { context.bridgeUnavailable = true;
+		const pending = context.requestedAction; context.requestedAction = null;
+		if ( pending ) { decideEditorAction( pending ); }
+		const notice = context.editor.querySelector( '.design-page-editor-error' ); notice.textContent = 'The Page editor could not load. Return to the list and retry, or reload Site design to restore access.'; notice.hidden = false; }
 }
 function sendEditorStyles() {
 	if ( context.frame && context.previewHtml ) { context.frame.contentWindow.postMessage( { channel: CHANNEL, type: 'styles', html: context.previewHtml }, location.origin ); }
@@ -198,23 +217,30 @@ function guardWorkspaceLink( event ) {
 	guardedEditorAction( () => { closePageEditor(); link.click(); } );
 }
 function guardDesignSubmission( event ) {
-	if ( ! context.editorData?.dirty ) { return; }
+	if ( ! context.frame ) { return; }
 	event.preventDefault(); event.stopImmediatePropagation();
 	const submitter = event.submitter;
 	guardedEditorAction( () => { closePageEditor(); context.designForm.requestSubmit( submitter ); } );
 }
 function guardedEditorAction( action ) {
+	if ( ! context.frame || context.bridgeUnavailable ) { decideEditorAction( action ); return; }
+	context.requestedAction = action;
+	context.frame.contentWindow.postMessage( { channel: CHANNEL, type: 'request-state' }, location.origin );
+}
+function decideEditorAction( action ) {
 	if ( ! context.editorData?.dirty ) { action(); return; }
 	context.pending = action; context.dialog.querySelector( '[data-page-discard-error]' ).hidden = true; context.dialog.showModal();
 }
 function closePageEditor() {
 	context.frame?.remove(); context.frame = null; context.editorData = null;
+	context.documentId = null; context.retiredDocuments.clear(); context.requestedAction = null;
+	context.editor.dataset.editorReady = 'false';
 	context.editor.hidden = true; document.body.classList.remove( 'design-page-editing' );
 }
 function readPagesContext() {
 	const element = document.querySelector( '[data-design-pages]' );
 	if ( ! element ) { return null; }
-	return { element, search: element.querySelector( 'form' ), rows: element.querySelector( '.design-pages-items' ), feedback: element.querySelector( '.design-pages-feedback' ), error: element.querySelector( '.design-pages-error' ), designForm: document.getElementById( 'design-form' ), editor: document.querySelector( '.design-page-editor-region' ), dialog: document.querySelector( '.design-page-discard' ), createButton: element.querySelector( '[data-page-create]' ), creating: false, items: new Map(), page: Number( element.dataset.page ), sequence: 0, selected: null, frame: null, editorData: null, pending: null, previewHtml: document.querySelector( '.design-preview-viewport iframe' )?.srcdoc || '', controller: null, timer: null };
+	return { element, search: element.querySelector( 'form' ), rows: element.querySelector( '.design-pages-items' ), feedback: element.querySelector( '.design-pages-feedback' ), error: element.querySelector( '.design-pages-error' ), designForm: document.getElementById( 'design-form' ), editor: document.querySelector( '.design-page-editor-region' ), dialog: document.querySelector( '.design-page-discard' ), createButton: element.querySelector( '[data-page-create]' ), creating: false, bridgeUnavailable: false, documentId: null, retiredDocuments: new Set(), requestedAction: null, items: new Map(), page: Number( element.dataset.page ), sequence: 0, selected: null, frame: null, editorData: null, pending: null, previewHtml: document.querySelector( '.design-preview-viewport iframe' )?.srcdoc || '', controller: null, timer: null };
 }
 function formatPageCount( total ) {
 	return total + ( total === 1 ? ' Page' : ' Pages' );

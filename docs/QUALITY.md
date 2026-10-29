@@ -147,3 +147,7 @@ The Page suites also check **View Page**: published-only availability, canonical
 ## v0.0.6 Import/Export Regressions
 
 `composer test:portability` runs the original 66 acceptance checks plus `tests/portability-regressions.py`. The 29 new checks exercise supplied WXR PNG/JPEG/document references, legacy/nested native HTML, social-image remapping and fallback, undeclared IDs, faults after insert and before bookkeeping/checkpoint, collision retry, dates/authorship/operator edits, duplicate-job prevention, concurrent run locking, exact 2,000-record export round-trip and oversize refusal. The suite fails all four original defect categories against the isolated v0.0.5 snapshot. `tests/portability_helpers.py` owns disposable HTTP/CLI fixtures; `WP_TEST_SOURCE` selects a source snapshot solely for before/after validation. [The release review](reviews/V0_0_6_REVIEW.md) records actual results and limits.
+
+## v0.0.8 Page Save Acknowledgement
+
+The Page-browser suite deliberately holds the replacement editor bridge after Save Draft while the server-rendered saved flag is already visible. Back must queue without a stale discard dialog, then return to the renamed Page once the bridge is released. The same regression fails against `0d35269`. Navigation asks the current document for a state snapshot; ready/snapshot acknowledgements, not sleeps, resolve it. The suite also covers unavailable-editor escape and retains genuine dirty-content guards. [Verification](reviews/V0_0_8_REVIEW.md).

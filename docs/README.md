@@ -14,6 +14,8 @@ The v0.0.6 [boundary-fix review](reviews/V0_0_6_REVIEW.md) closes the four
 import/export findings from the v0.0.5 review and adds positive CI regressions.
 Production PHP-FPM/HTTPS certification remains a separate open gate.
 
+- [v0.0.8 — Page save/return acknowledgement](reviews/V0_0_8_REVIEW.md)
+
 ## Start here
 
 - [Installation and operations](INSTALL.md): blank installation, server

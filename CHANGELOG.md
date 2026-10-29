@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.0.8
+
+Updated October 29, 2026. Page-editor save/return acknowledgement. Schema remains 8.
+
+- Queue workspace navigation until the active editor acknowledges its current state; reconcile saved title/status/list position before returning. Ignore retired editor-document messages and preserve real unsaved-edit guards.
+- Added a controlled delayed-bridge regression and unavailable-editor recovery coverage. [Verification](docs/reviews/V0_0_8_REVIEW.md).
+
 ## v0.0.7.1
 
 ### Fixed

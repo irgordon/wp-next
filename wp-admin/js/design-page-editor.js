@@ -2,6 +2,9 @@
 const CHANNEL = 'wp-next-design-editor';
 const form = document.getElementById( 'post-editor' );
 let previewHtml = '';
+const documentId = Array.from( crypto.getRandomValues( new Uint32Array( 4 ) ) ).join( '-' );
+let editorReady = false;
+let submitting = false;
 
 initializeEditorBridge();
 
@@ -16,6 +19,7 @@ function initializeEditorBridge() {
 }
 function receiveEditorMessage( event ) {
 	if ( event.origin !== location.origin || event.source !== parent || event.data?.channel !== CHANNEL ) { return; }
+	if ( event.data.type === 'request-state' && editorReady && ! submitting ) { notifyEditor( 'snapshot' ); }
 	if ( event.data.type === 'styles' && typeof event.data.html === 'string' ) { previewHtml = event.data.html; applyEditorStyles(); }
 }
 function interceptEditorLinks( event ) {
@@ -27,8 +31,14 @@ function bindEditorCanvas() {
 	const canvas = document.getElementById( 'builder-canvas-frame' );
 	if ( ! canvas || canvas.dataset.designBound ) { return; }
 	canvas.dataset.designBound = '1'; canvas.addEventListener( 'load', applyEditorStyles );
-	requestAnimationFrame( () => notifyEditor( 'ready' ) );
+	form.addEventListener( 'submit', reportEditorSubmission );
+	requestAnimationFrame( () => { editorReady = true; notifyEditor( 'ready' ); } );
 	applyEditorStyles();
+}
+function reportEditorSubmission( event ) {
+	if ( event.defaultPrevented ) { return; }
+	submitting = true;
+	notifyEditor( 'saving' );
 }
 function applyEditorStyles() {
 	const canvas = document.getElementById( 'builder-canvas-frame' )?.contentDocument;
@@ -43,5 +53,5 @@ function applyEditorStyles() {
 }
 function notifyEditor( type ) {
 	const dirty = document.getElementById( 'editor-state' )?.textContent.includes( 'Unsaved changes' );
-	parent.postMessage( { channel: CHANNEL, type, id: Number( form.elements.ID.value ), title: form.elements.post_title.value, status: form.dataset.persistedStatus, dirty: Boolean( dirty || document.querySelector( '.notice-error' ) ), listPage: Number( form.dataset.designListPage ), saved: form.dataset.saved === '1', draftKey: 'wp-draft:' + form.dataset.draftKey }, location.origin );
+	parent.postMessage( { channel: CHANNEL, type, documentId, id: Number( form.elements.ID.value ), title: form.elements.post_title.value, status: form.dataset.persistedStatus, dirty: Boolean( dirty || document.querySelector( '.notice-error' ) ), listPage: Number( form.dataset.designListPage ), saved: form.dataset.saved === '1', draftKey: 'wp-draft:' + form.dataset.draftKey }, location.origin );
 }

@@ -89,3 +89,5 @@ Only installed themes with valid confined real paths and required header/footer/
 | Missing route | 404.php → index.php, HTTP 404 |
 
 Paths use configured site_url, including a deployment subdirectory. Legacy ?slug= requests redirect to canonical pretty URLs. Search and archives paginate ten published Posts at a time. Draft previews require edit permission and use no-store headers. There is no general REST endpoint, feed, taxonomy router, or WordPress theme compatibility layer.
+
+Save/return navigation waits for the active editor document to acknowledge its current state. Clicking Back while a save or replacement editor is loading queues the action; after acknowledgement the workspace refreshes the saved Page before returning. Genuine unsaved edits still require Keep editing or Discard Page edits. An unavailable editor reports an error and retains a route back to the list.
