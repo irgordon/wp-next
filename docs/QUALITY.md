@@ -20,6 +20,14 @@ python3 tests/server-hardening.py /absolute/path/to/nginx
 python3 tests/apache-hardening.py /absolute/path/to/apache2 /absolute/path/to/apache/modules
 ```
 
+For real PHP-FPM and verified HTTPS on nginx and Apache, run
+`composer test:deployment --` with the explicit paths shown in
+[Installation](INSTALL.md#real-php-fpm-and-https-verification). This is separate
+from the static fixtures and the PHP development-server/browser suites. CI
+installs FPM and executes both direct and terminated TLS modes, retaining
+configuration/process/error logs as an artifact even on failure. No private
+keys, databases, uploaded fixtures or site secrets are retained in that artifact.
+
 composer check runs syntax checks, PHPStan level 5 (language target 8.4), the explicit WordPress formatting subset, and PHP smoke checks. PHPStan does not execute HTTP bootstrap or connect to a database. No broad error ignores or generated error baseline conceal current findings. Mutable loop and transaction readers are marked impure; deployment flags are configured as dynamic constants.
 
 The formatting gate covers whitespace/indentation, closing braces, arrays, Yoda comparisons, control/function signatures, multiple statements, and line endings. It does not claim full WPCS documentation/naming/compatibility certification or JavaScript lint coverage. composer format:fix changes files; rerun checks after reviewing the diff. Tool versions are locked in composer.lock and package-lock.json.
@@ -151,3 +159,23 @@ The Page suites also check **View Page**: published-only availability, canonical
 ## v0.0.8 Page Save Acknowledgement
 
 The Page-browser suite deliberately holds the replacement editor bridge after Save Draft while the server-rendered saved flag is already visible. Back must queue without a stale discard dialog, then return to the renamed Page once the bridge is released. The same regression fails against `0d35269`. Navigation asks the current document for a state snapshot; ready/snapshot acknowledgements, not sleeps, resolve it. The suite also covers unavailable-editor escape and retains genuine dirty-content guards. [Verification](reviews/V0_0_8_REVIEW.md).
+
+## v0.0.9 Real Deployment Workflows
+
+`tests/deployment-https.py` exercises blank/invalid setup, authentication and
+revoked-cookie replay, role/CSRF boundaries, content edits and stale conflicts,
+visual preview POST, private design preview/publication, exact document size
+limits with multipart overhead, native mixed batches, document HEAD/privacy,
+immutable raster delivery, sensitive-path denial, native export/import/retry,
+WXR/hostile XML, discovery exclusion, queue/maintenance, backup and real restore.
+It rejects an untrusted CA and mismatched hostname before running workflows.
+
+`tests/deployment_support.py` owns disposable sources, explicit FPM environment,
+server-template adaptation, TLS/process lifetimes and retained diagnostics.
+Restoration happens before either server starts, followed by upgrade and session
+revocation. The standalone Apache fixture accepts an optional third MIME-types
+path argument and puts mutex/runtime files in its disposable directory.
+
+The local four-topology run passed 352 assertions. It does not run the browser
+suites or every item of the ten-row production certification matrix through
+FPM. [Verification, first failures and host handoff](reviews/V0_0_9_REVIEW.md).

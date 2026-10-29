@@ -6,14 +6,16 @@ library, B1 image tools, C1 live visual editing, D1 stylesheet drafts,
 E1/F1 account email and user deletion, G2 native export/import with the
 WordPress WXR importer, and H1 public discovery (RSS feed, sitemap,
 robots.txt, indexing control and social metadata) are built and covered by
-the suites below. J1 production certification (real
-nginx/Apache → PHP-FPM over HTTPS) is still outstanding; the server suites
-in this repository are fixtures, not that certification.
+the suites below. The v0.0.9 deployment suite verifies real nginx/Apache →
+PHP-FPM over HTTPS locally, including trusted TLS termination and actual
+backup restoration. J1 remains open for production host verification and
+the remaining deployment matrix; static server fixtures are separate evidence.
 
 The v0.0.6 [boundary-fix review](reviews/V0_0_6_REVIEW.md) closes the four
 import/export findings from the v0.0.5 review and adds positive CI regressions.
 Production PHP-FPM/HTTPS certification remains a separate open gate.
 
+- [v0.0.9 — Local PHP-FPM/HTTPS deployment verification](reviews/V0_0_9_REVIEW.md)
 - [v0.0.8 — Page save/return acknowledgement](reviews/V0_0_8_REVIEW.md)
 
 ## Start here

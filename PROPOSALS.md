@@ -146,29 +146,25 @@ Approved October 26: latest 20 published public Posts, excerpt-only RSS,
 site-wide indexing control only for v1, and featured-image fallback for social
 images. Per-entry noindex is outside v1.
 
-## Proposed: J1 — PHP-FPM certification on both stacks
+## J1 — PHP-FPM Verification And Host Certification
 
-Per §J1 and `docs/V1_DEPLOYMENT_REQUIREMENTS.md` (10-item matrix). Current
-evidence is fixtures only: the nginx fixture proves allowlisted endpoints
-reach the configured FastCGI handler (it has no live backend), and the
-Apache fixture proves the documented vhost's delivery/denial rules. Neither
-certifies FPM.
+Per §J1 and `docs/V1_DEPLOYMENT_REQUIREMENTS.md` (10-item matrix). v0.0.9
+adds a repeatable real FPM/HTTPS gate on both stacks, alongside the static
+fixtures. [The local verification](docs/reviews/V0_0_9_REVIEW.md) records
+direct TLS, explicit trusted termination, strict certificate verification,
+application workflows and actual backup restoration. CI now includes the
+same gate; local success alone does not establish its remote result.
 
-Proposed execution:
+Remaining execution:
 
-- Install PHP-FPM 8.4 in this environment (the ondrej PPA route repaired on
-  October 24 provides `php8.4-fpm`; fallback: certify on your host instead).
-  Configure nginx → FPM and Apache → FPM exactly as `docs/INSTALL.md`
-  documents, with a locally generated TLS certificate for the documented
-  HTTPS behavior.
-- Run the full 10-item matrix on **both** stacks through real FPM requests —
-  including the authenticated visual-editor POST (your R1 follow-up), valid
-  and invalid uploads at exact size boundaries, public/private document
-  delivery, permalink/File-link behavior, account email flows against the
-  local SMTP sink, the G2 round-trip, and H1 exclusion checks once built.
-- Record versions, commands, service identity, topology, and resource
-  settings with the results; first failures reported individually before any
-  rerun, per the fixed gates.
+- Complete the uncovered portions of the ten-row matrix on both deployment
+  targets, including browser/live editing, full routing/stale-worker cases,
+  account mail transport and delivery, fresh-target native asset remapping,
+  derived-asset/managed-file restoration and resource-failure coverage.
+- Verify dedicated production identities, source/storage permissions,
+  production certificates, backend isolation and intended service topology.
+- Retain host configuration, versions, limits, first failures and reruns;
+  rehearse scheduled work, monitoring, off-host retention and recovery.
 
 Limits that will remain stated, not smoothed over: a locally generated
 certificate proves the TLS plumbing, not a production CA chain; Safari and

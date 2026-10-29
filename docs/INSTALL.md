@@ -185,6 +185,44 @@ For restore, stop traffic and workers; inspect the archive manifest; restore `si
 
 ## 6. Local development and checks
 
+### Real PHP-FPM and HTTPS verification
+
+`composer test:deployment` runs disposable production-mode sites through both
+documented server templates. It needs PHP CLI/FPM, nginx, Apache with the
+listed modules, Python 3.12+ and the OpenSSL command. On macOS, install
+`php@8.4`, `nginx` and `httpd` with Homebrew; do not start their global services
+for this test. The bundled macOS Apache failed TLS negotiation with the current
+client during this verification; Homebrew Apache passed.
+
+Apple silicon example (use your actual binary/module paths on other hosts):
+
+```bash
+composer test:deployment -- \
+  --php /opt/homebrew/opt/php@8.4/bin/php \
+  --fpm /opt/homebrew/opt/php@8.4/sbin/php-fpm \
+  --nginx /opt/homebrew/opt/nginx/bin/nginx \
+  --apache /opt/homebrew/opt/httpd/bin/httpd \
+  --modules /opt/homebrew/opt/httpd/lib/httpd/modules \
+  --mime-types /opt/homebrew/etc/httpd/mime.types \
+  --evidence /private/tmp/wp-next-deployment-evidence
+```
+
+Run as an ordinary user. The harness uses temporary loopback ports, a private
+Unix FPM socket and four workers. It creates a temporary CA and a localhost
+leaf certificate; each client explicitly trusts that CA and verifies the
+hostname. It changes no system trust store, service configuration or installed
+site. Temporary keys, databases and uploads are deleted; only configuration,
+identity and diagnostic logs are copied to the evidence directory. Use a fresh
+evidence directory for each run to preserve earlier failures.
+
+The default tests direct TLS without `WP_HTTPS`, refuses a separate insecure
+production listener even with spoofed forwarding headers, then tests a TLS
+proxy with a loopback-only origin and explicit pool `WP_HTTPS=1`. Select
+`--stack nginx|apache` or `--mode direct|terminated` for diagnosis. The HTTP
+origin in the terminated topology is trusted local test infrastructure; this
+does not prove production network isolation. See the [release record](reviews/V0_0_9_REVIEW.md)
+for covered workflows and remaining J1 work.
+
 ### macOS with Homebrew
 
 Install PHP 8.4 to match CI. Homebrew supplies SQLite as a PHP dependency; the system SQLite command does not determine which library PHP uses.

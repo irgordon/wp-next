@@ -29,9 +29,25 @@ jobs:
       - run: python3 tests/profiles-taxonomy-http.py
       - run: python3 tests/upgrade-smoke.py
       - run: python3 tests/migration-regressions.py
-      - run: sudo apt-get update && sudo apt-get install -y apache2 nginx
+      - run: sudo apt-get update && sudo apt-get install -y apache2 nginx php8.4-fpm
       - run: python3 tests/server-hardening.py nginx
       - run: python3 tests/apache-hardening.py apache2 /usr/lib/apache2/modules
+      - name: Real PHP-FPM over HTTPS on both stacks
+        run: >-
+          composer test:deployment --
+          --php "$(command -v php)"
+          --fpm "$(command -v php-fpm8.4)"
+          --nginx "$(command -v nginx)"
+          --apache "$(command -v apache2)"
+          --modules /usr/lib/apache2/modules
+          --mime-types /etc/mime.types
+          --evidence "${{ runner.temp }}/deployment-https"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deployment-https-diagnostics
+          path: ${{ runner.temp }}/deployment-https
+          if-no-files-found: ignore
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run check:js

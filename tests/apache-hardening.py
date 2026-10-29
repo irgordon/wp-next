@@ -5,6 +5,7 @@ import os,re,socket,subprocess,sys,tempfile,time,urllib.request,urllib.error
 root=Path(__file__).resolve().parent.parent
 apache=sys.argv[1] if len(sys.argv)>1 else 'apache2'
 modules=Path(sys.argv[2]) if len(sys.argv)>2 else Path('/usr/lib/apache2/modules')
+mime_types=Path(sys.argv[3]) if len(sys.argv)>3 else Path('/etc/mime.types')
 with tempfile.TemporaryDirectory(prefix='wp-apache-') as directory:
     temp=Path(directory);temp.chmod(0o755);site=temp/'site';site.mkdir()
     fixtures=['.env','.git/config','nested/.env','var/data/site.sqlite','docs/INSTALL.md','vendor/probe.php','tests/probe.php','tools/probe.php','bin/wp','wp-includes/theme.php','composer.lock','package-lock.json','phpstan.neon','sample.sqlite-wal','wp-config.php','wp-cron.php','wp-content/uploads/probe.php','wp-content/themes/default/probe.php','wp-admin/admin-functions.php','wp-admin/login.php/extra','public.css','wp-content/uploads/aa/'+'a'*64+'.png']
@@ -20,7 +21,7 @@ with tempfile.TemporaryDirectory(prefix='wp-apache-') as directory:
     builtins=subprocess.check_output([apache,'-l'],text=True)
     loads='\n'.join(f'LoadModule {name}_module {modules}/mod_{name}.so' for name in names if 'mod_'+name+'.c' not in builtins)
     identity='User #65534\nGroup #65534\n' if os.getuid()==0 else f'User #{os.getuid()}\nGroup #{os.getgid()}\n'
-    conf=temp/'apache.conf';conf.write_text(f'ServerRoot "{temp}"\nPidFile "{temp}/apache.pid"\nServerName localhost\nListen 127.0.0.1:{port}\n{loads}\n{identity}ErrorLog "{temp}/error.log"\nLogLevel warn\nTypesConfig /etc/mime.types\n<VirtualHost 127.0.0.1:{port}>\n{block}\n</VirtualHost>\n')
+    conf=temp/'apache.conf';conf.write_text(f'ServerRoot "{temp}"\nDefaultRuntimeDir "{temp}"\nPidFile "{temp}/apache.pid"\nServerName localhost\nListen 127.0.0.1:{port}\n{loads}\n{identity}ErrorLog "{temp}/error.log"\nLogLevel warn\nTypesConfig "{mime_types}"\n<VirtualHost 127.0.0.1:{port}>\n{block}\n</VirtualHost>\n')
     subprocess.run([apache,'-t','-f',str(conf)],check=True)
     process=subprocess.Popen([apache,'-X','-f',str(conf)],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,text=True)
     opener=urllib.request.build_opener(urllib.request.ProxyHandler({}))

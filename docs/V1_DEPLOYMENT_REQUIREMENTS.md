@@ -2,7 +2,7 @@
 
 [Scope Index](README.md) · [Approved Scope](adr/V1_SCOPE.md)
 
-Status: required deployment/verification contract for the approved v1.0.0 scope. Existing static fixtures are useful evidence but do not yet certify the complete production stacks.
+Status: required deployment/verification contract for the approved v1.0.0 scope. Static fixtures and the [v0.0.9 real local FPM/HTTPS matrix](reviews/V0_0_9_REVIEW.md) provide separate evidence. Target-host certification and the remaining matrix are still required.
 
 ## Supported Layout
 
