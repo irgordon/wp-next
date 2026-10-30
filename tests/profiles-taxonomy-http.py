@@ -18,7 +18,7 @@ with tempfile.TemporaryDirectory(prefix='wp-profiles-') as directory:
             admin=Client(base);guest=Client(base)
             _,body,_=admin.request('/wp-admin/install.php')
             status,_,_=admin.request('/wp-admin/install.php',{'_wpnonce':token(body),'site_title':'Profiles test','admin_user':'admin','admin_email':'admin@example.test','admin_password':'disposable-test-password'})
-            check(status==200 and dbrow(database,"SELECT option_value FROM options WHERE option_name='schema_version'")['option_value']=='8','Blank install creates schema 8')
+            check(status==200 and dbrow(database,"SELECT option_value FROM options WHERE option_name='schema_version'")['option_value']=='9','Blank install creates schema 9')
             check(admin.login('admin')[0]==302,'Administrator can sign in')
             _,body,_=admin.request('/wp-admin/users.php')
             admin.request('/wp-admin/users.php',{'_wpnonce':token(body),'username':'writer','email':'writer@example.test','password':'disposable-test-password','role':'author'})

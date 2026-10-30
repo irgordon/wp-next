@@ -4,10 +4,10 @@ declare( strict_types=1 );
 global $wpdb, $wp_job_queue, $wp_admission_gate;
 $command = $argv[1] ?? 'help';
 if ( 'help' === $command ) {
-	echo "Commands: upgrade, queue:work [limit], queue:retry, backup, maintain, sessions:revoke, status, export [path], import <archive> [--commit] [--media=<zip>]\n";
+	echo "Commands: upgrade, queue:work [limit], queue:retry, backup, restore <archive>, maintain, sessions:revoke, status, export [path], import <archive> [--commit] [--media=<zip>], api:status, api:init, api:rotate, api:enable, api:disable, api:issue <user> <name> <scopes> [days], api:revoke <token-id>, api:tokens\n";
 	exit;
 }
-if ( in_array( $command, [ 'upgrade', 'sessions:revoke' ], true ) ) {
+if ( in_array( $command, [ 'upgrade', 'sessions:revoke', 'restore', 'api:init', 'api:rotate' ], true ) ) {
 	define( 'WP_MAINTENANCE_COMMAND', true );
 }
 require_once dirname( __DIR__ ) . '/wp-includes/bootstrap.php';
@@ -54,6 +54,83 @@ break;
 			echo 'One-time reset link (expires in an hour, works once): ' . wp_home_url( '/wp-admin/login.php?action=rp&token=' . $token ) . "\n";
 break;
 		case 'backup': echo 'Backup: ' . wp_create_backup( $wpdb ) . "\n";
+break;
+		case 'restore':
+			$summary = wp_restore_backup( $wpdb, (string) ( $argv[2] ?? '' ), $wp_admission_gate );
+			echo 'Restore complete: ' . wp_json_encode( $summary ) . "\n";
+break;
+		case 'api:init':
+			$wp_admission_gate->enter_maintenance();
+			try {
+				$init = wp_api_initialize( $wpdb );
+				if ( is_wp_error( $init ) ) {
+					throw new RuntimeException( $init->get_error_message() );
+				}
+				$wp_admission_gate->exit_maintenance();
+			} catch ( Throwable $error ) {
+				$wp_admission_gate->abandon_maintenance_sealed();
+				throw $error;
+			}
+			echo "API epoch initialized and bound. The API remains disabled; enable it with api:enable after activation checks.\n";
+break;
+		case 'api:rotate':
+			$wp_admission_gate->enter_maintenance();
+			try {
+				$rotated = wp_api_rotate_epoch( $wpdb );
+				if ( is_wp_error( $rotated ) ) {
+					throw new RuntimeException( $rotated->get_error_message() );
+				}
+				$wp_admission_gate->exit_maintenance();
+			} catch ( Throwable $error ) {
+				$wp_admission_gate->abandon_maintenance_sealed();
+				throw $error;
+			}
+			echo "API epoch rotated. Every API credential was revoked.\n";
+break;
+		case 'api:enable':
+			$enabled = wp_api_set_enabled( $wpdb, true, 0 );
+			echo is_wp_error( $enabled ) ? 'Enable failed: ' . $enabled->get_error_message() . "\n" : "Editorial API enabled.\n";
+break;
+		case 'api:disable':
+			wp_api_set_enabled( $wpdb, false, 0 );
+			echo "Editorial API disabled. Every API credential was revoked.\n";
+break;
+		case 'api:issue':
+			$who = (string) ( $argv[2] ?? '' );
+			$owner = $wpdb->get_row( 'SELECT id FROM users WHERE (username=:who COLLATE NOCASE OR LOWER(email)=LOWER(:who)) AND disabled=0', [ ':who' => $who ] );
+			if ( null === $owner ) {
+				echo "No enabled account matches.\n";
+				break;
+			}
+			$issued = wp_api_token_issue( $wpdb, (int) $owner['id'], 0, (string) ( $argv[3] ?? '' ), explode( ',', (string) ( $argv[4] ?? '' ) ), (int) ( $argv[5] ?? 30 ) );
+			if ( is_wp_error( $issued ) ) {
+				echo 'Issue failed: ' . $issued->get_error_message() . "\n";
+				break;
+			}
+			echo "Token (shown once, store it in a secret store): " . $issued['token'] . "\nExpires: " . gmdate( DATE_ATOM, (int) $issued['expires_at'] ) . "\n";
+break;
+		case 'api:revoke':
+			echo wp_api_revoke_token( $wpdb, (string) ( $argv[2] ?? '' ), 'manual', 0 ) ? "Credential revoked.\n" : "No active credential with that ID.\n";
+break;
+		case 'api:tokens':
+			foreach ( $wpdb->get_results( 'SELECT t.id,t.name,t.expires_at,t.revoked_at,t.revoke_reason,t.last_used_at,u.username FROM api_tokens t JOIN users u ON u.id=t.user_id ORDER BY t.created_at' ) as $token_row ) {
+				$token_scopes = implode( ',', wp_api_token_scopes( $wpdb, (string) $token_row['id'] ) );
+				$token_status = null !== $token_row['revoked_at'] ? 'revoked (' . $token_row['revoke_reason'] . ')' : ( (int) $token_row['expires_at'] <= time() ? 'expired' : 'active' );
+				echo $token_row['id'] . '  ' . $token_row['username'] . '  "' . $token_row['name'] . '"  [' . $token_scopes . ']  ' . $token_status . '  expires ' . gmdate( DATE_ATOM, (int) $token_row['expires_at'] ) . "\n";
+			}
+break;
+		case 'api:status':
+			$api_state = wp_api_state( $wpdb );
+			$api_epoch = wp_api_epoch_read();
+			echo wp_json_encode( [
+				'enabled'       => null !== $api_state && 1 === (int) $api_state['enabled'],
+				'bound'         => null !== $api_state && '' !== (string) ( $api_state['bound_epoch'] ?? '' ),
+				'epoch_file'    => is_wp_error( $api_epoch ) ? $api_epoch->get_error_code() : 'ok',
+				'epoch_match'   => ! is_wp_error( $api_epoch ) && null !== $api_state && (string) ( $api_state['bound_epoch'] ?? '' ) === $api_epoch,
+				'base_path_ok'  => wp_api_base_path_consistent(),
+				'active_tokens' => wp_api_tables_exist( $wpdb ) ? wp_api_token_active_count( $wpdb ) : 0,
+				'conflicts'     => wp_api_tables_exist( $wpdb ) ? wp_api_route_conflicts( $wpdb ) : []
+			], JSON_PRETTY_PRINT ) . "\n";
 break;
 		case 'export':
 		case 'import':
@@ -104,6 +181,13 @@ break;
 		case 'maintain':
 			$wpdb->query( 'DELETE FROM user_sessions WHERE expires_at<=unixepoch()' );
 			$wpdb->query( 'DELETE FROM login_attempts WHERE expires_at<=unixepoch()' );
+			if ( wp_api_tables_exist( $wpdb ) ) {
+				// Receipts become body-less tombstones when the replay window
+				// closes, and are dropped once their credential has expired.
+				$wpdb->query( "UPDATE api_mutation_receipts SET state='expired',response_json=NULL,location=NULL WHERE state='replayable' AND replay_until<=unixepoch()" );
+				$wpdb->query( "DELETE FROM api_mutation_receipts WHERE state='expired' AND token_id IN (SELECT id FROM api_tokens WHERE expires_at<=unixepoch())" );
+				$wpdb->query( 'DELETE FROM api_rate_windows WHERE expires_at<=unixepoch()' );
+			}
 			$wpdb->query( "DELETE FROM job_queue WHERE status='completed' AND created_at<unixepoch()-2592000" );
 			$checkpoint = $wpdb->get_row( 'PRAGMA wal_checkpoint(PASSIVE)' );
 			echo wp_json_encode( [

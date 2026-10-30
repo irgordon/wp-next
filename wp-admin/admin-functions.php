@@ -101,6 +101,12 @@ const WP_ADMIN_MENU_GROUPS = [
 			'capability' => 'administrator'
 		],
 		[
+			'key'        => 'integrations',
+			'label'      => 'Integrations',
+			'url'        => 'integrations.php',
+			'capability' => 'administrator'
+		],
+		[
 			'key'        => 'users',
 			'label'      => 'People',
 			'url'        => 'users.php',

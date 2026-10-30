@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.1.0
+
+Updated October 29, 2026. Authenticated editorial API (I1 Option B). Schema 9.
+
+- Add the editorial API at `/wp-next/v1`: Post/Page list, item, create-draft, update-draft and publish-with-changes for scoped integration credentials, with RFC 9457 problem responses, idempotency receipts committed in the mutation transaction, and rate/receipt-capacity limits. Plain HTTP is refused 503 before any processing.
+- Add Settings → Integrations and `bin/wp api:*` operator commands. Credentials are named, scoped, hashed at rest, shown once, and revoked on password, role, disable, deletion, epoch and API-state changes. The API ships disabled until operator initialization and activation checks pass.
+- Backups are credential-inert snapshots; add the sealed `bin/wp restore` coordinator with epoch rotation before the database swap. Activation and permalink saves guard the API mount against current, historical and dynamic routes. [Contract and delivery record](docs/adr/I1_EDITORIAL_API_PACKET.md).
+
 ## v0.0.9.1
 
 Updated October 29, 2026. Page-publication browser assertion synchronization. Schema remains 8.

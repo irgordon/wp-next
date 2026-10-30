@@ -33,6 +33,9 @@ Production PHP-FPM/HTTPS certification remains a separate open gate.
 - [Portability archive format](PORTABILITY_FORMAT.md): the versioned ZIP +
   JSON manifest contract for native export/import, its caps and its
   compatibility rules.
+- [Editorial API contract](api/editorial-v1.openapi.json): the adopted
+  OpenAPI document for the authenticated Post/Page API (v0.1.0), mounted at
+  `/wp-next/v1` and disabled until an operator initializes and enables it.
 - [Themes and the builder](THEMES_AND_BUILDER.md): theme manifests,
   templates, shared sections, and the design workflow.
 - [Administration design system](DESIGN_SYSTEM.md): verified WordPress Figma
@@ -46,6 +49,9 @@ Production PHP-FPM/HTTPS certification remains a separate open gate.
 - [Errors and deviations — G2/H1](adr/G2_H1_DEVIATIONS.md): the recorded
   errors, deviations and verification detail for v0.0.3 and v0.0.4,
   kept out of the changelog by design.
+- [Editorial API packet — I1 Option B](adr/I1_EDITORIAL_API_PACKET.md): the
+  adopted v0.1.0 API contract, schema 9 design, epoch/backup/restore rules
+  and the delivery record.
 - [v1.0.0 Deployment Requirements](V1_DEPLOYMENT_REQUIREMENTS.md):
   PHP/FPM, servers, storage, mail, background work and the production
   verification matrix.

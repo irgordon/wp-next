@@ -14,6 +14,17 @@ class Concurrency_Conflict_Exception extends RuntimeException {
 }
 class Authorization_Exception extends RuntimeException {
 }
+class Slug_Conflict_Exception extends RuntimeException {
+}
+class Status_Conflict_Exception extends RuntimeException {
+}
+/** Carries an API outcome (committed/replayed envelope or a WP_Error) out of a transaction closure; throwing it rolls back, which is correct for every pre-commit exit and side-effect-free for replays. */
+class Api_Exit_Exception extends RuntimeException {
+	public function __construct( public mixed $outcome )
+	{
+		parent::__construct( 'API flow exit.' );
+	}
+}
 class WP_Post_Mutation_Service {
 	public function __construct( protected WP_SQLite_DB $db, protected WP_Job_Queue $queue, protected EventDispatcherInterface $dispatcher, protected WP_Authorization_Service $auth )
 	{
@@ -415,6 +426,345 @@ class WP_Post_Mutation_Service {
 			return new WP_Error( 'unauthorized', $error->getMessage() );
 		} catch ( Throwable $error ) {
 			return wp_failure( 'delete_failed', $error, 'The content could not be deleted.' );
+		}
+	}
+
+	/**
+	 * API gate inside the mutation transaction: authority is rechecked on this
+	 * connection, then the idempotency receipt decides replay/conflict before
+	 * any revision work. Throws Api_Exit_Exception for every early outcome.
+	 */
+	/** Media verification for API mutations: a refusal is a semantic validation failure (422), never a storage fault. */
+	private function api_verify_media( array $candidate, WP_SQLite_DB $db, int $actor ): void
+	{
+		try {
+			$this->verify_media( $candidate, $db, $actor );
+		} catch ( RuntimeException $error ) {
+			throw new Api_Exit_Exception( new WP_Error( 'validation_failed', $error->getMessage() ) );
+		}
+	}
+
+	private function api_gate( WP_SQLite_DB $db, array $ctx, array $required_scopes, int $actor ): void
+	{
+		$authority = wp_api_authority_recheck( $db, $ctx, $required_scopes );
+		if ( is_wp_error( $authority ) ) {
+			throw new Api_Exit_Exception( $authority );
+		}
+		$receipt = wp_api_receipt_find( $db, (string) $ctx['token_id'], (string) $ctx['key_hash'] );
+		if ( null !== $receipt ) {
+			$gate = wp_api_receipt_gate( $receipt, (string) $ctx['request_hash'] );
+			if ( is_wp_error( $gate ) ) {
+				throw new Api_Exit_Exception( $gate );
+			}
+			$resource = $db->get_row( 'SELECT * FROM posts WHERE id=:id', [ ':id' => (int) $receipt['resource_id'] ] );
+			if ( null === $resource || 'trashed' === (string) $resource['status'] || true !== $this->auth->validate_mutation_permissions( $actor, $resource, $resource, $db ) ) {
+				throw new Api_Exit_Exception( new WP_Error( 'not_found', 'Content was not found.' ) );
+			}
+			throw new Api_Exit_Exception( $gate );
+		}
+		$capacity = wp_api_receipt_capacity_error( $db, (string) $ctx['token_id'] );
+		if ( null !== $capacity ) {
+			throw new Api_Exit_Exception( $capacity );
+		}
+	}
+
+	private function api_slug( WP_SQLite_DB $db, array $ctx, ?string $supplied, string $current, int $self_id ): string
+	{
+		if ( empty( $ctx['slug_explicit'] ) ) {
+			return $current;
+		}
+		$slug = (string) $supplied;
+		if ( $slug !== $current ) {
+			$clash = $db->get_row( 'SELECT id FROM posts WHERE slug=:slug AND id<>:id', [
+				':slug' => $slug,
+				':id'   => $self_id
+			] );
+			if ( null !== $clash ) {
+				throw new Slug_Conflict_Exception( 'The requested slug is already in use.' );
+			}
+		}
+		return $slug;
+	}
+
+	private function api_finish( WP_SQLite_DB $db, array $ctx, int $actor, array $result, int $http_status, ?string $location, string $audit_action ): array
+	{
+		$this->audit( $db, $actor, $audit_action, (int) $result['id'], [
+			'token_id'    => (string) $ctx['token_id'],
+			'mutation_id' => (string) $result['mutation_id'],
+			'revision'    => (int) $result['revision']
+		] );
+		wp_api_receipt_store( $db, $ctx, $result, $http_status, $location );
+		return [
+			'replayed' => false,
+			'status'   => $http_status,
+			'location' => $location,
+			'result'   => $result
+		];
+	}
+
+	/** Create a private draft under the API contract: receipt and audit commit with the content. */
+	public function api_create_draft( array $input, int $acting_actor, array $ctx ): array|WP_Error
+	{
+		try {
+			$input['post_author'] = $acting_actor;
+			$input['post_status'] = 'draft';
+			$candidate = $this->candidate( $input, [] );
+			if ( is_wp_error( $candidate ) ) {
+				return $candidate;
+			}
+			$snapshot = [
+				'author_id' => $acting_actor,
+				'status'    => 'draft',
+				'post_type' => $candidate['post_type']
+			];
+			$result = $this->preflight( $acting_actor, $candidate, $snapshot );
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+			return $this->db->transaction( function ( WP_SQLite_DB $db ) use ( $candidate, $snapshot, $acting_actor, $ctx ): array {
+				$this->api_gate( $db, $ctx, [ (string) $ctx['kind'] . 's:write' ], $acting_actor );
+				$permission = $this->auth->validate_mutation_permissions( $acting_actor, $candidate, $snapshot, $db );
+				if ( is_wp_error( $permission ) ) {
+					throw new Authorization_Exception( $permission->get_error_message() );
+				}
+				$this->api_verify_media( $candidate, $db, $acting_actor );
+				$candidate['slug'] = ! empty( $ctx['slug_explicit'] )
+					? $this->api_slug( $db, $ctx, $candidate['slug'], '', 0 )
+					: wp_unique_slug( $candidate['slug'], 0, $db );
+				$db->query( 'INSERT INTO posts(author_id,slug,title,content_raw,status,post_type,excerpt,featured_media_id,metadata,published_at) VALUES(:author,:slug,:title,:content,:status,:type,:excerpt,:media,:metadata,NULL)', [
+					':author'   => $acting_actor,
+					':slug'     => $candidate['slug'],
+					':title'    => $candidate['title'],
+					':content'  => $candidate['content_raw'],
+					':status'   => 'draft',
+					':type'     => $candidate['post_type'],
+					':excerpt'  => $candidate['excerpt'],
+					':media'    => $candidate['featured_media_id'],
+					':metadata' => null === $candidate['metadata'] ? null : wp_json_encode( $candidate['metadata'] )
+				] );
+				$id = (int) $db->get_row( 'SELECT last_insert_rowid() AS id' )['id'];
+				if ( 'post' === $candidate['post_type'] ) {
+					wp_assign_post_terms( $id, $candidate['term_ids'] ?? [], $db );
+				}
+				$this->enqueue( $id, 1, 'new', 'draft', $acting_actor );
+				wp_invalidate_file_link_renders( $db );
+				$envelope = [
+					'id'          => $id,
+					'type'        => $candidate['post_type'],
+					'revision'    => 1,
+					'status'      => 'draft',
+					'slug'        => $candidate['slug'],
+					'url'         => null,
+					'mutation_id' => wp_generate_uuid4()
+				];
+				$location = wp_api_mount_path() . '/' . $candidate['post_type'] . 's/' . $id;
+				return $this->api_finish( $db, $ctx, $acting_actor, $envelope, 201, $location, 'api_' . $candidate['post_type'] . '_created' );
+			} );
+		} catch ( Api_Exit_Exception $exit ) {
+			return $exit->outcome;
+		} catch ( Slug_Conflict_Exception $error ) {
+			return new WP_Error( 'slug_conflict', $error->getMessage() );
+		} catch ( Authorization_Exception $error ) {
+			return new WP_Error( 'unauthorized', $error->getMessage() );
+		} catch ( Throwable $error ) {
+			return wp_failure( 'insert_failed', $error, 'Content could not be created.' );
+		}
+	}
+
+	/** Sparse draft-only update under the API contract. Publication state is never changed here. */
+	public function api_update_draft( array $input, int $acting_actor, array $ctx ): array|WP_Error
+	{
+		$id = (int) ( $input['ID'] ?? 0 );
+		$expected = (int) ( $input['expected_revision'] ?? 0 );
+		if ( $id <= 0 || $expected <= 0 ) {
+			return new WP_Error( 'invalid_arguments', 'Content ID and expected revision are required.' );
+		}
+		try {
+			$snapshot = $this->db->get_row( 'SELECT * FROM posts WHERE id=:id', [ ':id' => $id ] );
+			if ( null === $snapshot ) {
+				return new WP_Error( 'not_found', 'Content was not found.' );
+			}
+			$candidate = $this->candidate( $input, $snapshot );
+			if ( is_wp_error( $candidate ) ) {
+				return $candidate;
+			}
+			$permission = $this->preflight( $acting_actor, $candidate, $snapshot );
+			if ( is_wp_error( $permission ) ) {
+				return $permission;
+			}
+			return $this->db->transaction( function ( WP_SQLite_DB $db ) use ( $id, $expected, $acting_actor, $candidate, $ctx ): array {
+				$current = $db->get_row( 'SELECT * FROM posts WHERE id=:id', [ ':id' => $id ] );
+				if ( null === $current ) {
+					throw new Api_Exit_Exception( new WP_Error( 'not_found', 'Content was not found.' ) );
+				}
+				$this->api_gate( $db, $ctx, [ (string) $ctx['kind'] . 's:write' ], $acting_actor );
+				if ( 'draft' !== (string) $current['status'] ) {
+					throw new Status_Conflict_Exception( 'Only drafts can be updated through this operation. Use the publish operation for published content.' );
+				}
+				if ( (int) $current['revision'] !== $expected ) {
+					throw new Concurrency_Conflict_Exception( 'This content changed since the expected revision.' );
+				}
+				$candidate['status'] = 'draft';
+				$permission = $this->auth->validate_mutation_permissions( $acting_actor, $candidate, $current, $db );
+				if ( is_wp_error( $permission ) ) {
+					throw new Authorization_Exception( $permission->get_error_message() );
+				}
+				$current['term_ids'] = wp_post_term_ids( $id, $db );
+				$this->api_verify_media( $candidate, $db, $acting_actor );
+				$candidate['slug'] = $this->api_slug( $db, $ctx, $candidate['slug'], (string) $current['slug'], $id );
+				$db->query( 'INSERT INTO post_revisions(post_id,revision,snapshot,actor_id) VALUES(:id,:revision,:snapshot,:actor)', [
+					':id'       => $id,
+					':revision' => $expected,
+					':snapshot' => wp_json_encode( $current ),
+					':actor'    => $acting_actor
+				] );
+				$stmt = $db->query( 'UPDATE posts SET author_id=:author,slug=:slug,title=:title,content_raw=:content,status=:status,excerpt=:excerpt,featured_media_id=:media,metadata=:metadata,published_at=NULL,revision=revision+1,updated_at=unixepoch() WHERE id=:id AND revision=:expected', [
+					':author'   => $candidate['author_id'],
+					':slug'     => $candidate['slug'],
+					':title'    => $candidate['title'],
+					':content'  => $candidate['content_raw'],
+					':status'   => 'draft',
+					':excerpt'  => $candidate['excerpt'],
+					':media'    => $candidate['featured_media_id'],
+					':metadata' => null === $candidate['metadata'] ? null : wp_json_encode( $candidate['metadata'] ),
+					':id'       => $id,
+					':expected' => $expected
+				] );
+				if ( 1 !== $stmt->rowCount() ) {
+					throw new Concurrency_Conflict_Exception( 'The content changed. Reload and retry.' );
+				}
+				if ( 'post' === $candidate['post_type'] && null !== $candidate['term_ids'] ) {
+					wp_assign_post_terms( $id, $candidate['term_ids'], $db );
+				}
+				$this->enqueue( $id, $expected + 1, (string) $current['status'], 'draft', $acting_actor );
+				wp_invalidate_file_link_renders( $db );
+				$envelope = [
+					'id'          => $id,
+					'type'        => $candidate['post_type'],
+					'revision'    => $expected + 1,
+					'status'      => 'draft',
+					'slug'        => $candidate['slug'],
+					'url'         => null,
+					'mutation_id' => wp_generate_uuid4()
+				];
+				return $this->api_finish( $db, $ctx, $acting_actor, $envelope, 200, null, 'api_' . $candidate['post_type'] . '_updated' );
+			} );
+		} catch ( Api_Exit_Exception $exit ) {
+			return $exit->outcome;
+		} catch ( Slug_Conflict_Exception $error ) {
+			return new WP_Error( 'slug_conflict', $error->getMessage() );
+		} catch ( Status_Conflict_Exception $error ) {
+			return new WP_Error( 'status_conflict', $error->getMessage() );
+		} catch ( Concurrency_Conflict_Exception $error ) {
+			return new WP_Error( 'concurrency_conflict', $error->getMessage() );
+		} catch ( Authorization_Exception $error ) {
+			return new WP_Error( 'unauthorized', $error->getMessage() );
+		} catch ( Throwable $error ) {
+			return wp_failure( 'save_failed', $error, 'Content could not be saved.' );
+		}
+	}
+
+	/**
+	 * One atomic publish-with-changes command: optional sparse changes and the
+	 * publication itself commit together under the expected revision. There is
+	 * no separate working draft; a published item's new content is live at commit.
+	 */
+	public function publish_with_changes( array $input, int $acting_actor, array $ctx ): array|WP_Error
+	{
+		$id = (int) ( $input['ID'] ?? 0 );
+		$expected = (int) ( $input['expected_revision'] ?? 0 );
+		if ( $id <= 0 || $expected <= 0 ) {
+			return new WP_Error( 'invalid_arguments', 'Content ID and expected revision are required.' );
+		}
+		try {
+			$snapshot = $this->db->get_row( 'SELECT * FROM posts WHERE id=:id', [ ':id' => $id ] );
+			if ( null === $snapshot ) {
+				return new WP_Error( 'not_found', 'Content was not found.' );
+			}
+			$input['post_status'] = 'published';
+			$candidate = $this->candidate( $input, $snapshot );
+			if ( is_wp_error( $candidate ) ) {
+				return $candidate;
+			}
+			$permission = $this->preflight( $acting_actor, $candidate, $snapshot );
+			if ( is_wp_error( $permission ) ) {
+				return $permission;
+			}
+			return $this->db->transaction( function ( WP_SQLite_DB $db ) use ( $id, $expected, $acting_actor, $candidate, $ctx ): array {
+				$current = $db->get_row( 'SELECT * FROM posts WHERE id=:id', [ ':id' => $id ] );
+				if ( null === $current ) {
+					throw new Api_Exit_Exception( new WP_Error( 'not_found', 'Content was not found.' ) );
+				}
+				$this->api_gate( $db, $ctx, [ (string) $ctx['kind'] . 's:write', (string) $ctx['kind'] . 's:publish' ], $acting_actor );
+				if ( ! in_array( (string) $current['status'], [ 'draft', 'published' ], true ) ) {
+					throw new Status_Conflict_Exception( 'Only drafts and published items can be published through this operation.' );
+				}
+				if ( (int) $current['revision'] !== $expected ) {
+					throw new Concurrency_Conflict_Exception( 'This content changed since the expected revision.' );
+				}
+				$candidate['status'] = 'published';
+				$plural = 'page' === $candidate['post_type'] ? 'pages' : 'posts';
+				if ( ! $this->auth->has_capability( $acting_actor, 'publish_' . $plural, $db ) ) {
+					throw new Authorization_Exception( 'You do not have permission to publish this content.' );
+				}
+				$permission = $this->auth->validate_mutation_permissions( $acting_actor, $candidate, $current, $db );
+				if ( is_wp_error( $permission ) ) {
+					throw new Authorization_Exception( $permission->get_error_message() );
+				}
+				$current['term_ids'] = wp_post_term_ids( $id, $db );
+				$this->api_verify_media( $candidate, $db, $acting_actor );
+				$candidate['slug'] = $this->api_slug( $db, $ctx, $candidate['slug'], (string) $current['slug'], $id );
+				$db->query( 'INSERT INTO post_revisions(post_id,revision,snapshot,actor_id) VALUES(:id,:revision,:snapshot,:actor)', [
+					':id'       => $id,
+					':revision' => $expected,
+					':snapshot' => wp_json_encode( $current ),
+					':actor'    => $acting_actor
+				] );
+				$stmt = $db->query( 'UPDATE posts SET author_id=:author,slug=:slug,title=:title,content_raw=:content,status=:status,excerpt=:excerpt,featured_media_id=:media,metadata=:metadata,published_at=:date,revision=revision+1,updated_at=unixepoch() WHERE id=:id AND revision=:expected', [
+					':author'   => $candidate['author_id'],
+					':slug'     => $candidate['slug'],
+					':title'    => $candidate['title'],
+					':content'  => $candidate['content_raw'],
+					':status'   => 'published',
+					':excerpt'  => $candidate['excerpt'],
+					':media'    => $candidate['featured_media_id'],
+					':metadata' => null === $candidate['metadata'] ? null : wp_json_encode( $candidate['metadata'] ),
+					':date'     => $current['published_at'] ?? time(),
+					':id'       => $id,
+					':expected' => $expected
+				] );
+				if ( 1 !== $stmt->rowCount() ) {
+					throw new Concurrency_Conflict_Exception( 'The content changed. Reload and retry.' );
+				}
+				if ( 'post' === $candidate['post_type'] && null !== $candidate['term_ids'] ) {
+					wp_assign_post_terms( $id, $candidate['term_ids'], $db );
+				}
+				$this->enqueue( $id, $expected + 1, (string) $current['status'], 'published', $acting_actor );
+				wp_invalidate_file_link_renders( $db );
+				$updated = $db->get_row( 'SELECT * FROM posts WHERE id=:id', [ ':id' => $id ] );
+				$envelope = [
+					'id'          => $id,
+					'type'        => $candidate['post_type'],
+					'revision'    => $expected + 1,
+					'status'      => 'published',
+					'slug'        => $candidate['slug'],
+					'url'         => null !== $updated ? wp_post_url( $updated ) : null,
+					'mutation_id' => wp_generate_uuid4()
+				];
+				return $this->api_finish( $db, $ctx, $acting_actor, $envelope, 200, null, 'api_' . $candidate['post_type'] . '_published' );
+			} );
+		} catch ( Api_Exit_Exception $exit ) {
+			return $exit->outcome;
+		} catch ( Slug_Conflict_Exception $error ) {
+			return new WP_Error( 'slug_conflict', $error->getMessage() );
+		} catch ( Status_Conflict_Exception $error ) {
+			return new WP_Error( 'status_conflict', $error->getMessage() );
+		} catch ( Concurrency_Conflict_Exception $error ) {
+			return new WP_Error( 'concurrency_conflict', $error->getMessage() );
+		} catch ( Authorization_Exception $error ) {
+			return new WP_Error( 'unauthorized', $error->getMessage() );
+		} catch ( Throwable $error ) {
+			return wp_failure( 'save_failed', $error, 'Content could not be published.' );
 		}
 	}
 }

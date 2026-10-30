@@ -95,6 +95,10 @@ if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && '' === $error && ! in_ar
 					':id'       => $id
 				] );
 				$db->query( 'DELETE FROM user_sessions WHERE user_id=:id', [ ':id' => $id ] );
+				if ( wp_api_tables_exist( $db ) && ( 1 === $disabled || '' !== $hash || wp_json_encode( 'custom' === $role ? $caps : $roles[ $role ] ) !== (string) $user['capabilities'] ) ) {
+					// Disable, capability and password changes revoke API credentials in the same transaction.
+					wp_api_revoke_user_tokens( $db, $id, 'account_change' );
+				}
 				wp_audit( 'user_changed', $id, [
 					'role'     => $role,
 					'disabled' => $disabled

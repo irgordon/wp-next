@@ -28,7 +28,7 @@ DELETE FROM posts WHERE id=100;
     result=subprocess.run([PHP,str(site/'bin/wp'),'upgrade'],env=env,capture_output=True,text=True)
     assert result.returncode==0,result.stdout+result.stderr
     with sqlite3.connect(path) as db:
-        assert db.execute("SELECT option_value FROM options WHERE option_name='schema_version'").fetchone()[0]=='8'
+        assert db.execute("SELECT option_value FROM options WHERE option_name='schema_version'").fetchone()[0]=='9'
         db.execute("INSERT INTO posts(author_id,slug,title,content_raw,status) VALUES(7,'new','New','<p>New</p>','draft')")
         assert db.execute('SELECT last_insert_rowid()').fetchone()[0]==101
         assert db.execute('SELECT display_name,public_profile,profile_revision FROM users WHERE id=7').fetchone()==('legacy',0,1)

@@ -27,6 +27,10 @@ if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
 		$error = 'Enter a custom structure, or choose Plain.';
 	} elseif ( is_wp_error( $validation ) ) {
 		$error = $validation->get_error_message();
+	} elseif ( wp_api_tables_exist( $wpdb ) && null !== ( $api_state = wp_api_state( $wpdb ) ) && ( 1 === (int) $api_state['enabled'] || '' !== (string) ( $api_state['bound_epoch'] ?? '' ) ) && [] !== ( $api_conflicts = wp_api_structure_conflicts( $wpdb, $structure ) ) ) {
+		// While the editorial API is initialized or enabled, structures that
+		// would claim its mounted namespace are refused, never rerouted.
+		$error = 'This structure conflicts with the editorial API mount: ' . implode( ' ', $api_conflicts );
 	} else {
 		try {
 			$wpdb->transaction( function ( $db ) use ( $structure ): void {
@@ -77,7 +81,7 @@ require __DIR__ . '/admin-header.php';
 wp_admin_notice( $error, true );
 wp_admin_notice( $message );
 ?>
-<nav class="actions settings-navigation" aria-label="Settings"><a href="options-general.php">General</a><a href="options-permalink.php" aria-current="page">Permalinks</a></nav>
+<nav class="actions settings-navigation" aria-label="Settings"><a href="options-general.php">General</a><a href="options-permalink.php" aria-current="page">Permalinks</a><a href="integrations.php">Integrations</a></nav>
 <section class="panel"><h2>Common Settings</h2><p>Choose the permanent address format for posts. Pages keep their slug addresses; Plain uses an ID query for both.</p>
 <form method="post"><?php wp_nonce_field( 'permalinks' ); ?>
 <fieldset class="permalink-options"><legend>Post permalink format</legend>

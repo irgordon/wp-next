@@ -7,6 +7,7 @@ import json
 import re
 import ssl
 import sqlite3
+import subprocess
 import tarfile
 import urllib.error
 import zipfile
@@ -46,7 +47,37 @@ def verify_application(fixture):
     verify_portability(fixture)
     verify_discovery(fixture)
     verify_operations(fixture)
+    verify_api(fixture)
     verify_logout(fixture)
+
+
+def verify_api(fixture):
+    # The editorial API through the real stack: disabled by default, and —
+    # once an operator enables it — proof that the Authorization header
+    # actually reaches PHP (Apache needs CGIPassAuth; a dropped header is
+    # distinguishable because it yields authentication-required, not
+    # invalid-token).
+    admin = fixture['admin']
+    label = fixture['stack'] + '/' + fixture['mode']
+    status, body, _ = admin.request('/wp-next/v1/posts')
+    h.check(status == 503 and '"credentials-unavailable"' in body, 'Editorial API is disabled by default through ' + label)
+    if fixture['mode'] == 'direct':
+        plain = h.Client(fixture['http'])
+        status, body, _ = plain.request('/wp-next/v1/posts')
+        h.check(status == 503 and '"https-required"' in body, 'Plain HTTP origin returns https-required through ' + fixture['stack'])
+    for command in (('api:init',), ('api:enable',)):
+        subprocess.run([fixture['options'].php, str(fixture['site']/'bin/wp'), *command],
+                       env=fixture['env'], check=True, capture_output=True, timeout=60)
+    issued = subprocess.run([fixture['options'].php, str(fixture['site']/'bin/wp'), 'api:issue', 'admin', 'Deployment probe', 'posts:read', '30'],
+                            env=fixture['env'], check=True, capture_output=True, text=True, timeout=60)
+    match = re.search(r'wpn1\.[0-9a-f]{32}\.[A-Za-z0-9_-]{43}', issued.stdout)
+    h.check(match is not None, 'CLI issues an API credential in the deployed fixture')
+    status, body, _ = admin.request('/wp-next/v1/posts', headers={'Authorization': 'Bearer ' + match.group(0)})
+    h.check(status == 200, 'The Authorization header reaches PHP through ' + label)
+    status, body, _ = admin.request('/wp-next/v1/posts', headers={'Authorization': 'Bearer wpn1.' + 'f' * 32 + '.' + 'A' * 43})
+    h.check(status == 401 and '"invalid-token"' in body, 'A bogus credential is distinguished from a missing one through ' + label)
+    status, body, _ = admin.request('/wp-next/v1/posts')
+    h.check(status == 401 and '"authentication-required"' in body, 'A missing credential returns authentication-required through ' + label)
 
 
 def verify_transport(fixture):

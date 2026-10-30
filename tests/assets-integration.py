@@ -28,7 +28,7 @@ with tempfile.TemporaryDirectory(prefix='wp-asset-integration-') as directory:
     run=lambda *args:subprocess.run([PHP,str(site/'bin/wp'),*args],env=env,capture_output=True,text=True)
     result=run('upgrade');assert result.returncode==0,result.stdout+result.stderr
     with sqlite3.connect(runtime/'site.sqlite') as db:
-        assert db.execute("SELECT option_value FROM options WHERE option_name='schema_version'").fetchone()[0]=='8'
+        assert db.execute("SELECT option_value FROM options WHERE option_name='schema_version'").fetchone()[0]=='9'
         assert db.execute('SELECT id,filename,sha256,width,height,size,kind,format,visibility,state FROM media').fetchone()==(42,filename,digest,1,1,len(image),'image','png','public','ready')
         assert db.execute('SELECT avatar_media_id FROM users WHERE id=7').fetchone()[0]==42
         assert db.execute('SELECT featured_media_id FROM posts').fetchone()[0]==42

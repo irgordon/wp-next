@@ -1,0 +1,2605 @@
+{
+  "openapi": "3.1.2",
+  "info": {
+    "title": "WordPress Next Editorial API",
+    "version": "0.1.0",
+    "description": "Adopted v0.1.0 contract (ruling 2026-10-29): the authenticated editorial API, implemented and shipped disabled by default. Authenticated editorial operations only. See ../adr/I1_EDITORIAL_API_PACKET.md for transaction, backup/epoch and receipt rules."
+  },
+  "x-status": "draft-for-review",
+  "x-scope-source": "docs/adr/I1_EDITORIAL_API_PACKET.md",
+  "servers": [
+    {
+      "url": "https://{host}{basePath}/wp-next/v1",
+      "description": "Use the configured HTTPS site authority/base path, never client forwarding headers. Inspect route conflicts before activation.",
+      "variables": {
+        "host": {
+          "default": "example.invalid",
+          "description": "Configured host[:port]."
+        },
+        "basePath": {
+          "default": "",
+          "description": "Configured subdirectory without a trailing slash, or empty."
+        }
+      }
+    }
+  ],
+  "tags": [
+    {
+      "name": "Post",
+      "description": "Post capabilities and ownership remain authoritative."
+    },
+    {
+      "name": "Page",
+      "description": "Separate Page capabilities and ownership remain authoritative."
+    }
+  ],
+  "security": [
+    {
+      "integrationToken": []
+    }
+  ],
+  "x-request-order": [
+    "Recognize normalized namespace without DB or browser identity",
+    "Refuse non-HTTPS with problem JSON, including development; no credential/body parsing or redirect",
+    "Apply bounded admission; verify feature/epoch/token/account",
+    "Apply operation scopes and exact browser item-read visibility",
+    "Validate input and execute the transaction/receipt contract"
+  ],
+  "x-request-byte-limit": 3145728,
+  "x-replay-window-seconds": 86400,
+  "x-idempotency": "Exact UTF-8 body bytes plus length-framed contract/method/operation/kind/target fingerprint; token/key uniqueness across operations. 24h replay; tombstone until token expiry/permanent removal. No request-query parameters on writes.",
+  "x-credential-policy": {
+    "defaultExpirySeconds": 2592000,
+    "maxExpirySeconds": 7776000,
+    "secretBits": 256,
+    "scopeVocabulary": [
+      "posts:read",
+      "posts:write",
+      "posts:publish",
+      "pages:read",
+      "pages:write",
+      "pages:publish"
+    ],
+    "headerOnly": true,
+    "cookieAuthentication": false
+  },
+  "paths": {
+    "/posts": {
+      "get": {
+        "operationId": "listPosts",
+        "summary": "List browser-visible posts",
+        "tags": [
+          "Post"
+        ],
+        "x-required-scopes": [
+          "posts:read"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Status"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized result, or identical authenticated receipt replay.",
+            "headers": {
+              "Cache-Control": {
+                "$ref": "#/components/headers/PrivateCache"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "X-Robots-Tag": {
+                "$ref": "#/components/headers/NoIndex"
+              },
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryList"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": 42,
+                      "type": "post",
+                      "title": "Integration draft",
+                      "slug": "integration-draft",
+                      "status": "draft",
+                      "revision": 1,
+                      "published_at": null,
+                      "updated_at": 1793300000,
+                      "url": null
+                    }
+                  ],
+                  "next_cursor": null
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Problem405"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createPostDraft",
+        "summary": "Create a private post draft",
+        "tags": [
+          "Post"
+        ],
+        "x-required-scopes": [
+          "posts:write"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostCreate"
+              },
+              "example": {
+                "title": "Integration draft",
+                "content": {
+                  "version": 1,
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "html": "A draft created by an integration."
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Committed Draft creation, or identical authenticated receipt replay.",
+            "headers": {
+              "Cache-Control": {
+                "$ref": "#/components/headers/PrivateCache"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "X-Robots-Tag": {
+                "$ref": "#/components/headers/NoIndex"
+              },
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Idempotency-Replayed": {
+                "$ref": "#/components/headers/Replayed"
+              },
+              "Location": {
+                "$ref": "#/components/headers/Location"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                },
+                "example": {
+                  "id": 42,
+                  "type": "post",
+                  "revision": 1,
+                  "status": "draft",
+                  "slug": "integration-draft",
+                  "url": null,
+                  "mutation_id": "00000000-0000-4000-8000-000000000001"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Problem405"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Problem415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    },
+    "/posts/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Id"
+        }
+      ],
+      "get": {
+        "operationId": "getPost",
+        "summary": "Read browser-visible editorial post",
+        "tags": [
+          "Post"
+        ],
+        "x-required-scopes": [
+          "posts:read"
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized result, or identical authenticated receipt replay.",
+            "headers": {
+              "Cache-Control": {
+                "$ref": "#/components/headers/PrivateCache"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "X-Robots-Tag": {
+                "$ref": "#/components/headers/NoIndex"
+              },
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entry"
+                },
+                "example": {
+                  "id": 42,
+                  "type": "post",
+                  "title": "Integration draft",
+                  "slug": "integration-draft",
+                  "status": "draft",
+                  "revision": 1,
+                  "published_at": null,
+                  "updated_at": 1793300000,
+                  "url": null,
+                  "content": {
+                    "version": 1,
+                    "blocks": [
+                      {
+                        "type": "paragraph",
+                        "html": "A draft created by an integration.",
+                        "align": "left"
+                      }
+                    ]
+                  },
+                  "excerpt": "",
+                  "featured_media_id": null,
+                  "social_image_id": null,
+                  "term_ids": []
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Problem405"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updatePostDraft",
+        "summary": "Update a Draft with an expected revision",
+        "tags": [
+          "Post"
+        ],
+        "x-required-scopes": [
+          "posts:write"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostPatch"
+              },
+              "example": {
+                "expected_revision": 1,
+                "title": "Revised integration draft"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authorized result, or identical authenticated receipt replay.",
+            "headers": {
+              "Cache-Control": {
+                "$ref": "#/components/headers/PrivateCache"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "X-Robots-Tag": {
+                "$ref": "#/components/headers/NoIndex"
+              },
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Idempotency-Replayed": {
+                "$ref": "#/components/headers/Replayed"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                },
+                "example": {
+                  "id": 42,
+                  "type": "post",
+                  "revision": 2,
+                  "status": "draft",
+                  "slug": "integration-draft",
+                  "url": null,
+                  "mutation_id": "00000000-0000-4000-8000-000000000002"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Problem405"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Problem415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    },
+    "/posts/{id}/publish": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Id"
+        }
+      ],
+      "post": {
+        "operationId": "publishPostWithChanges",
+        "summary": "Atomically publish changes to a Draft or Published item",
+        "tags": [
+          "Post"
+        ],
+        "x-required-scopes": [
+          "posts:write",
+          "posts:publish"
+        ],
+        "x-transaction": "publish_with_changes: one expected-revision transaction with authority, content, revision, queue, API audit and receipt.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostPublish"
+              },
+              "example": {
+                "expected_revision": 2,
+                "content": {
+                  "version": 1,
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "html": "Explicitly published content."
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authorized result, or identical authenticated receipt replay.",
+            "headers": {
+              "Cache-Control": {
+                "$ref": "#/components/headers/PrivateCache"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "X-Robots-Tag": {
+                "$ref": "#/components/headers/NoIndex"
+              },
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Idempotency-Replayed": {
+                "$ref": "#/components/headers/Replayed"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                },
+                "example": {
+                  "id": 42,
+                  "type": "post",
+                  "revision": 3,
+                  "status": "published",
+                  "slug": "integration-draft",
+                  "url": "https://example.invalid/integration-draft/",
+                  "mutation_id": "00000000-0000-4000-8000-000000000003"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Problem405"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Problem415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    },
+    "/pages": {
+      "get": {
+        "operationId": "listPages",
+        "summary": "List browser-visible pages",
+        "tags": [
+          "Page"
+        ],
+        "x-required-scopes": [
+          "pages:read"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Status"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized result, or identical authenticated receipt replay.",
+            "headers": {
+              "Cache-Control": {
+                "$ref": "#/components/headers/PrivateCache"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "X-Robots-Tag": {
+                "$ref": "#/components/headers/NoIndex"
+              },
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryList"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": 42,
+                      "type": "page",
+                      "title": "Integration draft",
+                      "slug": "integration-draft",
+                      "status": "draft",
+                      "revision": 1,
+                      "published_at": null,
+                      "updated_at": 1793300000,
+                      "url": null
+                    }
+                  ],
+                  "next_cursor": null
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Problem405"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createPageDraft",
+        "summary": "Create a private page draft",
+        "tags": [
+          "Page"
+        ],
+        "x-required-scopes": [
+          "pages:write"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PageCreate"
+              },
+              "example": {
+                "title": "Integration draft",
+                "content": {
+                  "version": 1,
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "html": "A draft created by an integration."
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Committed Draft creation, or identical authenticated receipt replay.",
+            "headers": {
+              "Cache-Control": {
+                "$ref": "#/components/headers/PrivateCache"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "X-Robots-Tag": {
+                "$ref": "#/components/headers/NoIndex"
+              },
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Idempotency-Replayed": {
+                "$ref": "#/components/headers/Replayed"
+              },
+              "Location": {
+                "$ref": "#/components/headers/Location"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                },
+                "example": {
+                  "id": 42,
+                  "type": "page",
+                  "revision": 1,
+                  "status": "draft",
+                  "slug": "integration-draft",
+                  "url": null,
+                  "mutation_id": "00000000-0000-4000-8000-000000000001"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Problem405"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Problem415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    },
+    "/pages/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Id"
+        }
+      ],
+      "get": {
+        "operationId": "getPage",
+        "summary": "Read browser-visible editorial page",
+        "tags": [
+          "Page"
+        ],
+        "x-required-scopes": [
+          "pages:read"
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized result, or identical authenticated receipt replay.",
+            "headers": {
+              "Cache-Control": {
+                "$ref": "#/components/headers/PrivateCache"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "X-Robots-Tag": {
+                "$ref": "#/components/headers/NoIndex"
+              },
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entry"
+                },
+                "example": {
+                  "id": 42,
+                  "type": "page",
+                  "title": "Integration draft",
+                  "slug": "integration-draft",
+                  "status": "draft",
+                  "revision": 1,
+                  "published_at": null,
+                  "updated_at": 1793300000,
+                  "url": null,
+                  "content": {
+                    "version": 1,
+                    "blocks": [
+                      {
+                        "type": "paragraph",
+                        "html": "A draft created by an integration.",
+                        "align": "left"
+                      }
+                    ]
+                  },
+                  "excerpt": "",
+                  "featured_media_id": null,
+                  "social_image_id": null,
+                  "page_template": "standard"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Problem405"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updatePageDraft",
+        "summary": "Update a Draft with an expected revision",
+        "tags": [
+          "Page"
+        ],
+        "x-required-scopes": [
+          "pages:write"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PagePatch"
+              },
+              "example": {
+                "expected_revision": 1,
+                "title": "Revised integration draft"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authorized result, or identical authenticated receipt replay.",
+            "headers": {
+              "Cache-Control": {
+                "$ref": "#/components/headers/PrivateCache"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "X-Robots-Tag": {
+                "$ref": "#/components/headers/NoIndex"
+              },
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Idempotency-Replayed": {
+                "$ref": "#/components/headers/Replayed"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                },
+                "example": {
+                  "id": 42,
+                  "type": "page",
+                  "revision": 2,
+                  "status": "draft",
+                  "slug": "integration-draft",
+                  "url": null,
+                  "mutation_id": "00000000-0000-4000-8000-000000000002"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Problem405"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Problem415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    },
+    "/pages/{id}/publish": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Id"
+        }
+      ],
+      "post": {
+        "operationId": "publishPageWithChanges",
+        "summary": "Atomically publish changes to a Draft or Published item",
+        "tags": [
+          "Page"
+        ],
+        "x-required-scopes": [
+          "pages:write",
+          "pages:publish"
+        ],
+        "x-transaction": "publish_with_changes: one expected-revision transaction with authority, content, revision, queue, API audit and receipt.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PagePublish"
+              },
+              "example": {
+                "expected_revision": 2,
+                "content": {
+                  "version": 1,
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "html": "Explicitly published content."
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authorized result, or identical authenticated receipt replay.",
+            "headers": {
+              "Cache-Control": {
+                "$ref": "#/components/headers/PrivateCache"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "X-Robots-Tag": {
+                "$ref": "#/components/headers/NoIndex"
+              },
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Idempotency-Replayed": {
+                "$ref": "#/components/headers/Replayed"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                },
+                "example": {
+                  "id": 42,
+                  "type": "page",
+                  "revision": 3,
+                  "status": "published",
+                  "slug": "integration-draft",
+                  "url": "https://example.invalid/integration-draft/",
+                  "mutation_id": "00000000-0000-4000-8000-000000000003"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Problem405"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Problem415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "integrationToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "wpn1.<32-hex-public-id>.<43-base64url-secret>",
+        "description": "Opaque named integration token, not JWT and not an OAuth flow. Header only; current user caps and token scopes intersect. Browser cookies never substitute. Missing credentials challenge with WWW-Authenticate: Bearer."
+      }
+    },
+    "parameters": {
+      "Id": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1,
+          "description": "Positive signed-64-bit local identifier. Clients must preserve integer precision."
+        }
+      },
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 128,
+          "pattern": "^[!-~]+$"
+        },
+        "description": "Exact printable non-space ASCII bytes. Reuse with changed body/method/kind/target conflicts; receipts/tombstones are scoped to the credential public ID.",
+        "example": "release-2026-10-29-001"
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20
+        }
+      },
+      "Cursor": {
+        "name": "cursor",
+        "in": "query",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        }
+      },
+      "Status": {
+        "name": "status",
+        "in": "query",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "all",
+            "draft",
+            "published",
+            "archived"
+          ],
+          "default": "all"
+        }
+      }
+    },
+    "headers": {
+      "PrivateCache": {
+        "schema": {
+          "type": "string",
+          "const": "private, no-store"
+        }
+      },
+      "NoSniff": {
+        "schema": {
+          "type": "string",
+          "const": "nosniff"
+        }
+      },
+      "NoIndex": {
+        "schema": {
+          "type": "string",
+          "const": "noindex, nofollow"
+        }
+      },
+      "RequestId": {
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "description": "Fresh ID for this transport attempt, not the original mutation ID."
+      },
+      "Replayed": {
+        "schema": {
+          "type": "string",
+          "enum": [
+            "true",
+            "false"
+          ]
+        }
+      },
+      "Location": {
+        "schema": {
+          "type": "string",
+          "format": "uri-reference",
+          "maxLength": 2048
+        },
+        "description": "Relative API item URL for the original creation; never Set-Cookie or a reflected Host URL."
+      },
+      "RetryAfter": {
+        "schema": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "description": "Present when a bounded retry interval is known; no fabricated recovery time for missing epoch/storage."
+      },
+      "BearerChallenge": {
+        "schema": {
+          "type": "string"
+        },
+        "example": "Bearer"
+      }
+    },
+    "responses": {
+      "Problem400": {
+        "description": "Malformed JSON, required header/revision missing, unsupported query or invalid cursor.",
+        "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/PrivateCache"
+          },
+          "X-Content-Type-Options": {
+            "$ref": "#/components/headers/NoSniff"
+          },
+          "X-Robots-Tag": {
+            "$ref": "#/components/headers/NoIndex"
+          },
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          }
+        },
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "Problem401": {
+        "description": "Missing, malformed, expired, revoked or wrong-epoch credential. Neutral body; Bearer challenge.",
+        "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/PrivateCache"
+          },
+          "X-Content-Type-Options": {
+            "$ref": "#/components/headers/NoSniff"
+          },
+          "X-Robots-Tag": {
+            "$ref": "#/components/headers/NoIndex"
+          },
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "WWW-Authenticate": {
+            "$ref": "#/components/headers/BearerChallenge"
+          }
+        },
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "Problem403": {
+        "description": "Required operation scope or account capability absent.",
+        "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/PrivateCache"
+          },
+          "X-Content-Type-Options": {
+            "$ref": "#/components/headers/NoSniff"
+          },
+          "X-Robots-Tag": {
+            "$ref": "#/components/headers/NoIndex"
+          },
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          }
+        },
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "Problem404": {
+        "description": "Same problem for unknown ID/type, inaccessible resource, excluded Trash or disabled API.",
+        "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/PrivateCache"
+          },
+          "X-Content-Type-Options": {
+            "$ref": "#/components/headers/NoSniff"
+          },
+          "X-Robots-Tag": {
+            "$ref": "#/components/headers/NoIndex"
+          },
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          }
+        },
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "Problem405": {
+        "description": "Unsupported method.",
+        "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/PrivateCache"
+          },
+          "X-Content-Type-Options": {
+            "$ref": "#/components/headers/NoSniff"
+          },
+          "X-Robots-Tag": {
+            "$ref": "#/components/headers/NoIndex"
+          },
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "Allow": {
+            "schema": {
+              "type": "string"
+            },
+            "description": "Actual supported methods for this route."
+          }
+        },
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "Problem409": {
+        "description": "Revision/status/slug conflict, key-input mismatch or expired replay window. No new mutation.",
+        "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/PrivateCache"
+          },
+          "X-Content-Type-Options": {
+            "$ref": "#/components/headers/NoSniff"
+          },
+          "X-Robots-Tag": {
+            "$ref": "#/components/headers/NoIndex"
+          },
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          }
+        },
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "Problem413": {
+        "description": "Request exceeds the 3 MiB API envelope ceiling.",
+        "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/PrivateCache"
+          },
+          "X-Content-Type-Options": {
+            "$ref": "#/components/headers/NoSniff"
+          },
+          "X-Robots-Tag": {
+            "$ref": "#/components/headers/NoIndex"
+          },
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          }
+        },
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "Problem415": {
+        "description": "Writes require application/json with UTF-8; compressed request bodies are not supported.",
+        "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/PrivateCache"
+          },
+          "X-Content-Type-Options": {
+            "$ref": "#/components/headers/NoSniff"
+          },
+          "X-Robots-Tag": {
+            "$ref": "#/components/headers/NoIndex"
+          },
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          }
+        },
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "Problem422": {
+        "description": "Invalid canonical slug, reserved slug, unsupported content or invalid field/media/template/term semantics.",
+        "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/PrivateCache"
+          },
+          "X-Content-Type-Options": {
+            "$ref": "#/components/headers/NoSniff"
+          },
+          "X-Robots-Tag": {
+            "$ref": "#/components/headers/NoIndex"
+          },
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          }
+        },
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "Problem429": {
+        "description": "Rate, receipt or budget-table capacity exhausted.",
+        "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/PrivateCache"
+          },
+          "X-Content-Type-Options": {
+            "$ref": "#/components/headers/NoSniff"
+          },
+          "X-Robots-Tag": {
+            "$ref": "#/components/headers/NoIndex"
+          },
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "Retry-After": {
+            "$ref": "#/components/headers/RetryAfter"
+          }
+        },
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "Problem503": {
+        "description": "https-required (including development), credentials-unavailable, maintenance or storage-unavailable. No redirect or mutation.",
+        "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/PrivateCache"
+          },
+          "X-Content-Type-Options": {
+            "$ref": "#/components/headers/NoSniff"
+          },
+          "X-Robots-Tag": {
+            "$ref": "#/components/headers/NoIndex"
+          },
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "Retry-After": {
+            "$ref": "#/components/headers/RetryAfter"
+          }
+        },
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Problem": {
+        "type": "object",
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code",
+          "request_id"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "status": {
+            "type": "integer",
+            "minimum": 400,
+            "maximum": 599
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "malformed-request",
+              "invalid-cursor",
+              "authentication-required",
+              "invalid-token",
+              "insufficient-scope",
+              "not-found",
+              "method-not-allowed",
+              "revision-conflict",
+              "status-conflict",
+              "slug-conflict",
+              "idempotency-key-conflict",
+              "idempotency-window-expired",
+              "request-too-large",
+              "unsupported-media-type",
+              "validation-failed",
+              "invalid-slug",
+              "reserved-slug",
+              "rate-limited",
+              "receipt-capacity-exceeded",
+              "https-required",
+              "credentials-unavailable",
+              "maintenance",
+              "storage-unavailable"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "detail": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "instance": {
+            "type": "string",
+            "format": "uri-reference"
+          },
+          "errors": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "type": "object",
+              "required": [
+                "path",
+                "code"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                "code": {
+                  "type": "string",
+                  "maxLength": 80
+                }
+              }
+            }
+          }
+        }
+      },
+      "ContentDocument": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "blocks"
+        ],
+        "properties": {
+          "version": {
+            "const": 1
+          },
+          "blocks": {
+            "type": "array",
+            "maxItems": 500,
+            "items": {
+              "$ref": "#/components/schemas/Block"
+            }
+          }
+        },
+        "x-domain-constraints": [
+          "Normalized serialized document <= 2,000,000 bytes",
+          "At most 500 blocks globally and nesting depth at most 8",
+          "JSON decoding depth <= 32",
+          "Same sanitizer and current media-reference authorization as browser saves"
+        ]
+      },
+      "ParagraphBlock": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "html"
+        ],
+        "properties": {
+          "type": {
+            "const": "paragraph"
+          },
+          "align": {
+            "type": "string",
+            "enum": [
+              "left",
+              "center",
+              "right"
+            ],
+            "default": "left"
+          },
+          "html": {
+            "type": "string"
+          }
+        }
+      },
+      "HeadingBlock": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "html",
+          "level"
+        ],
+        "properties": {
+          "type": {
+            "const": "heading"
+          },
+          "align": {
+            "type": "string",
+            "enum": [
+              "left",
+              "center",
+              "right"
+            ],
+            "default": "left"
+          },
+          "html": {
+            "type": "string"
+          },
+          "level": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 6
+          }
+        }
+      },
+      "ListBlock": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "html"
+        ],
+        "properties": {
+          "type": {
+            "const": "list"
+          },
+          "align": {
+            "type": "string",
+            "enum": [
+              "left",
+              "center",
+              "right"
+            ],
+            "default": "left"
+          },
+          "html": {
+            "type": "string"
+          },
+          "ordered": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "QuoteBlock": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "html"
+        ],
+        "properties": {
+          "type": {
+            "const": "quote"
+          },
+          "align": {
+            "type": "string",
+            "enum": [
+              "left",
+              "center",
+              "right"
+            ],
+            "default": "left"
+          },
+          "html": {
+            "type": "string"
+          }
+        }
+      },
+      "CodeBlock": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "text"
+        ],
+        "properties": {
+          "type": {
+            "const": "code"
+          },
+          "align": {
+            "type": "string",
+            "enum": [
+              "left",
+              "center",
+              "right"
+            ],
+            "default": "left"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      },
+      "ImageBlock": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "media_id"
+        ],
+        "properties": {
+          "type": {
+            "const": "image"
+          },
+          "align": {
+            "type": "string",
+            "enum": [
+              "left",
+              "center",
+              "right"
+            ],
+            "default": "left"
+          },
+          "media_id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "Positive signed-64-bit local identifier. Clients must preserve integer precision."
+          },
+          "alt": {
+            "type": "string"
+          },
+          "caption": {
+            "type": "string"
+          }
+        }
+      },
+      "FileBlock": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "media_id"
+        ],
+        "properties": {
+          "type": {
+            "const": "file"
+          },
+          "align": {
+            "type": "string",
+            "enum": [
+              "left",
+              "center",
+              "right"
+            ],
+            "default": "left"
+          },
+          "media_id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "Positive signed-64-bit local identifier. Clients must preserve integer precision."
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "ColumnsBlock": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "columns"
+        ],
+        "properties": {
+          "type": {
+            "const": "columns"
+          },
+          "align": {
+            "type": "string",
+            "enum": [
+              "left",
+              "center",
+              "right"
+            ],
+            "default": "left"
+          },
+          "columns": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 3,
+            "items": {
+              "type": "array",
+              "maxItems": 500,
+              "items": {
+                "$ref": "#/components/schemas/Block"
+              }
+            }
+          }
+        }
+      },
+      "HtmlBlock": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "html"
+        ],
+        "properties": {
+          "type": {
+            "const": "html"
+          },
+          "align": {
+            "type": "string",
+            "enum": [
+              "left",
+              "center",
+              "right"
+            ],
+            "default": "left"
+          },
+          "html": {
+            "type": "string"
+          }
+        }
+      },
+      "DividerBlock": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "divider"
+          },
+          "align": {
+            "type": "string",
+            "enum": [
+              "left",
+              "center",
+              "right"
+            ],
+            "default": "left"
+          }
+        }
+      },
+      "Block": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ParagraphBlock"
+          },
+          {
+            "$ref": "#/components/schemas/HeadingBlock"
+          },
+          {
+            "$ref": "#/components/schemas/ListBlock"
+          },
+          {
+            "$ref": "#/components/schemas/QuoteBlock"
+          },
+          {
+            "$ref": "#/components/schemas/CodeBlock"
+          },
+          {
+            "$ref": "#/components/schemas/ImageBlock"
+          },
+          {
+            "$ref": "#/components/schemas/FileBlock"
+          },
+          {
+            "$ref": "#/components/schemas/ColumnsBlock"
+          },
+          {
+            "$ref": "#/components/schemas/HtmlBlock"
+          },
+          {
+            "$ref": "#/components/schemas/DividerBlock"
+          }
+        ]
+      },
+      "PostCreate": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "content"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "description": "Trimmed nonempty title. This API ceiling is intentionally narrower than unbounded browser titles."
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "Must already equal wp_sanitize_slug(input). Explicit collision returns 409, never a suffixed success. Omitted create slug is title-derived; omitted update slug is preserved."
+          },
+          "content": {
+            "$ref": "#/components/schemas/ContentDocument"
+          },
+          "excerpt": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "featured_media_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "description": "Positive signed-64-bit local identifier. Clients must preserve integer precision."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Existing ready image, or null to clear."
+          },
+          "social_image_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "description": "Positive signed-64-bit local identifier. Clients must preserve integer precision."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Existing ready image, or null to clear."
+          },
+          "term_ids": {
+            "type": "array",
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "description": "Positive signed-64-bit local identifier. Clients must preserve integer precision."
+            }
+          }
+        },
+        "description": "Creates a private Draft; status, author, ID and arbitrary metadata are not writable."
+      },
+      "PostPatch": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "expected_revision"
+        ],
+        "minProperties": 2,
+        "properties": {
+          "expected_revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "description": "Trimmed nonempty title. This API ceiling is intentionally narrower than unbounded browser titles."
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "Must already equal wp_sanitize_slug(input). Explicit collision returns 409, never a suffixed success. Omitted create slug is title-derived; omitted update slug is preserved."
+          },
+          "content": {
+            "$ref": "#/components/schemas/ContentDocument"
+          },
+          "excerpt": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "featured_media_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "description": "Positive signed-64-bit local identifier. Clients must preserve integer precision."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Existing ready image, or null to clear."
+          },
+          "social_image_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "description": "Positive signed-64-bit local identifier. Clients must preserve integer precision."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Existing ready image, or null to clear."
+          },
+          "term_ids": {
+            "type": "array",
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "description": "Positive signed-64-bit local identifier. Clients must preserve integer precision."
+            }
+          }
+        },
+        "description": "Draft-only sparse update. At least one editable field is required. Omitted slug is preserved."
+      },
+      "PostPublish": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "expected_revision"
+        ],
+        "properties": {
+          "expected_revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "description": "Trimmed nonempty title. This API ceiling is intentionally narrower than unbounded browser titles."
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "Must already equal wp_sanitize_slug(input). Explicit collision returns 409, never a suffixed success. Omitted create slug is title-derived; omitted update slug is preserved."
+          },
+          "content": {
+            "$ref": "#/components/schemas/ContentDocument"
+          },
+          "excerpt": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "featured_media_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "description": "Positive signed-64-bit local identifier. Clients must preserve integer precision."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Existing ready image, or null to clear."
+          },
+          "social_image_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "description": "Positive signed-64-bit local identifier. Clients must preserve integer precision."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Existing ready image, or null to clear."
+          },
+          "term_ids": {
+            "type": "array",
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "description": "Positive signed-64-bit local identifier. Clients must preserve integer precision."
+            }
+          }
+        },
+        "description": "One atomic publish_with_changes command for a Draft or Published item; sparse changes are optional. Published edits are immediately public after commit."
+      },
+      "PageCreate": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "content"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "description": "Trimmed nonempty title. This API ceiling is intentionally narrower than unbounded browser titles."
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "Must already equal wp_sanitize_slug(input). Explicit collision returns 409, never a suffixed success. Omitted create slug is title-derived; omitted update slug is preserved."
+          },
+          "content": {
+            "$ref": "#/components/schemas/ContentDocument"
+          },
+          "excerpt": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "featured_media_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "description": "Positive signed-64-bit local identifier. Clients must preserve integer precision."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Existing ready image, or null to clear."
+          },
+          "social_image_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "description": "Positive signed-64-bit local identifier. Clients must preserve integer precision."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Existing ready image, or null to clear."
+          },
+          "page_template": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "wide",
+              "landing"
+            ],
+            "default": "standard",
+            "description": "Curated identifier must also be available in the current theme at commit."
+          }
+        },
+        "description": "Creates a private Draft; status, author, ID and arbitrary metadata are not writable."
+      },
+      "PagePatch": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "expected_revision"
+        ],
+        "minProperties": 2,
+        "properties": {
+          "expected_revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "description": "Trimmed nonempty title. This API ceiling is intentionally narrower than unbounded browser titles."
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "Must already equal wp_sanitize_slug(input). Explicit collision returns 409, never a suffixed success. Omitted create slug is title-derived; omitted update slug is preserved."
+          },
+          "content": {
+            "$ref": "#/components/schemas/ContentDocument"
+          },
+          "excerpt": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "featured_media_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "description": "Positive signed-64-bit local identifier. Clients must preserve integer precision."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Existing ready image, or null to clear."
+          },
+          "social_image_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "description": "Positive signed-64-bit local identifier. Clients must preserve integer precision."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Existing ready image, or null to clear."
+          },
+          "page_template": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "wide",
+              "landing"
+            ],
+            "default": "standard",
+            "description": "Curated identifier must also be available in the current theme at commit."
+          }
+        },
+        "description": "Draft-only sparse update. At least one editable field is required. Omitted slug is preserved."
+      },
+      "PagePublish": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "expected_revision"
+        ],
+        "properties": {
+          "expected_revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "description": "Trimmed nonempty title. This API ceiling is intentionally narrower than unbounded browser titles."
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "Must already equal wp_sanitize_slug(input). Explicit collision returns 409, never a suffixed success. Omitted create slug is title-derived; omitted update slug is preserved."
+          },
+          "content": {
+            "$ref": "#/components/schemas/ContentDocument"
+          },
+          "excerpt": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "featured_media_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "description": "Positive signed-64-bit local identifier. Clients must preserve integer precision."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Existing ready image, or null to clear."
+          },
+          "social_image_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "description": "Positive signed-64-bit local identifier. Clients must preserve integer precision."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Existing ready image, or null to clear."
+          },
+          "page_template": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "wide",
+              "landing"
+            ],
+            "default": "standard",
+            "description": "Curated identifier must also be available in the current theme at commit."
+          }
+        },
+        "description": "One atomic publish_with_changes command for a Draft or Published item; sparse changes are optional. Published edits are immediately public after commit."
+      },
+      "EntrySummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "title",
+          "slug",
+          "status",
+          "revision",
+          "published_at",
+          "updated_at",
+          "url"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "Positive signed-64-bit local identifier. Clients must preserve integer precision."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "post",
+              "page"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published",
+              "archived"
+            ]
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "published_at": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "updated_at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri",
+            "description": "Canonical public URL only for Published content."
+          }
+        },
+        "description": "Authorized editorial summary; no account contact fields, internal metadata, raw content or provenance."
+      },
+      "Entry": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "title",
+          "slug",
+          "status",
+          "revision",
+          "published_at",
+          "updated_at",
+          "url",
+          "content",
+          "excerpt",
+          "featured_media_id",
+          "social_image_id"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "Positive signed-64-bit local identifier. Clients must preserve integer precision."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "post",
+              "page"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published",
+              "archived"
+            ]
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "published_at": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "updated_at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri",
+            "description": "Canonical public URL only for Published content."
+          },
+          "content": {
+            "$ref": "#/components/schemas/ContentDocument"
+          },
+          "excerpt": {
+            "type": "string"
+          },
+          "featured_media_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "description": "Positive signed-64-bit local identifier. Clients must preserve integer precision."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "social_image_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "description": "Positive signed-64-bit local identifier. Clients must preserve integer precision."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "term_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "description": "Positive signed-64-bit local identifier. Clients must preserve integer precision."
+            },
+            "description": "Posts only."
+          },
+          "page_template": {
+            "type": "string",
+            "description": "Pages only, existing curated identifier."
+          }
+        },
+        "description": "Uses the exact browser item-editor read permission intersected with API read scope. No standalone public-site read grant."
+      },
+      "EntryList": {
+        "type": "object",
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/EntrySummary"
+            }
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 2048
+          }
+        },
+        "description": "Apply item-editor permission before pagination. No total count. Cursor is bound to actor/type/filters and grants no authority; current access is rechecked each page."
+      },
+      "MutationResult": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "revision",
+          "status",
+          "slug",
+          "url",
+          "mutation_id"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "Positive signed-64-bit local identifier. Clients must preserve integer precision."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "post",
+              "page"
+            ]
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published"
+            ]
+          },
+          "slug": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri",
+            "maxLength": 2048
+          },
+          "mutation_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "description": "Small committed-result receipt, not the full editable document or current-state promise. Stored encoded body <= 4096 bytes."
+      }
+    }
+  }
+}

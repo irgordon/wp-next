@@ -2,7 +2,8 @@
 /** Request admission, runtime verification, and service bindings. */
 declare( strict_types=1 );
 require_once dirname( __DIR__ ) . '/wp-config.php';
-foreach ( [ 'class-wp-error.php', 'l10n.php', 'formatting.php', 'security.php', 'psr/container-interface.php', 'psr/event-dispatcher-interfaces.php', 'class-wp-sqlite-db.php', 'schema.php', 'operations.php', 'class-wp-admission-gate.php', 'class-wp-authorization-service.php', 'class-wp-job-queue.php', 'class-wp-event-dispatcher.php', 'class-wp-plugin-activator.php', 'class-wp-post-mutation-service.php', 'class-wp-job-worker.php', 'theme.php', 'content.php', 'media.php', 'assets.php', 'user.php', 'mail.php', 'account-tokens.php', 'post.php', 'portability.php', 'discovery.php', 'plugin.php' ] as $file ) {
+require_once __DIR__ . '/api-gateway.php';
+foreach ( [ 'class-wp-error.php', 'l10n.php', 'formatting.php', 'security.php', 'psr/container-interface.php', 'psr/event-dispatcher-interfaces.php', 'class-wp-sqlite-db.php', 'schema.php', 'operations.php', 'class-wp-admission-gate.php', 'class-wp-authorization-service.php', 'class-wp-job-queue.php', 'class-wp-event-dispatcher.php', 'class-wp-plugin-activator.php', 'class-wp-post-mutation-service.php', 'class-wp-job-worker.php', 'theme.php', 'content.php', 'media.php', 'assets.php', 'user.php', 'mail.php', 'account-tokens.php', 'post.php', 'portability.php', 'discovery.php', 'api.php', 'plugin.php' ] as $file ) {
 	require_once __DIR__ . '/' . $file;
 }
 use WordPress\Database\WP_SQLite_DB;
@@ -31,6 +32,9 @@ $is_installing = defined( 'WP_INSTALLING' ) && WP_INSTALLING;
 $maintenance_command = defined( 'WP_MAINTENANCE_COMMAND' ) && WP_MAINTENANCE_COMMAND && 'cli' === PHP_SAPI;
 $wp_admission_gate = new WP_Admission_Gate( WP_VAR_DIR );
 if ( ! $maintenance_command && ! $wp_admission_gate->admit() ) {
+	if ( defined( 'WP_API_REQUEST' ) ) {
+		wp_api_problem_exit( 503, 'maintenance', 'Site maintenance is in progress. Please retry shortly.', null, [ 'Retry-After' => '30' ] );
+	}
 	header( 'Retry-After: 30' );
 	wp_die( 'Site maintenance is in progress. Please retry shortly.', 'Maintenance', [ 'response' => 503 ] );
 }
@@ -45,6 +49,9 @@ try {
 	wp_die( 'Database startup failed. Check storage and the server log.', 'Site unavailable', [ 'response' => 503 ] );
 }
 if ( ! $installed && ! $is_installing ) {
+	if ( defined( 'WP_API_REQUEST' ) ) {
+		wp_api_problem_exit( 503, 'storage-unavailable', 'The editorial API is unavailable until the site is installed.' );
+	}
 	if ( 'cli' === PHP_SAPI ) {
 		wp_die( 'Install the site through wp-admin/install.php first.' );
 	}
@@ -53,6 +60,9 @@ if ( ! $installed && ! $is_installing ) {
 	exit;
 }
 if ( $installed && ! $maintenance_command && wp_schema_version( $wpdb ) !== WP_SCHEMA_VERSION ) {
+	if ( defined( 'WP_API_REQUEST' ) ) {
+		wp_api_problem_exit( 503, 'storage-unavailable', 'The editorial API is unavailable until the database upgrade completes.' );
+	}
 	wp_die( 'A database upgrade is required. Back up the site and run: php bin/wp upgrade', 'Upgrade required', [ 'response' => 503 ] );
 }
 $wp_auth_service = new WP_Authorization_Service();
@@ -107,7 +117,7 @@ $wp_event_dispatcher = new class( $wp_listener_provider ) implements \Psr\EventD
 	}
 };
 $wp_post_mutation_service = null !== $wpdb && null !== $wp_job_queue ? new WP_Post_Mutation_Service( $wpdb, $wp_job_queue, $wp_event_dispatcher, $wp_auth_service ) : null;
-if ( $installed && ! $maintenance_command ) {
+if ( $installed && ! $maintenance_command && ! ( defined( 'WP_API_REQUEST' ) ) ) {
 	if ( wp_design_live_preview_request() ) {
 		wp_design_live_preview_init();
 	} else {
@@ -115,7 +125,7 @@ if ( $installed && ! $maintenance_command ) {
 		wp_css_preview_init();
 	}
 }
-if ( $installed && ! $maintenance_command && is_file( wp_theme_directory() . '/functions.php' ) ) {
+if ( $installed && ! $maintenance_command && ! ( defined( 'WP_API_REQUEST' ) ) && is_file( wp_theme_directory() . '/functions.php' ) ) {
 	try {
 		require_once wp_theme_directory() . '/functions.php';
 

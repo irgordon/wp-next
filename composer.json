@@ -65,6 +65,7 @@
       "python3 tests/portability-regressions.py"
     ],
     "test:discovery": "python3 tests/discovery-http.py",
+    "test:api": "python3 tests/api-http.py",
     "test:deployment": "python3 tests/deployment-https.py"
   }
 }

@@ -11,7 +11,7 @@ verification run. See `docs/reviews/V0_0_1_VERIFICATION.md` for new evidence.
 
 ## Current state (delivered)
 
-- Schema 8. Publishing (Posts/Pages, blocks + legacy HTML, revisions, trash),
+- Schema 9. Publishing (Posts/Pages, blocks + legacy HTML, revisions, trash),
   configurable permalinks, categories/tags, profiles and public author pages.
 - Media: asset lifecycle (staged → pending → ready), protected document
   library with per-request authorization, image tools with lineage and fixed
@@ -26,6 +26,9 @@ verification run. See `docs/reviews/V0_0_1_VERIFICATION.md` for new evidence.
   optional single-use sign-in links (off by default), disable, and separately
   confirmed deletion with reassignment and a minimal audit tombstone.
   Operator recovery via `bin/wp user:reset-link`.
+- Editorial API (I1 Option B, v0.1.0): authenticated Post/Page operations
+  with scoped credentials, idempotency receipts and an external credential
+  epoch; shipped disabled until operator initialization and activation.
 - Portability (G2): native ZIP + versioned JSON manifest export/import and
   a WordPress WXR importer on one pipeline — preflight before writes,
   explicit ID mapping, media only from the supplied archive through the
@@ -145,6 +148,22 @@ Per §H1. Proposed design:
 Approved October 26: latest 20 published public Posts, excerpt-only RSS,
 site-wide indexing control only for v1, and featured-image fallback for social
 images. Per-entry noindex is outside v1.
+
+## Delivered: I1 Option B — authenticated editorial API (v0.1.0)
+
+Delivered October 29, 2026 under Ian's ruling adopting the revised Option B
+packet as the v0.1.0 contract: ten authenticated Post/Page operations at
+`/wp-next/v1` (list, item, create-draft, update-draft, publish-with-changes),
+scoped integration credentials under Settings → Integrations, schema 9,
+idempotency receipts committed inside the mutation transaction, the external
+credential epoch with credential-inert backups and a `bin/wp restore`
+coordinator. The API ships disabled until operator initialization and
+activation checks pass. The contract and delivery record live in
+`docs/adr/I1_EDITORIAL_API_PACKET.md` and `docs/api/editorial-v1.openapi.json`;
+the suite is `tests/api-http.py` (`composer test:api`, 94 checks). Still
+outside the contract: anonymous browsing, webhooks, media upload, account
+management, design settings, bulk operations and WordPress REST
+compatibility. The composer/OpenAPI license-metadata question remains open.
 
 ## J1 — PHP-FPM Verification And Host Certification
 

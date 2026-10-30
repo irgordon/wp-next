@@ -1,6 +1,23 @@
 <?php
 /** Bounded routes with real status codes and a small template hierarchy. */
 declare( strict_types=1 );
+require_once __DIR__ . '/wp-includes/api-gateway.php';
+$wp_api_route = wp_api_gateway_detect();
+if ( null !== $wp_api_route ) {
+	// The API boundary answers before wp-config or the database are touched:
+	// plaintext and maintenance refusals create no secret, session or state.
+	if ( ! wp_api_gateway_https_accepted() ) {
+		wp_api_problem_exit( 503, 'https-required', 'HTTPS is required for the editorial API.' );
+	}
+	if ( wp_api_gateway_in_maintenance() ) {
+		wp_api_problem_exit( 503, 'maintenance', 'Site maintenance is in progress. Please retry shortly.', null, [ 'Retry-After' => '30' ] );
+	}
+	define( 'WP_API_REQUEST', true );
+	$GLOBALS['wp_api_route'] = $wp_api_route;
+	require_once __DIR__ . '/wp-includes/bootstrap.php';
+	wp_api_dispatch( $wp_api_route );
+	exit;
+}
 require_once __DIR__ . '/wp-includes/bootstrap.php';
 wp_managed_file_serve();
 wp_asset_serve_document();

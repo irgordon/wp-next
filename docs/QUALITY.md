@@ -93,6 +93,25 @@ and Apache fixtures additionally assert that `/feed`, `/sitemap.xml` and
 `/robots.txt` reach PHP through the front controller. CI runs the suite
 alongside the other HTTP suites.
 
+## v0.1.0 Editorial API
+
+`composer test:api` runs `tests/api-http.py` against a disposable site in two
+phases: plain HTTP (every API route returns 503 `https-required` before
+credentials or body processing) and trusted HTTPS termination (`WP_HTTPS=1`
+behind a local TLS-terminating proxy). It covers disabled-by-default state,
+epoch initialization, activation blocked by a planted permalink/author route
+conflict and released by deleting the colliding account, credential issuance
+rules (publish requires write, hashes only at rest), neutral 401s, scope
+refusals before lookup, browser-equivalent read visibility, cursor binding,
+the create/update/publish revision contract, slug pins, idempotent replay and
+its window, rate limits (60 reads / 20 mutations per token-minute), receipt
+capacity, revocation on account change, expiry, CLI revoke and epoch
+rotation, credential-inert backup snapshots (verified in the archived bytes),
+the `bin/wp restore` coordinator, and Integrations-screen issuance. The suite
+asserts problem codes through the contract's `code` field. It does not
+exercise a real PHP-FPM deployment; the deployment gate's API assertions run
+in CI (see the v0.0.9 deployment notes).
+
 ## v0.0.1 Boundary Verification
 
 `composer test:accounts` now runs the original account suite and six additional

@@ -88,6 +88,9 @@ if ( 'rp' === $action || 'ml' === $action || 'invite' === $action ) {
 						':id'   => (int) $row['user_id']
 					] );
 					$db->query( 'DELETE FROM user_sessions WHERE user_id=:id', [ ':id' => (int) $row['user_id'] ] );
+					if ( wp_api_tables_exist( $db ) ) {
+						wp_api_revoke_user_tokens( $db, (int) $row['user_id'], 'account_change' );
+					}
 					wp_audit( 'password_reset_completed', (int) $row['user_id'] );
 				} );
 				wp_safe_redirect( 'login.php?reset=1' );

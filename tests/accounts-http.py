@@ -72,7 +72,7 @@ with socketserver.ThreadingTCPServer(('127.0.0.1', 0), Sink) as sink:
             admin = Client(base); _, body, _ = admin.request('/wp-admin/install.php')
             admin.request('/wp-admin/install.php', {'_wpnonce': token(body), 'site_title': 'Accounts test', 'admin_user': 'admin', 'admin_email': 'admin@example.test', 'admin_password': 'disposable-test-password'})
             check(admin.login('admin')[0] == 302, 'Fixture logs in')
-            check(dbrow(database, "SELECT option_value FROM options WHERE option_name='schema_version'")['option_value'] == '8', 'Blank install creates account schema 8')
+            check(dbrow(database, "SELECT option_value FROM options WHERE option_name='schema_version'")['option_value'] == '9', 'Blank install creates schema 9')
             check(dbrow(database, "SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name='account_tokens'")['n'] == 1, 'Account tokens table exists')
             _, body, _ = admin.request('/wp-admin/users.php')
             admin.request('/wp-admin/users.php', {'_wpnonce': token(body), 'username': 'writer', 'email': 'writer@example.test', 'password': 'disposable-test-password', 'role': 'author'})

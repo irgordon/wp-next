@@ -22,7 +22,7 @@ INSERT INTO posts(id,author_id,slug,title,content_raw,status) VALUES(10,7,'legac
         p=subprocess.run([PHP,str(site/'bin/wp'),'upgrade'],env=env,capture_output=True,text=True)
         assert p.returncode==0,p.stdout+p.stderr
         with sqlite3.connect(path) as db:
-            assert db.execute("SELECT option_value FROM options WHERE option_name='schema_version'").fetchone()[0]=='8'
+            assert db.execute("SELECT option_value FROM options WHERE option_name='schema_version'").fetchone()[0]=='9'
             assert db.execute('SELECT title,content_raw FROM posts WHERE id=10').fetchone()==('Preserved title','<p>Preserved body</p>')
             assert db.execute('SELECT disabled FROM users WHERE id=7').fetchone()[0]==0
             assert db.execute('SELECT COUNT(*) FROM user_sessions').fetchone()[0]==0

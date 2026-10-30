@@ -93,7 +93,10 @@ if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
 					throw new RuntimeException( 'Profile changed concurrently.' ); 
 				}
 				if ( $hash !== $user['password_hash'] ) {
-					$db->query( 'DELETE FROM user_sessions WHERE user_id=:id', [ ':id' => $id ] ); 
+					$db->query( 'DELETE FROM user_sessions WHERE user_id=:id', [ ':id' => $id ] );
+					if ( wp_api_tables_exist( $db ) ) {
+						wp_api_revoke_user_tokens( $db, $id, 'account_change' );
+					}
 				}
 				wp_audit( 'profile_updated', $id );
 			} );

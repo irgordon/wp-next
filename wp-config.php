@@ -35,6 +35,8 @@ define( 'WP_ASSETS_DIR', (string) wp_get_env( 'WP_ASSETS_DIR', WP_VAR_DIR . '/as
 define( 'WP_DB_PATH', (string) wp_get_env( 'WP_DB_PATH', WP_VAR_DIR . '/data/site.sqlite' ) );
 define( 'WP_DEFAULT_THEME', (string) wp_get_env( 'WP_DEFAULT_THEME', 'default' ) );
 define( 'WP_HTTPS', '1' === (string) wp_get_env( 'WP_HTTPS', '0' ) );
+define( 'WP_API_BASE_PATH', (string) wp_get_env( 'WP_API_BASE_PATH', '' ) );
+define( 'WP_API_EPOCH_PATH', (string) wp_get_env( 'WP_API_EPOCH_PATH', '' ) );
 // First-run secret creation is atomic. There is no shared or hard-coded salt.
 try {
 	if ( ! is_dir( WP_VAR_DIR ) && ! mkdir( WP_VAR_DIR, 0700, true ) ) {

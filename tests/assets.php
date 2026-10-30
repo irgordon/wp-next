@@ -23,7 +23,7 @@ function fixture( string $bytes, string $visibility = 'private' ): array {
     return [ 'author_id' => get_current_user_id(), 'sha256' => $hash, 'filename' => substr( $hash, 0, 2 ) . '/' . $hash, 'mime' => 'text/plain', 'original_name' => 'notes.txt', 'size' => strlen( $bytes ), 'kind' => 'document', 'format' => 'txt', 'visibility' => $visibility ];
 }
 try {
-    asset_check( 8 === wp_schema_version( $wpdb ), 'Blank schema is v7' );
+    asset_check( 9 === wp_schema_version( $wpdb ), 'Blank schema is v9' );
     $data = fixture( 'Private test document' );
     $id = wp_asset_register( $data ); asset_check( is_int( $id ), 'Staged document registers' );
     $pending = $wpdb->get_row( 'SELECT * FROM media WHERE id=:id', [ ':id' => $id ] );

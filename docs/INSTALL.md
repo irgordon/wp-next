@@ -46,6 +46,9 @@ Enable `rewrite`, `authz_core`, `proxy`, `proxy_fcgi`, `headers`, and `ssl`. The
     SSLEngine on
     SSLCertificateFile /path/to/fullchain.pem
     SSLCertificateKeyFile /path/to/privkey.pem
+    # mod_proxy_fcgi drops the Authorization header unless told to pass it;
+    # the editorial API's Bearer credentials never reach PHP without this.
+    CGIPassAuth On
     DirectoryIndex index.php
     Header always set X-Content-Type-Options "nosniff"
     <Directory /var/www/wordpress-next>
@@ -135,7 +138,7 @@ server {
         fastcgi_pass unix:/run/php/php8.4-fpm.sock;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
     }
-    location ~ ^/(index\.php|wp-admin/(index|install|edit|post|post-new|media|themes|options-general|options-permalink|edit-tags|file-editor|users|profile|activity|portability|block-preview)\.php)$ {
+    location ~ ^/(index\.php|wp-admin/(index|install|edit|post|post-new|media|themes|options-general|options-permalink|integrations|edit-tags|file-editor|users|profile|activity|portability|block-preview)\.php)$ {
         try_files $uri =404;
         include fastcgi_params;
         fastcgi_pass unix:/run/php/php8.4-fpm.sock;
@@ -181,7 +184,7 @@ If an upgrade fails, keep traffic blocked, inspect server/CLI logs, correct the 
 
 `backup` writes private `var/backups/*.tar` archives containing `site.sqlite`, every registered ready asset verified against its hash (public images and derived variants under `uploads/`, protected documents in the asset tree), `manifest.json`, and `auth.key` when file-based. A missing or corrupt ready asset fails the backup loudly, naming the asset. The intermediate SQLite snapshot is also retained. Environment-managed secrets, source code, server configuration, and unregistered old image bytes are outside the archive. Copy backups off-host, encrypt/restrict them, and define retention. They contain private account/content data and potentially the site secret.
 
-For restore, stop traffic and workers; inspect the archive manifest; restore `site.sqlite` to WP_DB_PATH, images beneath wp-content/uploads, document blobs beneath WP_ASSETS_DIR, and the matching site secret with private permissions. Use the matching source version, run upgrade and sessions:revoke, verify administrator login and public images, then reopen traffic. Do not copy a live SQLite database without its WAL or use a blind filesystem copy as a backup.
+For restore, prefer the coordinator: `php bin/wp restore <archive.tar>` while traffic is sealed. It takes a pre-restore backup, validates the archive's entries and database integrity, rotates the editorial API epoch before swapping the database, restores uploads, document blobs and the matching site secret, runs the upgrade, revokes every session and API credential, and reopens with the API disabled; any failure leaves the site sealed for operator recovery. Stop queue workers before restoring. The manual equivalent is: stop traffic and workers; inspect the archive manifest; restore `site.sqlite` to WP_DB_PATH, images beneath wp-content/uploads, document blobs beneath WP_ASSETS_DIR, and the matching site secret with private permissions; use the matching source version, run upgrade and sessions:revoke, verify administrator login and public images, then reopen traffic. Do not copy a live SQLite database without its WAL or use a blind filesystem copy as a backup.
 
 ## 6. Local development and checks
 
@@ -277,6 +280,12 @@ The local router rejects private paths for workflow testing. It does not validat
 After installation, use Settings → Permalinks to select canonical Post addresses. Existing sites retain Post name until changed. Pretty links use the existing front-controller server rules. For the requested `/month/day/slug/` format, select Custom structure and enter `/%monthnum%/%day%/%postname%/`. See reviews/PERMALINK_REVIEW.md for supported tags, redirects, Page behavior, and scope.
 
 ## Login capacity and uploaded images
+
+## Editorial API (schema 9, v0.1.0)
+
+The authenticated editorial API ships disabled. Two operator settings control it: `WP_API_BASE_PATH` (the trusted mount prefix — empty at the host root, otherwise the same leading-slash path the site itself is served under; activation is blocked while it disagrees with the configured site base path) and `WP_API_EPOCH_PATH`, an absolute path to the credential epoch file. Keep the epoch file outside the application, database, upload and asset trees and outside every backup archive; it must be a regular file with mode 0600, and the application refuses symlinks or group/world-accessible files. Backups never contain it, and backup snapshots are made credential-inert before archiving (snapshot credentials revoked, API disabled and unbound; the live database is untouched).
+
+Operator flow: `php bin/wp api:init` (sealed; creates/binds the epoch — the API stays disabled), then check `php bin/wp api:status`, then `php bin/wp api:enable` or Settings → Integrations in an HTTPS admin session. Activation verifies the epoch binding, the base path, and that no current, historical or dynamic permalink route claims the `/wp-next/v1` mount; conflicts are reported, never rerouted, and changing a permalink structure to one that would claim the mount is refused while the API is initialized or enabled. Credentials are issued with `php bin/wp api:issue <user> <name> <scopes> [days]` or from Settings → Integrations (HTTPS only; the secret is shown once — only its SHA-256 hash is stored). `api:tokens` lists credentials without secrets; `api:revoke <id>` revokes one; `api:disable` disables the API and revokes all credentials; `api:rotate` (sealed) replaces the epoch and revokes all credentials. Password changes, resets, role changes, disable and deletion revoke an account's credentials. Plain HTTP requests to the API namespace always return 503 `https-required`, including in development; token issue and display likewise require HTTPS.
 
 The application reserves at most 30 password-verification attempts per peer IP per fixed 60-second window, across all usernames. A separate account/IP failure limit remains. Budgets are atomic and successful logins do not reset the IP budget. `REMOTE_ADDR` is authoritative; forwarded headers are ignored. Shared NAT addresses share the budget. Trusted reverse proxies must set the real client address at the web-server layer with an explicit proxy allowlist. Never trust arbitrary client-supplied headers.
 

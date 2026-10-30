@@ -19,12 +19,12 @@ with tempfile.TemporaryDirectory(prefix='wp-design-') as directory:
             admin=Client(base);guest=Client(base)
             _,body,_=admin.request('/wp-admin/install.php');admin.request('/wp-admin/install.php',{'_wpnonce':token(body),'site_title':'Design test','admin_user':'admin','admin_email':'admin@example.test','admin_password':'disposable-test-password'})
             check(admin.login('admin')[0]==302,'Administrator logs in to design workflow')
-            check(dbrow(database,"SELECT option_value FROM options WHERE option_name='schema_version'")['option_value']=='8','Blank install creates account schema 8')
+            check(dbrow(database,"SELECT option_value FROM options WHERE option_name='schema_version'")['option_value']=='9','Blank install creates schema 9')
             with sqlite3.connect(database) as db:
                 db.execute('DROP TABLE design_revisions');db.execute('DROP TABLE managed_file_versions');db.execute("UPDATE options SET option_value='5' WHERE option_name='schema_version'")
             check(guest.request('/')[0]==503,'Existing schema 5 site stays sealed until upgrade')
             upgraded=subprocess.run([PHP,str(site/'bin/wp'),'upgrade'],env=env,capture_output=True,text=True)
-            check(upgraded.returncode==0 and dbrow(database,"SELECT option_value FROM options WHERE option_name='schema_version'")['option_value']=='8','Upgrade reaches schema 8 with design and managed-file tables intact')
+            check(upgraded.returncode==0 and dbrow(database,"SELECT option_value FROM options WHERE option_name='schema_version'")['option_value']=='9','Upgrade reaches schema 9 with design and managed-file tables intact')
             check(guest.request('/')[0]==200 and dbrow(database,"SELECT option_value FROM options WHERE option_name='active_theme'")['option_value']=='default','Upgrade preserves existing live theme')
             # Upgrade revokes sessions by policy.
             admin.login('admin')

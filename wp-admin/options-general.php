@@ -111,7 +111,7 @@ require __DIR__ . '/admin-header.php';
 wp_admin_notice( $error, true );
 wp_admin_notice( $message );
 ?>
-<nav class="actions settings-navigation" aria-label="Settings"><a href="options-general.php" aria-current="page">General</a><a href="options-permalink.php">Permalinks</a></nav>
+<nav class="actions settings-navigation" aria-label="Settings"><a href="options-general.php" aria-current="page">General</a><a href="options-permalink.php">Permalinks</a><a href="integrations.php">Integrations</a></nav>
 <section class="panel"><form method="post"><?php wp_nonce_field( 'settings' ); ?>
 <?php wp_admin_field( 'site_title', 'Site title', $form['site_title'] );
 wp_admin_field( 'site_tagline', 'Tagline', $form['site_tagline'] );
