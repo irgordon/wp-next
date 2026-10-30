@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.0.9.1
+
+Updated October 29, 2026. Page-publication browser assertion synchronization. Schema remains 8.
+
+- Wait for the design workspace's actual Published confirmation before asserting it. The child editor's Update Page button can appear before its message reaches the parent; no sleep, timeout increase or application change is required. [Verification](docs/reviews/V0_0_9_1_REVIEW.md).
+
 ## v0.0.9
 
 Updated October 29, 2026. Repeatable local J1 deployment verification. Schema remains 8.

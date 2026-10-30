@@ -214,6 +214,7 @@ async function main() {
         await page.waitForFunction(()=>{const form=document.querySelector('.design-page-editor-host iframe')?.contentDocument?.querySelector('#post-editor');return form?.dataset.saved==='1'&&form.dataset.persistedStatus==='published';});
         await editor.getByRole('button',{name:'Update Page',exact:true}).waitFor();
         check(page.url()===rootUrl&&await editor.getByRole('button',{name:'Publish Page',exact:true}).count()===0&&await editor.getByRole('button',{name:'Save Draft',exact:true}).count()===0,'Successful publication stays in the workspace and exposes Update Page');
+        await page.waitForFunction(()=>document.querySelector('[data-page-editor-status]')?.textContent.startsWith('Published.'));
         check(await editor.getByText('Page published. Site design is published separately.',{exact:true}).isVisible()&&(await page.locator('[data-page-editor-status]').innerText()).startsWith('Published.'),'The editor clearly confirms actual Page publication');
         const live=snapshot(database).posts.find(row=>row.id===ready.id), publicPage=await(await guest.request.get(base+'/'+ready.slug+'/')).text();
         check(live.status==='published'&&publicPage.includes('PUBLISHED-WORKSPACE-PAGE-BODY'),'Anonymous visitors receive the current Page content after Publish Page');

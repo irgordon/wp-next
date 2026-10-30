@@ -179,3 +179,11 @@ path argument and puts mutex/runtime files in its disposable directory.
 The local four-topology run passed 352 assertions. It does not run the browser
 suites or every item of the ten-row production certification matrix through
 FPM. [Verification, first failures and host handoff](reviews/V0_0_9_REVIEW.md).
+
+## v0.0.9.1 Publication Confirmation
+
+The Page-browser suite waits for the parent workspace's actual Published status
+before checking its publication confirmation. A visible Update Page button in
+the child document does not establish that the parent has processed its message.
+The existing assertion and default timeout remain; no sleep or application
+change is introduced. [Verification](reviews/V0_0_9_1_REVIEW.md).
