@@ -3,6 +3,7 @@
 declare( strict_types=1 );
 use WordPress\Database\WP_SQLite_DB;
 use WordPress\Post\WP_Post_Mutation_Service;
+require_once __DIR__ . '/api-route-guard.php';
 const WP_API_CONTRACT_VERSION = '1';
 const WP_API_TOKEN_SCOPES = [ 'posts:read', 'posts:write', 'posts:publish', 'pages:read', 'pages:write', 'pages:publish' ];
 const WP_API_RATE_LIMITS = [
@@ -61,11 +62,51 @@ function wp_api_epoch_path(): string
  * non-symlink file with no group/other permission bits, holding one JSON
  * object with a 256-bit hex epoch. Anything else is unavailable, never a guess.
  */
-function wp_api_epoch_read(): string|WP_Error
+/** Validate the external state location before creating either the epoch or its lock. */
+function wp_api_epoch_location(): string|WP_Error
 {
 	$path = wp_api_epoch_path();
-	if ( '' === $path || ! str_starts_with( $path, '/' ) ) {
+	$parent = realpath( dirname( $path ) );
+	if ( ! str_starts_with( $path, '/' ) || false === $parent || $path !== $parent . '/' . basename( $path ) || is_link( $path ) ) {
+		return new WP_Error( 'epoch_location', 'Use a canonical absolute epoch path without symbolic links.' );
+	}
+	foreach ( [ WP_ROOT_DIR, WP_VAR_DIR, dirname( realpath( WP_DB_PATH ) ?: WP_DB_PATH ), wp_assets_dir(), WP_ROOT_DIR . '/wp-content/uploads' ] as $root ) {
+		$root = wp_api_storage_root( $root );
+		if ( $path === $root || str_starts_with( $path, $root . '/' ) ) {
+			return new WP_Error( 'epoch_location', 'The epoch must be outside application and storage trees.' );
+		}
+	}
+	for ( $directory = $parent; '/' !== $directory; $directory = dirname( $directory ) ) {
+		$mode = fileperms( $directory );
+		if ( false === $mode || ( 0 !== ( $mode & 0022 ) && 0 === ( $mode & 01000 ) ) ) {
+			return new WP_Error( 'epoch_permissions', 'Credential directory ancestors cannot be writable by other identities.' );
+		}
+	}
+	if ( is_link( $path . '.lock' ) ) {
+		return new WP_Error( 'epoch_permissions', 'The epoch lock cannot be a symbolic link.' );
+	}
+	return $path;
+}
+
+/** Resolve storage roots that have not yet been created. */
+function wp_api_storage_root( string $path ): string
+{
+	$tail = [];
+	while ( false === realpath( $path ) && dirname( $path ) !== $path ) {
+		array_unshift( $tail, basename( $path ) );
+		$path = dirname( $path );
+	}
+	return rtrim( (string) realpath( $path ), '/' ) . ( [] === $tail ? '' : '/' . implode( '/', $tail ) );
+}
+
+function wp_api_epoch_read(): string|WP_Error
+{
+	if ( '' === wp_api_epoch_path() ) {
 		return new WP_Error( 'epoch_unconfigured', 'WP_API_EPOCH_PATH is not configured.' );
+	}
+	$path = wp_api_epoch_location();
+	if ( is_wp_error( $path ) ) {
+		return $path;
 	}
 	if ( is_link( $path ) || ! is_file( $path ) ) {
 		return new WP_Error( 'epoch_missing', 'The API epoch file is missing.' );
@@ -86,8 +127,11 @@ function wp_api_epoch_read(): string|WP_Error
 /** Shared (reader) or exclusive (rotation/restore) lock on a stable sibling of the epoch file, so atomic replacement never changes the lock identity. */
 function wp_api_epoch_lock( bool $exclusive ): mixed
 {
-	$path = wp_api_epoch_path();
-	if ( '' === $path ) {
+	$path = wp_api_epoch_location();
+	if ( is_wp_error( $path ) ) {
+		return false;
+	}
+	if ( is_link( $path . '.lock' ) ) {
 		return false;
 	}
 	$handle = fopen( $path . '.lock', 'c' );
@@ -118,8 +162,11 @@ function wp_api_epoch_generate(): string
 /** Write a new epoch atomically: temp file in the same directory, flush, rename, directory flush. */
 function wp_api_epoch_write( string $epoch ): bool
 {
-	$path = wp_api_epoch_path();
-	if ( '' === $path || ! preg_match( '/^[0-9a-f]{64}$/D', $epoch ) ) {
+	$path = wp_api_epoch_location();
+	if ( is_wp_error( $path ) || ! preg_match( '/^[0-9a-f]{64}$/D', $epoch ) ) {
+		return false;
+	}
+	if ( is_link( $path ) ) {
 		return false;
 	}
 	$directory = dirname( $path );
@@ -548,6 +595,7 @@ function wp_api_problem_from_error( WP_Error $error ): array
 		'api_scope' => wp_api_problem( 403, 'insufficient-scope', 'The integration token lacks a required scope.', $message ),
 		'unauthorized' => wp_api_problem( 403, 'insufficient-scope', 'The account does not have permission for this operation.', $message ),
 		'not_found' => wp_api_problem( 404, 'not-found', 'The resource was not found.' ),
+		'api_route_conflict' => wp_api_problem( 409, 'status-conflict', 'The change would claim the editorial API namespace.' ),
 		'concurrency_conflict' => wp_api_problem( 409, 'revision-conflict', 'The resource changed since the expected revision.', $message ),
 		'slug_conflict' => wp_api_problem( 409, 'slug-conflict', 'The requested slug is already in use.', $message ),
 		'status_conflict' => wp_api_problem( 409, 'status-conflict', 'The resource status does not allow this operation.', $message ),
@@ -557,7 +605,7 @@ function wp_api_problem_from_error( WP_Error $error ): array
 		'rate_limited' => wp_api_problem( 429, 'rate-limited', 'Too many requests.', $message, null, [ 'Retry-After' => (string) max( 1, (int) $error->get_error_data() ) ] ),
 		'api_disabled' => wp_api_problem( 503, 'credentials-unavailable', 'The editorial API is disabled.' ),
 		'rate_unavailable' => wp_api_problem( 503, 'storage-unavailable', 'Request admission is unavailable.', $message ),
-		'empty_title', 'invalid_status', 'invalid_content', 'invalid_media', 'invalid_terms', 'invalid_template', 'invalid_metadata', 'invalid_arguments', 'validation_failed' => wp_api_problem( 422, 'validation-failed', 'The request did not pass validation.', $message ),
+		'empty_title', 'invalid_status', 'invalid_content', 'invalid_blocks', 'invalid_media', 'invalid_terms', 'invalid_template', 'invalid_metadata', 'invalid_arguments', 'validation_failed' => wp_api_problem( 422, 'validation-failed', 'The request did not pass validation.', $message ),
 		default => wp_api_problem( 503, 'storage-unavailable', 'The operation could not be completed.', WP_DEBUG ? $message : null )
 	};
 }
@@ -790,7 +838,7 @@ function wp_api_fields_to_input( array $fields, string $kind ): array
  * refused while any published Post path claims the mounted namespace; nothing
  * is moved or renamed to clear a conflict.
  */
-function wp_api_route_conflicts( WP_SQLite_DB $db ): array
+function wp_api_route_conflicts( WP_SQLite_DB $db, ?int $limit = 20 ): array
 {
 	$conflicts = [];
 	$posts = $db->get_results( "SELECT * FROM posts WHERE status='published' AND post_type='post'" );
@@ -807,10 +855,10 @@ function wp_api_route_conflicts( WP_SQLite_DB $db ): array
 		}
 		foreach ( $posts as $post ) {
 			$path = trim( wp_permalink_path( $post, $structure ), '/' );
-			if ( str_starts_with( $path, 'wp-next/v1' ) ) {
+			if ( wp_api_path_claims_mount( $path ) ) {
 				$conflicts[] = 'Published Post #' . (int) $post['id'] . ' resolves at /' . $path . '/ under structure ' . $structure . '.';
 			}
-			if ( count( $conflicts ) >= 20 ) {
+			if ( null !== $limit && count( $conflicts ) >= $limit ) {
 				return $conflicts;
 			}
 		}
@@ -831,7 +879,7 @@ function wp_api_structure_conflicts( WP_SQLite_DB $db, string $structure ): arra
 	}
 	foreach ( $db->get_results( "SELECT * FROM posts WHERE status='published' AND post_type='post'" ) as $post ) {
 		$path = trim( wp_permalink_path( $post, $structure ), '/' );
-		if ( str_starts_with( $path, 'wp-next/v1' ) ) {
+		if ( wp_api_path_claims_mount( $path ) ) {
 			$conflicts[] = 'Published Post #' . (int) $post['id'] . ' would resolve at /' . $path . '/.';
 		}
 		if ( count( $conflicts ) >= 20 ) {
@@ -920,7 +968,9 @@ function wp_api_set_enabled( WP_SQLite_DB $db, bool $enable, int $actor ): true|
 		return new WP_Error( 'route_conflicts', 'Route conflicts block API activation: ' . implode( ' ', $conflicts ) );
 	}
 	$db->transaction( static function ( WP_SQLite_DB $db ): void {
+		$api_routes = wp_api_routes_snapshot( $db );
 		$db->query( 'UPDATE api_security_state SET enabled=1 WHERE singleton=1' );
+		wp_api_routes_assert( $db, $api_routes );
 	} );
 	wp_audit( 'api_enabled', null, [], $actor );
 	return true;

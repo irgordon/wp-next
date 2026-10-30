@@ -67,6 +67,7 @@ if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && '' === $error && ! in_ar
 		}
 		$hash = '' !== $password ? password_hash( $password, PASSWORD_DEFAULT ) : '';
 		$wpdb->transaction( function ( $db ) use ( $role, $roles, $hash, $id, $username, $email ): void {
+			$api_routes = wp_api_routes_snapshot( $db );
 			if ( ! current_user_can( 'administrator' ) ) {
 				throw new RuntimeException( 'Account permission revoked.' );
 			}
@@ -104,6 +105,8 @@ if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && '' === $error && ! in_ar
 					'disabled' => $disabled
 				] );
 			}
+			wp_api_routes_assert( $db, $api_routes );
+
 		} );
 		if ( 0 < $id && get_current_user_id() === $id ) {
 			wp_logout();

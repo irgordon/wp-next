@@ -10,6 +10,8 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use RuntimeException;
 use Throwable;
 use WP_Error;
+use WP_API_Route_Conflict;
+require_once __DIR__ . '/api-route-guard.php';
 class Concurrency_Conflict_Exception extends RuntimeException {
 }
 class Authorization_Exception extends RuntimeException {
@@ -190,6 +192,7 @@ class WP_Post_Mutation_Service {
 				return $result;
 			}
 			return $this->db->transaction( function ( WP_SQLite_DB $db ) use ( $candidate, $snapshot, $acting_actor ): int {
+				$api_routes = wp_api_routes_snapshot( $db );
 				$permission = $this->auth->validate_mutation_permissions( $acting_actor, $candidate, $snapshot, $db );
 				if ( is_wp_error( $permission ) ) {
 					throw new Authorization_Exception( $permission->get_error_message() );
@@ -215,10 +218,13 @@ class WP_Post_Mutation_Service {
 				$this->enqueue( $id, 1, 'new', $candidate['status'], $acting_actor );
 				// A new post can take ownership of a /documents path; cached File links elsewhere must be regenerated.
 				wp_invalidate_file_link_renders( $db );
+				wp_api_routes_assert( $db, $api_routes );
 				return $id;
 			} );
 		} catch ( Authorization_Exception $error ) {
 			return new WP_Error( 'unauthorized', $error->getMessage() );
+		} catch ( WP_API_Route_Conflict $error ) {
+			return new WP_Error( 'api_route_conflict', $error->getMessage() );
 		} catch ( Throwable $error ) {
 			return wp_failure( 'insert_failed', $error, 'Content could not be created. Your input has been retained.' );
 		}
@@ -244,6 +250,7 @@ class WP_Post_Mutation_Service {
 				return $permission;
 			}
 			return $this->db->transaction( function ( WP_SQLite_DB $db ) use ( $id, $expected, $acting_actor, $candidate ): int {
+				$api_routes = wp_api_routes_snapshot( $db );
 				// Re-read ownership and status under the write lock, not from the preflight snapshot.
 				$current = $db->get_row( 'SELECT * FROM posts WHERE id=:id', [ ':id' => $id ] );
 				if ( null === $current || (int) $current['revision'] !== $expected ) {
@@ -287,12 +294,15 @@ class WP_Post_Mutation_Service {
 				$this->enqueue( $id, $expected + 1, $current['status'], $candidate['status'], $acting_actor );
 				// Slug, author, category or status changes can move /documents route ownership; cached File links elsewhere must be regenerated.
 				wp_invalidate_file_link_renders( $db );
+				wp_api_routes_assert( $db, $api_routes );
 				return $id;
 			} );
 		} catch ( Concurrency_Conflict_Exception $error ) {
 			return new WP_Error( 'concurrency_conflict', $error->getMessage() );
 		} catch ( Authorization_Exception $error ) {
 			return new WP_Error( 'unauthorized', $error->getMessage() );
+		} catch ( WP_API_Route_Conflict $error ) {
+			return new WP_Error( 'api_route_conflict', $error->getMessage() );
 		} catch ( Throwable $error ) {
 			return wp_failure( 'save_failed', $error, 'Content could not be saved. Your input has been retained.' );
 		}
@@ -311,6 +321,7 @@ class WP_Post_Mutation_Service {
 	{
 		try {
 			return $this->db->transaction( function ( WP_SQLite_DB $db ) use ( $id, $acting_actor, $target ): bool {
+				$api_routes = wp_api_routes_snapshot( $db );
 				$current = $db->get_row( 'SELECT * FROM posts WHERE id=:id', [ ':id' => $id ] );
 				if ( null === $current ) {
 					throw new Authorization_Exception( 'Content was not found.' );
@@ -356,10 +367,13 @@ class WP_Post_Mutation_Service {
 					'from'  => $current['status'],
 					'to'    => $target
 				] );
+				wp_api_routes_assert( $db, $api_routes );
 				return true;
 			} );
 		} catch ( Authorization_Exception $error ) {
 			return new WP_Error( 'unauthorized', $error->getMessage() );
+		} catch ( WP_API_Route_Conflict $error ) {
+			return new WP_Error( 'api_route_conflict', $error->getMessage() );
 		} catch ( Throwable $error ) {
 			return wp_failure( 'status_failed', $error, 'The status change could not be completed.' );
 		}
@@ -395,6 +409,7 @@ class WP_Post_Mutation_Service {
 	{
 		try {
 			return $this->db->transaction( function ( WP_SQLite_DB $db ) use ( $id, $acting_actor ): bool {
+				$api_routes = wp_api_routes_snapshot( $db );
 				$current = $db->get_row( 'SELECT * FROM posts WHERE id=:id', [ ':id' => $id ] );
 				if ( null === $current ) {
 					throw new Authorization_Exception( 'Content was not found.' );
@@ -420,10 +435,13 @@ class WP_Post_Mutation_Service {
 				$db->query( 'DELETE FROM post_revisions WHERE post_id=:id', [ ':id' => $id ] );
 				$db->query( "DELETE FROM options WHERE option_name='homepage_id' AND option_value=:id", [ ':id' => (string) $id ] );
 				$db->query( 'DELETE FROM posts WHERE id=:id', [ ':id' => $id ] );
+				wp_api_routes_assert( $db, $api_routes );
 				return true;
 			} );
 		} catch ( Authorization_Exception $error ) {
 			return new WP_Error( 'unauthorized', $error->getMessage() );
+		} catch ( WP_API_Route_Conflict $error ) {
+			return new WP_Error( 'api_route_conflict', $error->getMessage() );
 		} catch ( Throwable $error ) {
 			return wp_failure( 'delete_failed', $error, 'The content could not be deleted.' );
 		}
@@ -444,6 +462,7 @@ class WP_Post_Mutation_Service {
 		}
 	}
 
+
 	private function api_gate( WP_SQLite_DB $db, array $ctx, array $required_scopes, int $actor ): void
 	{
 		$authority = wp_api_authority_recheck( $db, $ctx, $required_scopes );
@@ -452,14 +471,11 @@ class WP_Post_Mutation_Service {
 		}
 		$receipt = wp_api_receipt_find( $db, (string) $ctx['token_id'], (string) $ctx['key_hash'] );
 		if ( null !== $receipt ) {
-			$gate = wp_api_receipt_gate( $receipt, (string) $ctx['request_hash'] );
-			if ( is_wp_error( $gate ) ) {
-				throw new Api_Exit_Exception( $gate );
-			}
 			$resource = $db->get_row( 'SELECT * FROM posts WHERE id=:id', [ ':id' => (int) $receipt['resource_id'] ] );
 			if ( null === $resource || 'trashed' === (string) $resource['status'] || true !== $this->auth->validate_mutation_permissions( $actor, $resource, $resource, $db ) ) {
 				throw new Api_Exit_Exception( new WP_Error( 'not_found', 'Content was not found.' ) );
 			}
+			$gate = wp_api_receipt_gate( $receipt, (string) $ctx['request_hash'] );
 			throw new Api_Exit_Exception( $gate );
 		}
 		$capacity = wp_api_receipt_capacity_error( $db, (string) $ctx['token_id'] );
@@ -506,6 +522,7 @@ class WP_Post_Mutation_Service {
 	public function api_create_draft( array $input, int $acting_actor, array $ctx ): array|WP_Error
 	{
 		try {
+			$this->api_replay( $ctx, $acting_actor, [ (string) $ctx['kind'] . 's:write' ] );
 			$input['post_author'] = $acting_actor;
 			$input['post_status'] = 'draft';
 			$candidate = $this->candidate( $input, [] );
@@ -522,6 +539,7 @@ class WP_Post_Mutation_Service {
 				return $result;
 			}
 			return $this->db->transaction( function ( WP_SQLite_DB $db ) use ( $candidate, $snapshot, $acting_actor, $ctx ): array {
+				$api_routes = wp_api_routes_snapshot( $db );
 				$this->api_gate( $db, $ctx, [ (string) $ctx['kind'] . 's:write' ], $acting_actor );
 				$permission = $this->auth->validate_mutation_permissions( $acting_actor, $candidate, $snapshot, $db );
 				if ( is_wp_error( $permission ) ) {
@@ -558,6 +576,7 @@ class WP_Post_Mutation_Service {
 					'mutation_id' => wp_generate_uuid4()
 				];
 				$location = wp_api_mount_path() . '/' . $candidate['post_type'] . 's/' . $id;
+				wp_api_routes_assert( $db, $api_routes );
 				return $this->api_finish( $db, $ctx, $acting_actor, $envelope, 201, $location, 'api_' . $candidate['post_type'] . '_created' );
 			} );
 		} catch ( Api_Exit_Exception $exit ) {
@@ -566,6 +585,8 @@ class WP_Post_Mutation_Service {
 			return new WP_Error( 'slug_conflict', $error->getMessage() );
 		} catch ( Authorization_Exception $error ) {
 			return new WP_Error( 'unauthorized', $error->getMessage() );
+		} catch ( WP_API_Route_Conflict $error ) {
+			return new WP_Error( 'api_route_conflict', $error->getMessage() );
 		} catch ( Throwable $error ) {
 			return wp_failure( 'insert_failed', $error, 'Content could not be created.' );
 		}
@@ -580,6 +601,7 @@ class WP_Post_Mutation_Service {
 			return new WP_Error( 'invalid_arguments', 'Content ID and expected revision are required.' );
 		}
 		try {
+			$this->api_replay( $ctx, $acting_actor, [ (string) $ctx['kind'] . 's:write' ] );
 			$snapshot = $this->db->get_row( 'SELECT * FROM posts WHERE id=:id', [ ':id' => $id ] );
 			if ( null === $snapshot ) {
 				return new WP_Error( 'not_found', 'Content was not found.' );
@@ -593,6 +615,7 @@ class WP_Post_Mutation_Service {
 				return $permission;
 			}
 			return $this->db->transaction( function ( WP_SQLite_DB $db ) use ( $id, $expected, $acting_actor, $candidate, $ctx ): array {
+				$api_routes = wp_api_routes_snapshot( $db );
 				$current = $db->get_row( 'SELECT * FROM posts WHERE id=:id', [ ':id' => $id ] );
 				if ( null === $current ) {
 					throw new Api_Exit_Exception( new WP_Error( 'not_found', 'Content was not found.' ) );
@@ -647,6 +670,7 @@ class WP_Post_Mutation_Service {
 					'url'         => null,
 					'mutation_id' => wp_generate_uuid4()
 				];
+				wp_api_routes_assert( $db, $api_routes );
 				return $this->api_finish( $db, $ctx, $acting_actor, $envelope, 200, null, 'api_' . $candidate['post_type'] . '_updated' );
 			} );
 		} catch ( Api_Exit_Exception $exit ) {
@@ -659,6 +683,8 @@ class WP_Post_Mutation_Service {
 			return new WP_Error( 'concurrency_conflict', $error->getMessage() );
 		} catch ( Authorization_Exception $error ) {
 			return new WP_Error( 'unauthorized', $error->getMessage() );
+		} catch ( WP_API_Route_Conflict $error ) {
+			return new WP_Error( 'api_route_conflict', $error->getMessage() );
 		} catch ( Throwable $error ) {
 			return wp_failure( 'save_failed', $error, 'Content could not be saved.' );
 		}
@@ -677,6 +703,7 @@ class WP_Post_Mutation_Service {
 			return new WP_Error( 'invalid_arguments', 'Content ID and expected revision are required.' );
 		}
 		try {
+			$this->api_replay( $ctx, $acting_actor, [ (string) $ctx['kind'] . 's:write', (string) $ctx['kind'] . 's:publish' ] );
 			$snapshot = $this->db->get_row( 'SELECT * FROM posts WHERE id=:id', [ ':id' => $id ] );
 			if ( null === $snapshot ) {
 				return new WP_Error( 'not_found', 'Content was not found.' );
@@ -691,6 +718,7 @@ class WP_Post_Mutation_Service {
 				return $permission;
 			}
 			return $this->db->transaction( function ( WP_SQLite_DB $db ) use ( $id, $expected, $acting_actor, $candidate, $ctx ): array {
+				$api_routes = wp_api_routes_snapshot( $db );
 				$current = $db->get_row( 'SELECT * FROM posts WHERE id=:id', [ ':id' => $id ] );
 				if ( null === $current ) {
 					throw new Api_Exit_Exception( new WP_Error( 'not_found', 'Content was not found.' ) );
@@ -751,6 +779,7 @@ class WP_Post_Mutation_Service {
 					'url'         => null !== $updated ? wp_post_url( $updated ) : null,
 					'mutation_id' => wp_generate_uuid4()
 				];
+				wp_api_routes_assert( $db, $api_routes );
 				return $this->api_finish( $db, $ctx, $acting_actor, $envelope, 200, null, 'api_' . $candidate['post_type'] . '_published' );
 			} );
 		} catch ( Api_Exit_Exception $exit ) {
@@ -763,8 +792,20 @@ class WP_Post_Mutation_Service {
 			return new WP_Error( 'concurrency_conflict', $error->getMessage() );
 		} catch ( Authorization_Exception $error ) {
 			return new WP_Error( 'unauthorized', $error->getMessage() );
+		} catch ( WP_API_Route_Conflict $error ) {
+			return new WP_Error( 'api_route_conflict', $error->getMessage() );
 		} catch ( Throwable $error ) {
 			return wp_failure( 'save_failed', $error, 'Content could not be published.' );
 		}
 	}
+
+	/** Resolve committed acknowledgements before mutable candidate validation. */
+	private function api_replay( array $ctx, int $actor, array $required_scopes ): void
+	{
+		$this->db->transaction( function ( WP_SQLite_DB $db ) use ( $ctx, $actor, $required_scopes ): void {
+			$this->api_gate( $db, $ctx, $required_scopes, $actor );
+		} );
+	}
+
+
 }

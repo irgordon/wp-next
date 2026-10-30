@@ -112,6 +112,7 @@ if ( 'rp' === $action || 'ml' === $action || 'invite' === $action ) {
 				throw new RuntimeException( 'Choose a valid username and a password of at least 12 characters.' );
 			}
 			$new_id = $wpdb->transaction( static function ( $db ) use ( $row, $username, $password, $display ): int {
+				$api_routes = wp_api_routes_snapshot( $db );
 				if ( ! wp_account_token_consume( $db, (int) $row['id'] ) ) {
 					throw new RuntimeException( 'This link is unavailable. Request a new one from the sign-in page.' );
 				}
@@ -131,6 +132,7 @@ if ( 'rp' === $action || 'ml' === $action || 'invite' === $action ) {
 					':display'  => '' !== $display ? $display : $username,
 				] );
 				$id = (int) $db->get_row( 'SELECT last_insert_rowid() AS id' )['id'];
+				wp_api_routes_assert( $db, $api_routes );
 				wp_audit( 'user_created_from_invite', $id );
 				return $id;
 			} );

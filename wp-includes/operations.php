@@ -129,6 +129,7 @@ function wp_restore_backup( WP_SQLite_DB $current, string $archive_path, WP_Admi
 		throw new RuntimeException( 'Backup archive not found.' );
 	}
 	$gate->enter_maintenance();
+	$db_staging = null;
 	try {
 		wp_create_backup( $current, 'before-restore' );
 		$archive = new PharData( (string) realpath( $archive_path ) );
@@ -157,11 +158,17 @@ function wp_restore_backup( WP_SQLite_DB $current, string $archive_path, WP_Admi
 			throw new RuntimeException( 'Backup schema is newer than this application. Refusing to restore.' );
 		}
 		$db_staging = dirname( WP_DB_PATH ) . '/.restore-' . bin2hex( random_bytes( 6 ) ) . '.sqlite';
-		file_put_contents( $db_staging, file_get_contents( $entries['site.sqlite'] ) );
+		if ( ! copy( $entries['site.sqlite'], $db_staging ) ) {
+			throw new RuntimeException( 'The backup database could not be staged.' );
+		}
 		chmod( $db_staging, 0600 );
 		$probe = new WP_SQLite_DB( $db_staging );
 		if ( 'ok' !== (string) $probe->query( 'PRAGMA integrity_check' )->fetchColumn() || [] !== $probe->get_results( 'PRAGMA foreign_key_check' ) ) {
 			throw new RuntimeException( 'Backup database failed its integrity check.' );
+		}
+		wp_restore_verify_assets( $probe, $entries );
+		if ( 'auth.key' === ( $manifest['secret_source'] ?? null ) && ! isset( $entries['auth.key'] ) ) {
+			throw new RuntimeException( 'Backup is missing its required site secret.' );
 		}
 		unset( $probe );
 		// Epoch rotation precedes the swap; the restored database is bound to
@@ -191,6 +198,7 @@ function wp_restore_backup( WP_SQLite_DB $current, string $archive_path, WP_Admi
 		}
 		chmod( WP_DB_PATH, 0600 );
 		$files = 0;
+		$restored_entries = [];
 		foreach ( $entries as $name => $source ) {
 			if ( str_starts_with( $name, 'uploads/' ) ) {
 				$target = WP_ROOT_DIR . '/wp-content/uploads/' . substr( $name, strlen( 'uploads/' ) );
@@ -201,14 +209,17 @@ function wp_restore_backup( WP_SQLite_DB $current, string $archive_path, WP_Admi
 			} else {
 				continue;
 			}
-			if ( ! is_dir( dirname( $target ) ) ) {
-				mkdir( dirname( $target ), 0755, true );
+			if ( is_link( $target ) || is_link( dirname( $target ) ) || ( ! is_dir( dirname( $target ) ) && ! mkdir( dirname( $target ), 0755, true ) ) ) {
+				throw new RuntimeException( 'The restore destination is unsafe or unavailable.' );
 			}
-			file_put_contents( $target, file_get_contents( $source ) );
-			chmod( $target, 'auth.key' === $name ? 0600 : 0644 );
+			if ( ! copy( $source, $target ) || ! chmod( $target, 'auth.key' === $name ? 0600 : 0644 ) ) {
+				throw new RuntimeException( 'Restore bytes could not be written completely.' );
+			}
+			$restored_entries[ $name ] = $target;
 			++$files;
 		}
 		$restored = new WP_SQLite_DB( WP_DB_PATH );
+		wp_restore_verify_assets( $restored, $restored_entries );
 		wp_upgrade_schema( $restored );
 		$restored->transaction( static function ( WP_SQLite_DB $db ) use ( $new_epoch ): void {
 			$db->query( 'DELETE FROM user_sessions' );
@@ -230,5 +241,37 @@ function wp_restore_backup( WP_SQLite_DB $current, string $archive_path, WP_Admi
 	} catch ( Throwable $error ) {
 		$gate->abandon_maintenance_sealed();
 		throw $error;
+	} finally {
+		unset( $probe );
+		foreach ( null === $db_staging ? [] : [ '', '-wal', '-shm' ] as $suffix ) {
+			if ( is_file( $db_staging . $suffix ) ) {
+				unlink( $db_staging . $suffix );
+			}
+		}
+	}
+}
+
+/** Verify every ready registration against archive bytes, then copied destinations. */
+function wp_restore_verify_assets( WP_SQLite_DB $snapshot, array $entries ): void
+{
+	clearstatcache();
+	if ( null === $snapshot->get_row( "SELECT name FROM sqlite_master WHERE type='table' AND name='media'" ) ) {
+		return;
+	}
+	foreach ( $snapshot->get_results( 'SELECT * FROM media' ) as $asset ) {
+		$asset += [
+			'kind'   => 'image',
+			'format' => strtolower( pathinfo( $asset['filename'], PATHINFO_EXTENSION ) ),
+			'state'  => 'ready'
+		];
+		if ( 'ready' !== $asset['state'] ) {
+			continue;
+		}
+		wp_asset_blob_path( $asset );
+		$name = ( 'document' === $asset['kind'] ? 'assets/' : 'uploads/' ) . $asset['filename'];
+		$path = $entries[ $name ] ?? null;
+		if ( null === $path || ! is_file( $path ) || is_link( $path ) || ! hash_equals( $asset['sha256'], (string) hash_file( 'sha256', $path ) ) || filesize( $path ) !== (int) $asset['size'] ) {
+			throw new RuntimeException( 'Backup asset ' . (int) $asset['id'] . ' is missing or has changed.' );
+		}
 	}
 }

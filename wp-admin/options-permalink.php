@@ -34,6 +34,7 @@ if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
 	} else {
 		try {
 			$wpdb->transaction( function ( $db ) use ( $structure ): void {
+				$api_routes = wp_api_routes_snapshot( $db );
 				if ( ! current_user_can( 'administrator' ) ) {
 					throw new RuntimeException( 'Permalink permission revoked.' );
 				}
@@ -63,6 +64,7 @@ if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
 					// Route ownership may have moved between posts and documents; cached File links must be regenerated.
 					wp_invalidate_file_link_renders( $db );
 				}
+				wp_api_routes_assert( $db, $api_routes );
 			} );
 			$message = 'Permalink settings saved. Existing structure links redirect to the selected format.';
 		} catch ( Throwable $exception ) {

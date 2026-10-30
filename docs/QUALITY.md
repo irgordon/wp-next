@@ -112,6 +112,15 @@ asserts problem codes through the contract's `code` field. It does not
 exercise a real PHP-FPM deployment; the deployment gate's API assertions run
 in CI (see the v0.0.9 deployment notes).
 
+The suite now retains those 94 acceptance checks and adds 47 boundary checks
+in the same file: receipt replay after document access changes, external epoch
+containment, browser/import/category namespace guards, post-insert import
+bookkeeping rollback, corrupt/missing image and document bytes, refused
+destination writes, sealed failure and recovery with a valid archive. The
+original 44 boundary checks remain, with two import-bookkeeping checks and a
+physical database-path check added.
+These are real HTTP/CLI/filesystem checks; no integration boundary is mocked.
+
 ## v0.0.1 Boundary Verification
 
 `composer test:accounts` now runs the original account suite and six additional

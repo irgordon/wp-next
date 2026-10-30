@@ -103,11 +103,15 @@ function wp_portability_positive_date( int $source, ?int $fallback ): ?int
 function wp_portability_write_source_fields( int $id, array $fields ): void
 {
 	global $wpdb;
-	$wpdb->query( 'UPDATE posts SET author_id=:author,published_at=:published,created_at=:created,updated_at=:updated WHERE id=:id', [
-		':author'    => $fields['author'],
-		':published' => $fields['published'],
-		':created'   => $fields['created'],
-		':updated'   => $fields['updated'],
-		':id'        => $id
-	] );
+	$wpdb->transaction( static function ( \WordPress\Database\WP_SQLite_DB $db ) use ( $id, $fields ): void {
+		$api_routes = wp_api_routes_snapshot( $db );
+		$db->query( 'UPDATE posts SET author_id=:author,published_at=:published,created_at=:created,updated_at=:updated WHERE id=:id', [
+			':author'    => $fields['author'],
+			':published' => $fields['published'],
+			':created'   => $fields['created'],
+			':updated'   => $fields['updated'],
+			':id'        => $id
+		] );
+		wp_api_routes_assert( $db, $api_routes );
+	} );
 }

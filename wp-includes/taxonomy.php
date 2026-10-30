@@ -63,6 +63,7 @@ function wp_save_term( array $input ): int|WP_Error
 	global $wpdb;
 	try {
 		return $wpdb->transaction( static function ( $db ) use ( $input ): int {
+			$api_routes = wp_api_routes_snapshot( $db );
 			if ( ! wp_can_manage_terms() ) {
 				throw new RuntimeException( 'Term management permission required.' ); 
 			}
@@ -113,6 +114,7 @@ function wp_save_term( array $input ): int|WP_Error
 					wp_invalidate_file_link_renders( $db );
 				}
 			}
+			wp_api_routes_assert( $db, $api_routes );
 			wp_audit( 'term_saved', $id, [ 'taxonomy' => $taxonomy ] );
 			return $id;
 		} );
@@ -125,6 +127,7 @@ function wp_delete_term( int $id, int $revision ): true|WP_Error
 	global $wpdb;
 	try {
 		return $wpdb->transaction( static function ( $db ) use ( $id, $revision ): true {
+			$api_routes = wp_api_routes_snapshot( $db );
 			if ( ! wp_can_manage_terms() ) {
 				throw new RuntimeException( 'Term management permission required.' ); 
 			}
@@ -134,6 +137,7 @@ function wp_delete_term( int $id, int $revision ): true|WP_Error
 			}
 			$db->query( 'DELETE FROM terms WHERE id=:id', [ ':id' => $id ] );
 			$db->query( "INSERT OR IGNORE INTO post_terms(post_id,term_id) SELECT p.id,t.id FROM posts p JOIN terms t ON t.taxonomy='category' AND t.slug='uncategorized' WHERE p.post_type='post' AND NOT EXISTS (SELECT 1 FROM post_terms pt JOIN terms c ON c.id=pt.term_id WHERE pt.post_id=p.id AND c.taxonomy='category')" );
+			wp_api_routes_assert( $db, $api_routes );
 			wp_audit( 'term_deleted', $id, [ 'taxonomy' => $term['taxonomy'] ] );
 			return true;
 		} );

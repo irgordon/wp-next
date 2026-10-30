@@ -1075,6 +1075,7 @@ function wp_portability_create_author( array $author, string $username ): int|WP
 	}
 	try {
 		return $wpdb->transaction( static function ( $db ) use ( $author, $username, $email ): int {
+			$api_routes = wp_api_routes_snapshot( $db );
 			if ( ! current_user_can( 'administrator' ) ) {
 				throw new RuntimeException( 'Account permission revoked.' );
 			}
@@ -1090,6 +1091,8 @@ function wp_portability_create_author( array $author, string $username ): int|WP
 				':site'     => (string) $author['website']
 			] );
 			$id = (int) $db->get_row( 'SELECT last_insert_rowid() AS id' )['id'];
+
+			wp_api_routes_assert( $db, $api_routes );
 			wp_audit( 'user_created_from_import', $id );
 			return $id;
 		} );

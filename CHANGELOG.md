@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.1.1
+
+Updated October 30, 2026. Editorial API regression fixes. Schema remains 9.
+
+- Fix the Apache template: `CGIPassAuth On` moves into the `<Directory>` block, the only context httpd accepts for the directive; the documented virtual host now starts.
+- Committed idempotency receipts are answered from the receipt before the request body is revalidated, so a retry survives unrelated state changes (for example a referenced document becoming private); invalid block input maps to 422 instead of 503.
+- Restore verifies every registered asset's bytes against the media registry before reporting success and refuses corrupt or missing assets with admission still sealed.
+- Namespace protection is enforced at mutation time: account creation (browser and invitation completion), account deletion and reassignment, category changes, permalink saves and imports (including post-insert author and date bookkeeping, transactionally) cannot move published content under the enabled API mount; changes that remove an existing conflict are permitted.
+- Epoch placement is enforced, not just documented: initialization and reads refuse epoch paths inside the application, database, upload and asset trees, symlinked paths, and unsafe permission chains.
+
 ## v0.1.0
 
 Updated October 29, 2026. Authenticated editorial API (I1 Option B). Schema 9.

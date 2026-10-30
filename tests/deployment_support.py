@@ -81,7 +81,7 @@ def fixture_paths(options, stack, mode, work):
     environment = clean_environment()
     environment.update(WP_ENV='production', WP_VAR_DIR=str(work/'state'),
                        WP_DB_PATH=str(work/'state/site.sqlite'), WP_PHP_CLI=options.php,
-                       WP_API_EPOCH_PATH=str(work/'state/api-epoch.json'))
+                       WP_API_EPOCH_PATH=str(work/'api-epoch.json'))
     if mode == 'terminated':
         environment['WP_HTTPS'] = '1'
     return dict(options=options, stack=stack, mode=mode, work=work, site=work/'site',

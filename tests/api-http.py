@@ -6,7 +6,7 @@ coordinator. Plain HTTP is refused before credentials or body processing; the
 functional pass runs behind a local TLS-terminating proxy (WP_HTTPS=1)."""
 from http_helpers import *
 import http_helpers as h
-import http.client, http.server, ssl, threading
+import http.client, http.server, ssl, threading, io
 
 CTX = ssl._create_unverified_context()
 TOKEN_RE = re.compile(r'wpn1\.[0-9a-f]{32}\.[A-Za-z0-9_-]{43}')
@@ -76,10 +76,173 @@ def sql(database, statement, params=()):
 def reset_rates(database):
     sql(database, 'DELETE FROM api_rate_windows')
 
+def upload_document(fixture, name, contents, visibility='public', image=False):
+    admin=fixture['admin']; _,body,_=admin.request('/wp-admin/media.php?kind='+('images' if image else 'documents'))
+    boundary='api-boundary-document'
+    action='upload' if image else 'upload_document';field='image[]' if image else 'document[]'
+    fields={'_wpnonce':token(body,action_field=action),'action':action,'visibility':visibility,'ajax':'1'}
+    parts=[f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n'.encode() for key,value in fields.items()]
+    parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="{field}"; filename="{name}"\r\nContent-Type: application/octet-stream\r\n\r\n'.encode()+contents+f'\r\n--{boundary}--\r\n'.encode())
+    status,body,_=admin.request('/wp-admin/media.php',b''.join(parts),{'Content-Type':'multipart/form-data; boundary='+boundary})
+    assert status==200,body
+    return json.loads(body)['id']
+
+def set_document_visibility(fixture, identifier, value):
+    admin=fixture['admin']; _,body,_=admin.request('/wp-admin/media.php?kind=documents')
+    nonce=next(form['fields']['_wpnonce'] for form in FormParser(body).forms if form['fields'].get('id')==str(identifier) and 'visibility' in form['fields'])
+    status,body,_=admin.request('/wp-admin/media.php',{'_wpnonce':nonce,'id':str(identifier),'action':'visibility','visibility':value})
+    assert status in (200,302),body
+    assert dbrow(fixture['database'],'SELECT visibility FROM media WHERE id=?',(identifier,))['visibility']==value
+
+def php_probe(fixture, code, *arguments):
+    process=subprocess.run([PHP,'-r','require $argv[1];'+code,str(fixture['site']/'wp-includes/bootstrap.php'),*map(str,arguments)],env=fixture['env'],capture_output=True,text=True,timeout=30)
+    assert process.returncode==0,process.stdout+process.stderr
+    return process.stdout.strip()
+
+def epoch_probe(fixture, path, overrides=None):
+    env=dict(fixture['env'],WP_API_EPOCH_PATH=str(path),**(overrides or {}))
+    code='require $argv[1]."/wp-config.php";require $argv[1]."/wp-includes/class-wp-error.php";require $argv[1]."/wp-includes/assets.php";require $argv[1]."/wp-includes/api.php";$r=wp_api_epoch_read();echo is_wp_error($r)?$r->get_error_code():"ok";'
+    process=subprocess.run([PHP,'-r',code,str(fixture['site'])],env=env,capture_output=True,text=True,timeout=20)
+    assert process.returncode==0,process.stderr
+    return process.stdout
+
+def verify_epoch_locations(fixture):
+    roots=[fixture['site'],fixture['state'],fixture['site']/'wp-content/uploads',fixture['state']/'assets']
+    for directory in roots:
+        directory.mkdir(parents=True,exist_ok=True)
+        candidate=directory/'forbidden-epoch.json'
+        check(epoch_probe(fixture,candidate)=='epoch_location' and not candidate.exists(),'Epoch location rejects '+str(directory.relative_to(fixture['temp'])))
+    external_db=fixture['temp']/'external-db';external_db.mkdir(mode=0o700)
+    check(epoch_probe(fixture,external_db/'epoch.json',{'WP_DB_PATH':str(external_db/'site.sqlite')})=='epoch_location','An external database tree is also excluded')
+    (external_db/'site.sqlite').touch(); db_alias=fixture['temp']/'database-alias.sqlite'; db_alias.symlink_to(external_db/'site.sqlite')
+    check(epoch_probe(fixture,external_db/'epoch.json',{'WP_DB_PATH':str(db_alias)})=='epoch_location','The physical database directory is excluded when its file is symlinked')
+    custom_assets=fixture['temp']/'custom-documents';custom_assets.mkdir(mode=0o700)
+    check(epoch_probe(fixture,custom_assets/'epoch.json',{'WP_ASSETS_DIR':str(custom_assets)})=='epoch_location','An external protected-document tree is excluded')
+    alias=fixture['temp']/'epoch-alias';alias.symlink_to(fixture['epoch'].parent,target_is_directory=True)
+    check(epoch_probe(fixture,alias/'epoch.json')=='epoch_location','Parent symlinks cannot bypass epoch placement')
+    unsafe=fixture['temp']/'unsafe';unsafe.mkdir(mode=0o777);unsafe.chmod(0o777)
+    check(epoch_probe(fixture,unsafe/'epoch.json')=='epoch_permissions','Other-writable credential directories are refused')
+    hostile_parent=fixture['temp']/'hostile';hostile_parent.mkdir(mode=0o777);hostile_parent.chmod(0o777)
+    nested=hostile_parent/'vault';nested.mkdir(mode=0o700)
+    check(epoch_probe(fixture,nested/'epoch.json')=='epoch_permissions','A private child cannot hide an unsafe writable ancestor')
+    victim=fixture['temp']/'lock-victim';victim.write_text('PRESERVE')
+    lock=Path(str(fixture['epoch'])+'.lock');lock.symlink_to(victim)
+    check(epoch_probe(fixture,fixture['epoch'])=='epoch_permissions' and victim.read_text()=='PRESERVE','A symlinked epoch lock is refused without touching its target')
+    lock.unlink()
+    check(epoch_probe(fixture,fixture['epoch'])=='epoch_missing','A canonical external service-owned directory is accepted before initialization')
+
+def create_entry(fixture, kind, body, key):
+    reset_rates(fixture['database'])
+    status,result,headers=api(fixture['base'],'POST','/wp-next/v1/'+kind+'s',token_value=fixture['token'],body=body,headers={'Idempotency-Key':key})
+    assert status==201,(status,result)
+    return result
+
+def call_write(fixture, method, route, body, key):
+    return api(fixture['base'],method,route,token_value=fixture['token'],body=body,headers={'Idempotency-Key':key})
+
+def check_replay(fixture, method, route, body, key, committed):
+    before=dbrow(fixture['database'],'SELECT revision FROM posts WHERE id=?',(committed['id'],))['revision']
+    status,result,headers=call_write(fixture,method,route,body,key)
+    check(status in (200,201) and headers.get('Idempotency-Replayed')=='true' and result['mutation_id']==committed['mutation_id'],'A committed '+method+' receipt survives unrelated document visibility changes')
+    check(dbrow(fixture['database'],'SELECT revision FROM posts WHERE id=?',(committed['id'],))['revision']==before,'Receipt replay does not add a content revision')
+
+def verify_receipt_replay(fixture):
+    # A public document owned by a second account can later become inaccessible.
+    other=php_probe(fixture,"$wpdb->query(\"INSERT INTO users(username,email,password_hash,capabilities) VALUES('owner','owner@example.test','unusable','[]')\");echo $wpdb->get_row('SELECT last_insert_rowid() AS id')['id'];")
+    document=upload_document(fixture,'receipt.txt',b'RECEIPT-BOUNDARY-BYTES')
+    sql(fixture['database'],'UPDATE media SET author_id=? WHERE id=?',(int(other),document))
+    # Remove manage_media/admin visibility from the API actor without changing its token.
+    # Issuing for a built-in author exercises the real browser item-read permission.
+    writer=php_probe(fixture,"$wpdb->query(\"INSERT INTO users(username,email,password_hash,capabilities) VALUES('boundary-writer','boundary-writer@example.test','unusable','[\\\"edit_posts\\\",\\\"edit_published_posts\\\",\\\"publish_posts\\\"]')\");echo $wpdb->get_row('SELECT last_insert_rowid() AS id')['id'];")
+    admin_token=fixture['token']
+    fixture['token']=issue_token(fixture['site'],fixture['env'],'boundary-writer','Receipt writer','posts:read,posts:write,posts:publish')
+    content={'version':1,'blocks':[{'type':'file','media_id':document,'label':'Reference'}]}
+    create={'title':'Receipt draft','content':content}; created=create_entry(fixture,'post',create,'boundary-create-0001')
+    route='/wp-next/v1/posts/'+str(created['id'])
+    patch={'expected_revision':1,'content':content,'title':'Receipt changed'}
+    status,updated,_=call_write(fixture,'PATCH',route,patch,'boundary-patch-0001');assert status==200,updated
+    publish={'expected_revision':2,'content':content}
+    status,published,_=call_write(fixture,'POST',route+'/publish',publish,'boundary-publish-01');assert status==200,published
+    set_document_visibility(fixture,document,'private')
+    for method,path,body,key,ack in [('POST','/wp-next/v1/posts',create,'boundary-create-0001',created),('PATCH',route,patch,'boundary-patch-0001',updated),('POST',route+'/publish',publish,'boundary-publish-01',published)]:
+        check_replay(fixture,method,path,body,key,ack)
+    new={'title':'New invalid reference','content':content}
+    status,result,_=call_write(fixture,'POST','/wp-next/v1/posts',new,'boundary-new-ref-01')
+    check(status==422 and problem_type(result)=='validation-failed','A new request with an inaccessible File reference is a semantic refusal')
+    fixture['token']=admin_token
+
+def verify_namespace(fixture):
+    # Existing history may predate activation; an operator can inspect it, but
+    # subsequent ordinary writes must not introduce a new namespace claimant.
+    sql(fixture['database'],"INSERT INTO options(option_name,option_value) VALUES('permalink_structure',?) ON CONFLICT(option_name) DO UPDATE SET option_value=excluded.option_value",('/%author%/v1/%postname%/',))
+    _,body,_=fixture['admin'].request('/wp-admin/users.php')
+    fixture['admin'].request('/wp-admin/users.php',{'_wpnonce':token(body),'username':'wp-next','email':'namespace@example.test','password':'disposable-test-password','role':'author'})
+    check(dbrow(fixture['database'],"SELECT id FROM users WHERE username='wp-next'") is None,'Browser account creation cannot claim an initialized API namespace')
+    result=php_probe(fixture,"wp_set_current_user(1);$r=wp_portability_create_author(['email'=>'import@example.test','display_name'=>'Import','first_name'=>'','last_name'=>'','biography'=>'','website'=>''],'wp-next');echo is_wp_error($r)?'refused':'accepted';")
+    check(result=='refused','Imported account creation uses the same transactional namespace guard')
+    # A category path can also create a claim; use normal taxonomy/mutation APIs.
+    sql(fixture['database'],"UPDATE options SET option_value='/%category%/%postname%/' WHERE option_name='permalink_structure'")
+    values=json.loads(php_probe(fixture,"wp_set_current_user(1);$p=wp_save_term(['taxonomy'=>'category','name'=>'Parent','slug'=>'wp-next']);$c=wp_save_term(['taxonomy'=>'category','name'=>'Child','slug'=>'safe','parent_id'=>$p]);echo json_encode([$p,$c]);"))
+    entry=create_entry(fixture,'post',{'title':'Category guard','slug':'posts','term_ids':[values[1]],'content':EMPTY_DOC},'boundary-category-1')
+    status,entry,_=call_write(fixture,'POST','/wp-next/v1/posts/'+str(entry['id'])+'/publish',{'expected_revision':1},'boundary-category-2');assert status==200,entry
+    result=php_probe(fixture,"wp_set_current_user(1);$r=wp_save_term(['id'=>(int)$argv[2],'expected_revision'=>1,'taxonomy'=>'category','name'=>'Child','slug'=>'v1','parent_id'=>(int)$argv[3]]);echo is_wp_error($r)?'refused':'accepted';",values[1],values[0])
+    check(result=='refused','Category changes cannot move published content under the API namespace')
+    check(dbrow(fixture['database'],'SELECT slug FROM terms WHERE id=?',(values[1],))['slug']=='safe','A refused namespace mutation rolls its SQL back')
+    # Correct segment matching does not reserve v10 as though it were v1.
+    check(php_probe(fixture,"echo wp_api_path_claims_mount('wp-next/v10/post')?'bad':'ok';")=='ok','Namespace matching respects the full v1 segment boundary')
+    # Import completion rewrites the author after the original insert commits.
+    sql(fixture['database'],"UPDATE options SET option_value='[]' WHERE option_name='permalink_history'")
+    sql(fixture['database'],"UPDATE options SET option_value='/%author%/%category%/%postname%/' WHERE option_name='permalink_structure'")
+    imported=json.loads(php_probe(fixture,"wp_set_current_user(1);$a=wp_portability_create_author(['email'=>'mapped@example.test','display_name'=>'Mapped','first_name'=>'','last_name'=>'','biography'=>'','website'=>''],'wp-next');$t=wp_save_term(['taxonomy'=>'category','name'=>'V1','slug'=>'v1']);$p=wp_insert_post(['post_title'=>'Import bookkeeping','post_status'=>'published','post_content'=>'<p>Body</p>','term_ids'=>[$t]]);echo json_encode([$a,$p]);"))
+    before=dbrow(fixture['database'],'SELECT author_id,published_at,created_at,updated_at FROM posts WHERE id=?',(imported[1],))
+    result=php_probe(fixture,"try{wp_portability_write_source_fields((int)$argv[2],['author'=>(int)$argv[3],'published'=>123,'created'=>123,'updated'=>123]);echo 'accepted';}catch(WP_API_Route_Conflict $e){echo 'refused';}",imported[1],imported[0])
+    check(result=='refused','Post-insert import bookkeeping cannot claim the API namespace')
+    check(dbrow(fixture['database'],'SELECT author_id,published_at,created_at,updated_at FROM posts WHERE id=?',(imported[1],))==before,'Refused import bookkeeping rolls author and dates back together')
+
+
+def archive_with_change(source, target, name, replacement):
+    with tarfile.open(source) as original, tarfile.open(target,'w') as output:
+        for item in original.getmembers():
+            if not item.isfile():continue
+            data=original.extractfile(item).read()
+            if item.name==name:
+                if replacement is None:continue
+                data=replacement
+            item.size=len(data);output.addfile(item,io.BytesIO(data))
+
+def verify_restore(fixture):
+    document=upload_document(fixture,'restore.txt',b'EXACT-RESTORED-DOCUMENT')
+    pixel=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=')
+    image=upload_document(fixture,'restore.png',pixel,image=True)
+    code,out=cli_out(fixture['site'],fixture['env'],'backup');assert code==0,out
+    good=Path(out.split('Backup:')[1].strip().splitlines()[0])
+    for identifier,root,prefix in [(document,fixture['state']/'assets','assets/'),(image,fixture['site']/'wp-content/uploads','uploads/')]:
+        row=dbrow(fixture['database'],'SELECT * FROM media WHERE id=?',(identifier,))
+        live=root/row['filename']; original=live.read_bytes()
+        for label,replacement in [('corrupt',b'CORRUPTED'),('missing',None)]:
+            bad=fixture['temp']/(prefix.strip('/')+'-'+label+'.tar');archive_with_change(good,bad,prefix+row['filename'],replacement)
+            before=dbrow(fixture['database'],'SELECT * FROM api_security_state')
+            code,out=cli_out(fixture['site'],fixture['env'],'restore',str(bad))
+            check(code!=0 and 'Restore complete:' not in out,'Restore refuses '+label+' registered '+row['kind']+' bytes')
+            check((fixture['state']/'maintenance.json').exists(),'A refused restore retains sealed admission')
+            check(live.read_bytes()==original and dbrow(fixture['database'],'SELECT * FROM api_security_state')==before,'Archive validation preserves live asset bytes and the database')
+            check(not list(live.parent.glob('.restore-*')),'Failed staging leaves no temporary credential or asset bytes')
+            code,out=cli_out(fixture['site'],fixture['env'],'restore',str(good));assert code==0,out
+            check(live.read_bytes()==original and not (fixture['state']/'maintenance.json').exists(),'An operator can recover with the valid archive and reopen verified bytes')
+    # Deny a destination write without corrupting the live bytes first.
+    saved_mode=live.parent.stat().st_mode & 0o777; saved_file_mode=live.stat().st_mode & 0o777
+    live.parent.chmod(0o500); live.chmod(0o400)
+    try:code,out=cli_out(fixture['site'],fixture['env'],'restore',str(good))
+    finally:live.parent.chmod(saved_mode); live.chmod(saved_file_mode)
+    check(code!=0 and (fixture['state']/'maintenance.json').exists() and live.read_bytes()==original,'Destination-write refusal cannot become Restore complete')
+    code,out=cli_out(fixture['site'],fixture['env'],'restore',str(good));assert code==0,out
+
+
 with tempfile.TemporaryDirectory(prefix='wp-api-') as directory:
-    temp = Path(directory); site = temp/'site'; database = temp/'state/site.sqlite'
+    temp = Path(directory).resolve(); site = temp/'site'; database = temp/'state/site.sqlite'
     shutil.copytree(ROOT, site, ignore=shutil.ignore_patterns('vendor', 'node_modules', '__pycache__', 'var'))
-    epoch_path = temp/'state/api-epoch.json'
+    epoch_directory=temp/'credentials'; epoch_directory.mkdir(mode=0o700)
+    epoch_path=epoch_directory/'api-epoch.json'
     env = dict(os.environ, WP_ENV='development', WP_VAR_DIR=str(temp/'state'), WP_DB_PATH=str(database),
                WP_API_EPOCH_PATH=str(epoch_path))
     env.pop('WP_AUTH_SALT', None); env.pop('WP_HTTPS', None); env.pop('WP_API_BASE_PATH', None)
@@ -135,6 +298,8 @@ with tempfile.TemporaryDirectory(prefix='wp-api-') as directory:
     try:
         status, payload, _ = api(base, 'GET', '/wp-next/v1/posts')
         check(status == 503 and problem_type(payload).endswith('credentials-unavailable'), 'HTTPS request to the disabled API returns 503 credentials-unavailable')
+        fixture=dict(temp=temp,site=site,state=temp/'state',database=database,env=env,base=base,epoch=epoch_path)
+        verify_epoch_locations(fixture)
         code, out = cli_out(site, env, 'api:init')
         state = dbrow(database, 'SELECT * FROM api_security_state')
         check(code == 0 and state['bound_epoch'] and int(state['enabled']) == 0 and epoch_path.is_file(), 'api:init binds the epoch and leaves the API disabled')
@@ -379,6 +544,10 @@ with tempfile.TemporaryDirectory(prefix='wp-api-') as directory:
         check(status == 200 and ui_match is not None, 'The Integrations screen shows an issued credential exactly once')
         status, _, _ = api(base, 'GET', '/wp-next/v1/posts', token_value=ui_match.group(0))
         check(status == 200, 'The UI-issued credential authenticates')
+        fixture.update(admin=admin,token=issue_token(site,env,'admin','Boundary integration','posts:read,posts:write,posts:publish,pages:read,pages:write,pages:publish'))
+        verify_receipt_replay(fixture)
+        verify_namespace(fixture)
+        verify_restore(fixture)
     finally:
         server.terminate(); server.wait(timeout=10)
         proxy_server.shutdown()

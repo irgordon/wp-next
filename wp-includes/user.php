@@ -150,6 +150,7 @@ function wp_delete_user( int $user_id, int $reassign_to, int $actor_id ): array|
 	global $wpdb;
 	try {
 		return $wpdb->transaction( static function ( $db ) use ( $user_id, $reassign_to, $actor_id ): array {
+			$api_routes = wp_api_routes_snapshot( $db );
 			$actor = $db->get_row( 'SELECT capabilities,disabled FROM users WHERE id=:id', [ ':id' => $actor_id ] );
 			$actor_caps = null !== $actor ? ( json_decode( (string) $actor['capabilities'], true ) ?: [] ) : [];
 			if ( null === $actor || 0 !== (int) $actor['disabled'] || ! in_array( 'administrator', $actor_caps, true ) ) {
@@ -195,6 +196,8 @@ function wp_delete_user( int $user_id, int $reassign_to, int $actor_id ): array|
 				'reassigned_to' => $reassign_to,
 				'counts'        => $counts,
 			] );
+
+			wp_api_routes_assert( $db, $api_routes );
 			return $counts;
 		} );
 	} catch ( Throwable $exception ) {
