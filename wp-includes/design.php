@@ -243,7 +243,7 @@ function wp_design_health_process( array $config, string $runtime ): void
     if ( ! function_exists('proc_open') ) {
 		throw new RuntimeException('Theme publication requires PHP CLI process support.'); 
 	}
-    $command = [ getenv( 'WP_PHP_CLI' ) ?: ( 'cli' === PHP_SAPI ? PHP_BINARY : 'php' ), '-d', 'memory_limit=128M', WP_ROOT_DIR . '/tools/theme-health.php' ];
+    $command = [ getenv( 'WP_PHP_CLI' ) ?: ( in_array( PHP_SAPI, [ 'cli', 'cli-server' ], true ) ? PHP_BINARY : 'php' ), '-d', 'memory_limit=128M', WP_ROOT_DIR . '/tools/theme-health.php' ];
     $pipes = [];
 	$environment = getenv();
 	$environment['WP_VAR_DIR'] = $runtime;

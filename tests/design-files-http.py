@@ -125,3 +125,47 @@ with tempfile.TemporaryDirectory(prefix='wp-design-') as directory:
             server.terminate();server.wait(timeout=5)
             errors=(temp/'server.log').read_text()
             if 'Fatal error' in errors:print(errors[-5000:])
+
+# Exercise binary selection through real HTTP publication, without a PATH PHP.
+with tempfile.TemporaryDirectory(prefix='wp-design-cli-') as directory:
+    temp=Path(directory);site=temp/'site';database=temp/'state/site.sqlite'
+    shutil.copytree(ROOT,site,ignore=shutil.ignore_patterns('.git','vendor','node_modules','__pycache__','var'))
+    empty_path=temp/'empty-path';empty_path.mkdir()
+    env=dict(os.environ,WP_ENV='development',WP_VAR_DIR=str(temp/'state'),WP_DB_PATH=str(database),PATH=str(empty_path))
+    env.pop('WP_AUTH_SALT',None);env.pop('WP_PHP_CLI',None)
+    check(shutil.which('php',path=env['PATH']) is None,'Probe regression has no php executable on PATH')
+    try:
+        for attempt,override in enumerate([None,str(temp/'missing-php')]):
+            if override is not None:env['WP_PHP_CLI']=override
+            with socket.socket() as sock:sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
+            base=f'http://127.0.0.1:{port}'
+            with (temp/f'server-{attempt}.log').open('w') as log:
+                server=subprocess.Popen([PHP,'-S',f'127.0.0.1:{port}','-t',str(site),str(site/'tools/router.php')],env=env,stdout=log,stderr=log)
+                try:
+                    for _ in range(100):
+                        try:
+                            with socket.create_connection(('127.0.0.1',port),timeout=.1):break
+                        except OSError:time.sleep(.03)
+                    admin=Client(base)
+                    if attempt==0:
+                        _,body,_=admin.request('/wp-admin/install.php')
+                        admin.request('/wp-admin/install.php',{'_wpnonce':token(body),'site_title':'CLI probe','admin_user':'admin','admin_email':'admin@example.test','admin_password':'disposable-test-password'})
+                    assert admin.login('admin')[0]==302
+                    _,body,_=admin.request('/wp-admin/themes.php')
+                    status,body,_=admin.request('/wp-admin/themes.php',{'_wpnonce':token(body),'expected_version':str(attempt),'design_action':'publish','active_theme':'studio' if attempt==0 else 'default'})
+                    (temp/f'response-{attempt}.html').write_text(body)
+                    version=(dbrow(database,"SELECT option_value FROM options WHERE option_name='design_version'") or {}).get('option_value')
+                    theme=dbrow(database,"SELECT option_value FROM options WHERE option_name='active_theme'")['option_value']
+                    if attempt==0:
+                        check(status==200 and 'Site design published.' in body and version=='1' and theme=='studio','Built-in server publishes with its own PHP binary when PATH has no php')
+                        check('/themes/studio/style.css' in Client(base).request('/')[1],'Publication without PATH php reaches the live site')
+                    else:
+                        check(status==200 and 'health check' in body.lower() and 'Site design published.' not in body and version=='1' and theme=='studio','Explicit WP_PHP_CLI takes precedence; an invalid override refuses publication')
+                finally:
+                    server.terminate();server.wait(timeout=5)
+    except BaseException:
+        retained=Path(tempfile.mkdtemp(prefix='wp-design-cli-failure-'))/'fixture'
+        shutil.copytree(temp,retained,symlinks=True)
+        print('First-failure response, database and process logs retained at:',retained,flush=True)
+        raise
+print(str(h.COUNT)+' design/file HTTP checks passed, including CLI selection.')
