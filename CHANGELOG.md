@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.1.2
+
+Updated October 30, 2026. Verification batch for the J1 closeouts (C-02/C-03/C-05/C-08/C-10); no production code changes. Schema remains 9.
+
+- Deployment gate: distinguish the application's 25 MiB document refusal (422) from web-server/PHP body-limit refusal on both stacks, with database and asset state proven unchanged after the server-layer refusal; prove an Authorization-authenticated API mutation and its receipt replay through FPM; refuse an API epoch path inside WP_VAR_DIR on the restored deployment.
+- Portability: seed the round-trip target with the source instance's post/media IDs so the import proves actual ID remapping — run-state mapping, rendered in-content link and featured reference all asserted against the new IDs.
+- Documents/API: separate named lease-fencing checks (a superseded lease cannot commit; the current holder can); restore is asserted to revoke live API credentials.
+
 ## v0.1.1
 
 Updated October 30, 2026. Editorial API regression fixes. Schema remains 9.

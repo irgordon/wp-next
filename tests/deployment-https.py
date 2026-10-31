@@ -10,8 +10,10 @@ import sqlite3
 import subprocess
 import tarfile
 import urllib.error
+import urllib.parse
 import zipfile
 
+import http.client
 import http_helpers as h
 import portability_helpers as portability
 from deployment_support import TLSClient, arguments, deployed_site, raw_request
@@ -78,6 +80,29 @@ def verify_api(fixture):
     h.check(status == 401 and '"invalid-token"' in body, 'A bogus credential is distinguished from a missing one through ' + label)
     status, body, _ = admin.request('/wp-next/v1/posts')
     h.check(status == 401 and '"authentication-required"' in body, 'A missing credential returns authentication-required through ' + label)
+    verify_api_mutation(fixture, label)
+
+
+def verify_api_mutation(fixture, label):
+    issued = subprocess.run([fixture['options'].php, str(fixture['site']/'bin/wp'), 'api:issue', 'admin', 'Deployment mutation', 'posts:read,posts:write,posts:publish', '30'],
+                            env=fixture['env'], check=True, capture_output=True, text=True, timeout=60)
+    match = re.search(r'wpn1\.[0-9a-f]{32}\.[A-Za-z0-9_-]{43}', issued.stdout)
+    h.check(match is not None, 'CLI issues a write-scoped API credential in the deployed fixture')
+    client = TLSClient(fixture)
+    headers = {'Authorization': 'Bearer ' + match.group(0), 'Content-Type': 'application/json', 'Idempotency-Key': 'deployment-create-0001'}
+    payload = json.dumps({'title': 'API Mutation', 'content': {'version': 1, 'blocks': [{'type': 'paragraph', 'html': 'DEPLOYED-API-BODY'}]}}).encode()
+    status, body, _ = client.request('/wp-next/v1/posts', payload, headers)
+    created = json.loads(body) if status == 201 else {}
+    h.check(status == 201 and created.get('status') == 'draft', 'An Authorization-authenticated API mutation creates a post through ' + label)
+    h.check(h.dbrow(fixture['database'], "SELECT COUNT(*) AS n FROM posts WHERE title='API Mutation'")['n'] == 1, 'The API mutation commits exactly one post through ' + label)
+    status, body, response_headers = client.request('/wp-next/v1/posts', payload, headers)
+    replayed = json.loads(body) if status == 201 else {}
+    h.check(status == 201 and response_headers.get('Idempotency-Replayed') == 'true' and replayed.get('mutation_id') == created.get('mutation_id'), 'The replayed API mutation returns the stored acknowledgement through ' + label)
+    h.check(h.dbrow(fixture['database'], "SELECT COUNT(*) AS n FROM posts WHERE title='API Mutation'")['n'] == 1, 'The API mutation replay creates no duplicate post through ' + label)
+    publish_headers = dict(headers, **{'Idempotency-Key': 'deployment-publish-001'})
+    status, body, _ = client.request('/wp-next/v1/posts/' + str(created['id']) + '/publish', json.dumps({'expected_revision': created['revision']}).encode(), publish_headers)
+    published = json.loads(body) if status == 200 else {}
+    h.check(status == 200 and published.get('status') == 'published', 'An Authorization-authenticated API publish succeeds through ' + label)
 
 
 def verify_transport(fixture):
@@ -240,10 +265,78 @@ def send_multipart(client, path, fields, files):
 def verify_upload_boundaries(fixture):
     exact = b'x' * (25 * 1024 * 1024)
     upload_document(fixture, 'exact-limit.txt', exact)
-    h.check(upload(fixture['admin'], 'over-limit.txt', exact + b'x')[0] == 422, 'Document one byte above 25 MiB is refused after multipart admission')
+    status, body, _ = upload(fixture['admin'], 'over-limit.txt', exact + b'x')
+    refused = json.loads(body) if status == 422 else {}
+    h.check(status == 422 and refused.get('ok') is False and '25 MB' in refused.get('error', ''), 'Document one byte above 25 MiB is refused by the application ceiling after multipart admission')
+    h.check(h.dbrow(fixture['database'], "SELECT id FROM media WHERE original_name='over-limit.txt'") is None, 'The application-refused document is not registered')
     for name, contents in (('bad.txt', b'bad\xff'), ('bad.pdf', b'not a pdf'), ('bad.php', b'<?php echo 1;')):
         h.check(upload(fixture['admin'], name, contents)[0] == 422, 'Malformed or executable upload is refused: ' + name)
     verify_native_batch(fixture)
+    verify_server_body_refusal(fixture)
+
+
+def verify_server_body_refusal(fixture):
+    label = fixture['stack'] + '/' + fixture['mode']
+    before = media_snapshot(fixture)
+    _, page, _ = fixture['admin'].request('/wp-admin/media.php?kind=documents')
+    boundary = 'wp-oversize-boundary'
+    preamble = b''
+    for key, value in {'_wpnonce': h.token(page, action_field='upload_document'), 'action': 'upload_document', 'visibility': 'public', 'ajax': '1'}.items():
+        preamble += f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n'.encode()
+    preamble += f'--{boundary}\r\nContent-Disposition: form-data; name="document[]"; filename="oversize-server.txt"\r\nContent-Type: application/octet-stream\r\n\r\n'.encode()
+    closing = f'\r\n--{boundary}--\r\n'.encode()
+    filler = 34 * 1024 * 1024
+    body_path = fixture['work']/'oversize-body.bin'
+    with body_path.open('wb') as stream:
+        stream.write(preamble)
+        chunk = b'x' * (1024 * 1024)
+        for _ in range(filler // len(chunk)):
+            stream.write(chunk)
+        stream.write(closing)
+    status = send_streamed_body(fixture, '/wp-admin/media.php', body_path, 'multipart/form-data; boundary=' + boundary)
+    body_path.unlink()
+    h.check(media_snapshot(fixture) == before, 'Server-layer refusal leaves database and asset state unchanged through ' + label)
+    h.check(status != 422, 'Server-layer refusal signature differs from the application 422 through ' + label)
+    h.check(h.dbrow(fixture['database'], "SELECT id FROM media WHERE original_name='oversize-server.txt'") is None, 'The server-refused oversize body registers no document through ' + label)
+    if fixture['stack'] == 'nginx' or fixture['mode'] == 'terminated':
+        h.check(status == 413, 'A body above the 32 MiB server limit is refused by the web server (413) through ' + label)
+    else:
+        log_path = fixture['work']/'php-error.log'
+        logged = log_path.read_text(errors='replace') if log_path.exists() else ''
+        h.check(status not in (200, 413) and 'exceeds the limit' in logged, 'A body above the 32 MiB PHP post limit is refused at the PHP layer through ' + label)
+
+
+def media_snapshot(fixture):
+    with sqlite3.connect(fixture['database']) as database:
+        rows = database.execute('SELECT id,sha256,filename,kind,state FROM media ORDER BY id').fetchall()
+    uploads = fixture['site']/'wp-content/uploads'
+    files = sorted(str(path.relative_to(uploads)) for path in uploads.rglob('*') if path.is_file()) if uploads.exists() else []
+    assets = fixture['state']/'assets'
+    stored = sorted(str(path.relative_to(assets)) for path in assets.rglob('*') if path.is_file()) if assets.exists() else []
+    return rows, files, stored
+
+
+def send_streamed_body(fixture, path, body_path, content_type):
+    parts = urllib.parse.urlsplit(fixture['base'])
+    context = ssl.create_default_context(cafile=str(fixture['cert']))
+    connection = http.client.HTTPSConnection(parts.hostname, parts.port, context=context, timeout=60)
+    try:
+        connection.putrequest('POST', path)
+        connection.putheader('Content-Type', content_type)
+        connection.putheader('Content-Length', str(body_path.stat().st_size))
+        connection.putheader('Cookie', 'wp_session_token=' + fixture['admin'].cookie())
+        connection.endheaders()
+        with body_path.open('rb') as stream:
+            while True:
+                chunk = stream.read(1024 * 1024)
+                if not chunk:
+                    break
+                connection.send(chunk)
+        response = connection.getresponse()
+        response.read()
+        return response.status
+    finally:
+        connection.close()
 
 
 def verify_native_batch(fixture):
@@ -396,6 +489,15 @@ def verify_restoration(options, stack, mode, original):
         h.check(fixture['guest'].request('/documents/' + str(original['private_document']))[0] == 404, 'Restored private document stays private')
         h.check(fixture['admin'].request('/documents/' + str(original['private_document']))[1] == 'PRIVATE-FPM-DOCUMENT', 'Restored owner downloads protected document bytes')
         verify_restored_state(fixture, original)
+        verify_epoch_isolation(fixture)
+
+
+def verify_epoch_isolation(fixture):
+    bad = fixture['state']/'api-epoch.json'
+    env = dict(fixture['env'], WP_API_EPOCH_PATH=str(bad))
+    result = subprocess.run([fixture['options'].php, str(fixture['site']/'bin/wp'), 'api:init'],
+                            env=env, capture_output=True, text=True, timeout=60)
+    h.check(result.returncode != 0 and 'outside' in result.stdout + result.stderr and not bad.exists(), 'The deployed instance refuses an API epoch path inside WP_VAR_DIR')
 
 
 def verify_restored_state(fixture, original):

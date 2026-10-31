@@ -9,7 +9,7 @@ with tempfile.TemporaryDirectory(prefix='wp-portability-') as directory:
         # Image fixtures.
         maker = temp/'make-images.php'
         maker.write_text("""<?php
-foreach ([['seed.png',800,400,30,90,140],['decoy.png',300,200,200,120,40],['wxr-photo.png',640,320,60,160,90]] as [$name,$w,$h,$r,$g,$b]) {
+foreach ([['seed.png',800,400,30,90,140],['decoy.png',300,200,200,120,40],['wxr-photo.png',640,320,60,160,90],['collision.png',220,180,10,200,120]] as [$name,$w,$h,$r,$g,$b]) {
     $image = imagecreatetruecolor($w, $h); imagefill($image, 0, 0, imagecolorallocate($image, $r, $g, $b)); imagepng($image, $argv[1] . '/' . $name);
 }
 """)
@@ -58,6 +58,10 @@ echo json_encode([$cat, $child, $tag]);
         _, page, _ = a['admin'].request('/wp-admin/post-new.php?post_type=post')
         a['admin'].request('/wp-admin/post-new.php?post_type=post', {'_wpnonce': token(page, 'post-editor'), 'post_type': 'post', 'post_status': 'draft', 'post_title': 'Unpublished draft', 'post_name': 'unpublished-draft', 'post_content': json.dumps({'version': 1, 'blocks': [{'type': 'paragraph', 'html': 'Draft body', 'align': 'left'}]})})
         check(count(a['database'], 'SELECT COUNT(*) FROM posts') == 5, 'Source site holds its posts, page and the two installer seeds')
+        page_a = dbrow(a['database'], "SELECT * FROM posts WHERE slug='about-the-harbor'")
+        draft_a = dbrow(a['database'], "SELECT * FROM posts WHERE slug='unpublished-draft'")
+        source_post_ids = sorted(row[0] for row in sqlite3.connect(a['database']).execute('SELECT id FROM posts'))
+        source_media_ids = sorted(row[0] for row in sqlite3.connect(a['database']).execute("SELECT id FROM media WHERE variant=''"))
 
         # CLI export writes a real archive.
         cli_target = temp/'cli-export.zip'
@@ -78,9 +82,25 @@ echo json_encode([$cat, $child, $tag]);
         b = start_site(temp, 'b', 'Portability B'); servers.append(b['server'])
         _, body, _ = b['admin'].request('/wp-admin/users.php')
         b['admin'].request('/wp-admin/users.php', {'_wpnonce': token(body), 'username': 'bystander', 'email': 'bystander@example.test', 'password': 'disposable-test-password', 'role': 'author'})
-        # A decoy image shifts B's media IDs so ID remapping is observable.
+        # Seed B so every source post and media ID is already occupied: the
+        # import must remap onto new IDs, not land on coincidentally identical ones.
         upload_media(b['admin'], '/wp-admin/media.php', 'upload', 'image', 'decoy.png', (temp/'decoy.png').read_bytes())
+        upload_media(b['admin'], '/wp-admin/media.php', 'upload', 'image', 'collision.png', (temp/'collision.png').read_bytes())
+        upload_media(b['admin'], '/wp-admin/media.php?kind=documents', 'upload_document', 'document', 'collision.txt', b'Collision body text', {'visibility': 'public'})
         decoy_b = dbrow(b['database'], "SELECT * FROM media WHERE original_name='decoy.png'")
+        for index in range(len(source_post_ids)):
+            occupied = {row[0] for row in sqlite3.connect(b['database']).execute('SELECT id FROM posts')}
+            if set(source_post_ids) <= occupied: break
+            assert post_form(b['admin'], f'Collision post {index}', f'collision-post-{index}', 'published', [{'type': 'paragraph', 'html': 'Collision body', 'align': 'left'}]) in (200, 302)
+        target_post_ids = {row[0] for row in sqlite3.connect(b['database']).execute('SELECT id FROM posts')}
+        check(set(source_post_ids) <= target_post_ids, 'Collision seed: every source post ID is already occupied on the target')
+        filler = 0
+        while not set(source_media_ids) <= {row[0] for row in sqlite3.connect(b['database']).execute('SELECT id FROM media')}:
+            upload_media(b['admin'], '/wp-admin/media.php?kind=documents', 'upload_document', 'document', f'collision-fill-{filler}.txt', f'Collision filler {filler}'.encode(), {'visibility': 'public'})
+            filler += 1
+            assert filler <= len(source_media_ids) + 2
+        target_media_ids = {row[0] for row in sqlite3.connect(b['database']).execute('SELECT id FROM media')}
+        check(set(source_media_ids) <= target_media_ids, 'Collision seed: every source media ID is already occupied on the target')
         _, report, results = preflight_and_import(b, {'archive': ('export.zip', exported)})
         check('unusable password' in report, 'Preflight plans an unusable-password account for the unmapped writer')
         check('Harbor field notes' in report and 'About the harbor' in report, 'Preflight lists the content before any writes')
@@ -113,6 +133,18 @@ echo json_encode([$cat, $child, $tag]);
         check(page_b is not None and page_b['author_id'] == 1, 'Round-trip: the page maps to the email-matched administrator')
         draft_b = dbrow(b['database'], "SELECT * FROM posts WHERE slug='unpublished-draft'")
         check(draft_b is not None and draft_b['status'] == 'draft', 'Round-trip: drafts stay drafts')
+        check(post_b['id'] != post_a['id'] and page_b['id'] != page_a['id'] and draft_b['id'] != draft_a['id'], 'Collision seed: imported posts receive new target IDs, not the occupied source IDs')
+        check(guide_b['id'] != guide_a['id'] and secret_b['id'] != secret_a['id'], 'Collision seed: imported documents receive new target IDs, not the occupied source IDs')
+        run_items = {}
+        for row in sqlite3.connect(b['database']).execute("SELECT option_value FROM options WHERE option_name LIKE 'portability_run_%'"):
+            state = json.loads(row[0])
+            if 'post:' + str(post_a['id']) in state.get('items', {}): run_items = state['items']
+        check(run_items.get('post:' + str(post_a['id']), {}).get('target_id') == post_b['id'], 'Collision seed: the import run state records the post ID remapping')
+        check(run_items.get('media:' + str(image_a['id']), {}).get('target_id') == image_b['id'] and run_items.get('media:' + str(guide_a['id']), {}).get('target_id') == guide_b['id'], 'Collision seed: the import run state records the media ID remapping')
+        cli(b['site'], b['env'], 'queue:work', '200')
+        rendered_b = dbrow(b['database'], 'SELECT content_rendered FROM posts WHERE id=?', (post_b['id'],))['content_rendered'] or ''
+        check('/documents/' + str(guide_b['id']) in rendered_b and '/documents/' + str(guide_a['id']) not in rendered_b, 'Collision seed: the rendered in-content link points at the remapped document ID, not the source ID')
+        check(post_b['featured_media_id'] == image_b['id'] and image_b['id'] != image_a['id'], 'Collision seed: the featured image reference points at the remapped image ID, not the source ID')
         check(abs(post_b['published_at'] - post_a['published_at']) <= 2, 'Round-trip: the publication date is preserved')
 
         # ---------- Resume: the same archive again duplicates nothing ----------

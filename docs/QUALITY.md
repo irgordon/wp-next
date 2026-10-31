@@ -54,7 +54,7 @@ The Apache fixture runs the complete documented vhost security rules with `Allow
 
 ## Asset foundation
 
-`composer check` includes 30 asset lifecycle/cleanup checks in addition to the 27 smoke and 18 hardening checks. `composer test:assets` runs six migration/concurrency checks in real PHP processes and nine HTTP checks. Document intake/delivery is covered end-to-end by `composer test:documents`, image lineage, edits, replacement and backup-family behavior by `composer test:images`, and the account/email/deletion contracts by `composer test:accounts`; CI runs all three suites alongside the design and HTTP suites. The nginx fixture additionally asserts that allowlisted PHP endpoints — including the visual editor's `block-preview.php` — reach the configured FastCGI handler; the fixture has no live FPM backend, so that assertion proves routing, not FPM success.
+`composer check` includes 30 asset lifecycle/cleanup checks in addition to the 27 smoke and 18 hardening checks. `composer test:assets` runs six migration/concurrency checks in real PHP processes and nine HTTP checks. Document intake/delivery is covered end-to-end by `composer test:documents`, image lineage, edits, replacement and backup-family behavior by `composer test:images`, and the account/email/deletion contracts by `composer test:accounts`; CI runs all three suites alongside the design and HTTP suites. Job lease fencing is covered in `tests/smoke.php` (an expired lease cannot acknowledge a job) and, separately from the render-invalidation cases, in `tests/documents-http.py` (a superseded lease cannot commit; the current lease holder can). The nginx fixture additionally asserts that allowlisted PHP endpoints — including the visual editor's `block-preview.php` — reach the configured FastCGI handler; the fixture has no live FPM backend, so that assertion proves routing, not FPM success.
 
 ## P3 and P4 file editing
 
@@ -73,7 +73,10 @@ shortcodes, plugin meta, status downgrades), hostile inputs (zip-slip, XXE,
 absurd manifest counts, non-ZIP uploads — all refused without writes), quota
 exhaustion, exact-duplicate skipping, slug-collision suffixing, and resume
 of a completed archive without duplication. CI runs the suite alongside the
-other HTTP suites.
+other HTTP suites. The round-trip target is seeded so every source post and
+media ID is already occupied: imported items must receive new target IDs, the
+persisted import run state must record the remapping, and the rendered
+in-content link and featured image reference must point at the new IDs.
 
 ## v0.0.4 Discovery
 
@@ -112,11 +115,13 @@ asserts problem codes through the contract's `code` field. It does not
 exercise a real PHP-FPM deployment; the deployment gate's API assertions run
 in CI (see the v0.0.9 deployment notes).
 
-The suite now retains those 94 acceptance checks and adds 47 boundary checks
+The suite now retains those 94 acceptance checks and adds 49 boundary checks
 in the same file: receipt replay after document access changes, external epoch
 containment, browser/import/category namespace guards, post-insert import
 bookkeeping rollback, corrupt/missing image and document bytes, refused
-destination writes, sealed failure and recovery with a valid archive. The
+destination writes, sealed failure and recovery with a valid archive, and
+live-credential revocation by restore (a credential that works before the
+restore is refused after re-enable, the epoch having rotated). The
 original 44 boundary checks remain, with two import-bookkeeping checks and a
 physical database-path check added.
 These are real HTTP/CLI/filesystem checks; no integration boundary is mocked.
@@ -206,6 +211,12 @@ limits with multipart overhead, native mixed batches, document HEAD/privacy,
 immutable raster delivery, sensitive-path denial, native export/import/retry,
 WXR/hostile XML, discovery exclusion, queue/maintenance, backup and real restore.
 It rejects an untrusted CA and mismatched hostname before running workflows.
+The gate additionally distinguishes the application's 25 MiB document refusal
+(422 with the application's error body) from web-server/PHP body-limit refusal
+— a streamed body above 32 MiB, refused at that layer with database and asset
+state proven unchanged — proves an Authorization-authenticated API mutation
+and its idempotent receipt replay (stored acknowledgement, no duplicate post),
+and refuses an API epoch path inside WP_VAR_DIR on the restored deployment.
 
 `tests/deployment_support.py` owns disposable sources, explicit FPM environment,
 server-template adaptation, TLS/process lifetimes and retained diagnostics.

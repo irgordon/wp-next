@@ -186,6 +186,26 @@ if ('prepare' === $argv[2]) {
             _, page, _ = admin.request('/wp-admin/options-permalink.php')
             admin.request('/wp-admin/options-permalink.php', {'_wpnonce': token(page), 'permalink_choice': 'custom', 'permalink_structure': '/%postname%'})
             cli(site, env, 'queue:work', '200')
+            # Lease fencing (C-05), recorded separately from the render invalidations above:
+            # a superseded worker lease cannot commit; the current lease holder can.
+            lease_probe = temp/'lease-probe.php'
+            lease_probe.write_text("""<?php
+require $argv[1];
+global $wpdb;
+$queue = new \\WordPress\\Queue\\WP_Job_Queue($wpdb);
+$wpdb->transaction(fn() => $queue->enqueue_in_transaction(\\WordPress\\Jobs\\Render_Post_Job::class, ['post_id' => (int) $argv[2], 'target_revision' => (int) $argv[3]]));
+$first = $queue->claim_job();
+$wpdb->query('UPDATE job_queue SET lease_expires_at=unixepoch()-1 WHERE id=:id', [':id' => (int) $first['id']]);
+$second = $queue->claim_job();
+echo 'same-job:', (int) $second['id'] === (int) $first['id'] ? 'yes' : 'no', '\\n';
+echo 'superseded-owns:', $queue->owns_lease((int) $first['id'], $first['lease_token']) ? 'yes' : 'no', '\\n';
+echo 'superseded-complete:', $queue->complete_job((int) $first['id'], $first['lease_token']) ? 'yes' : 'no', '\\n';
+echo 'holder-owns:', $queue->owns_lease((int) $second['id'], $second['lease_token']) ? 'yes' : 'no', '\\n';
+echo 'holder-complete:', $queue->complete_job((int) $second['id'], $second['lease_token']) ? 'yes' : 'no', '\\n';
+""")
+            out = subprocess.run([PHP, str(lease_probe), str(site/'wp-includes/bootstrap.php'), str(post['id']), str(post['revision'])], env=env, capture_output=True, text=True)
+            check(out.returncode == 0 and 'same-job:yes' in out.stdout and 'superseded-owns:no' in out.stdout and 'superseded-complete:no' in out.stdout, 'Lease fencing: a superseded worker lease cannot commit a job')
+            check(out.returncode == 0 and 'holder-owns:yes' in out.stdout and 'holder-complete:yes' in out.stdout, 'Lease fencing: the current lease holder can commit the job')
             # Save-time race: access is rechecked inside the write transaction, not only at normalization
             multipart_doc(admin, media_page(admin), 'race.txt', b'Race body', {'action': 'upload_document', 'visibility': 'public'})
             race_doc = dbrow(database, "SELECT * FROM media WHERE original_name='race.txt'")

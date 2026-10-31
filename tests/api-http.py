@@ -211,6 +211,9 @@ def archive_with_change(source, target, name, replacement):
             item.size=len(data);output.addfile(item,io.BytesIO(data))
 
 def verify_restore(fixture):
+    reset_rates(fixture['database'])
+    status,_,_=api(fixture['base'],'GET','/wp-next/v1/posts',token_value=fixture['token'])
+    check(status==200,'A live API credential works before restore')
     document=upload_document(fixture,'restore.txt',b'EXACT-RESTORED-DOCUMENT')
     pixel=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=')
     image=upload_document(fixture,'restore.png',pixel,image=True)
@@ -229,6 +232,10 @@ def verify_restore(fixture):
             check(not list(live.parent.glob('.restore-*')),'Failed staging leaves no temporary credential or asset bytes')
             code,out=cli_out(fixture['site'],fixture['env'],'restore',str(good));assert code==0,out
             check(live.read_bytes()==original and not (fixture['state']/'maintenance.json').exists(),'An operator can recover with the valid archive and reopen verified bytes')
+    reset_rates(fixture['database'])
+    code,out=cli_out(fixture['site'],fixture['env'],'api:enable');assert code==0,out
+    status,payload,_=api(fixture['base'],'GET','/wp-next/v1/posts',token_value=fixture['token'])
+    check(status==401 and problem_type(payload).endswith('invalid-token'),'Restore revokes live API credentials (epoch rotated by the restore)')
     # Deny a destination write without corrupting the live bytes first.
     saved_mode=live.parent.stat().st_mode & 0o777; saved_file_mode=live.stat().st_mode & 0o777
     live.parent.chmod(0o500); live.chmod(0o400)
