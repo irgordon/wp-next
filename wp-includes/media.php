@@ -164,6 +164,22 @@ function wp_image_variants( int $master_id ): array
 	}
 	return $variants;
 }
+/**
+ * The master row for a derived variant. Masters return themselves — including
+ * edited copies, which are masters (variant='') whose parent names their
+ * source — so an intentional edit is never resolved back to its original.
+ * References to variant rows stay stored as they are; only rendering and
+ * resolution use the master, whose full responsive family is available.
+ */
+function wp_image_master( array $media ): array
+{
+	global $wpdb;
+	if ( '' === ( $media['variant'] ?? '' ) || (int) ( $media['parent_id'] ?? 0 ) <= 0 ) {
+		return $media;
+	}
+	$master = $wpdb->get_row( "SELECT * FROM media WHERE id=:id AND kind='image' AND variant='' AND state='ready'", [ ':id' => (int) $media['parent_id'] ] );
+	return null !== $master ? $master : $media;
+}
 /** srcset candidates from the ready variants plus the master itself, ascending by width. */
 function wp_image_srcset( array $media ): string
 {
@@ -188,6 +204,7 @@ function wp_image_sizes_attr(): string
 /** An <img> tag for a master with its responsive candidates, used by every renderer. */
 function wp_image_tag( array $media, string $alt, string $extra = '' ): string
 {
+	$media = wp_image_master( $media );
 	$srcset = wp_image_srcset( $media );
 	$set = '' !== $srcset ? ' srcset="' . esc_attr( $srcset ) . '" sizes="' . esc_attr( wp_image_sizes_attr() ) . '"' : '';
 	return '<img src="' . esc_url( wp_media_url( $media ) ) . '"' . $set . ' alt="' . esc_attr( $alt ) . '" width="' . (int) $media['width'] . '" height="' . (int) $media['height'] . '"' . $extra . ' />';

@@ -2,7 +2,7 @@
 """B1 image tools acceptance: variant generation and lineage, focal point, bounded
 edits, reviewable replacement, pending recovery and backup of the whole family."""
 from http_helpers import *
-import hashlib, io, json, tarfile
+import hashlib, io, json, re, tarfile
 def multipart_image(client, page_body, filename, data):
     nonce = token(page_body, action_field='upload')
     boundary = 'wp-img-boundary'
@@ -102,6 +102,30 @@ echo $c['red'], ',', $c['green'], ',', $c['blue'], ' ', imagesx($image), 'x', im
             status, body, _ = follow(guest, '/?p=' + str(post['id']))
             check(status == 200 and 'srcset=' in body and '600w' in body and '1200w' in body and '2000w' in body and 'sizes=' in body, 'Image block renders srcset with variant and master candidates')
             check(body.count('srcset=') >= 2, 'The featured image renders its own srcset')
+            # Featured selection offers masters only. A legacy variant reference stays
+            # stored verbatim, stays the current value on its own post, and renders
+            # (and shares) its master with the full responsive family.
+            def featured_options(editor_html):
+                select = re.search(r'<select id="featured_media_id".*?</select>', editor_html, re.S).group(0)
+                return select, {int(v) for v in re.findall(r'<option[^>]* value="(\d+)"', select)}
+            thumb = variants['thumbnail']
+            _, editor, _ = admin.request('/wp-admin/post-new.php?post_type=post')
+            _, offered = featured_options(editor)
+            check(big['id'] in offered, 'The featured image choice offers the master image')
+            check(not ({v['id'] for v in variants.values()} & offered), 'The featured image choice offers no derived variant rows')
+            save_post(admin, 'Legacy featured', 'legacy-featured', [{'type': 'paragraph', 'html': 'Legacy', 'align': 'left'}], featured=thumb['id'])
+            legacy = dbrow(database, "SELECT * FROM posts WHERE title='Legacy featured'")
+            check(legacy['featured_media_id'] == thumb['id'], 'A stored thumbnail featured reference is preserved verbatim')
+            status, body, _ = follow(guest, '/?p=' + str(legacy['id']))
+            featured_tag = re.search(r'<figure class="featured"><img[^>]*>', body).group(0)
+            featured_src = re.search(r'src="([^"]+)"', featured_tag).group(1)
+            check(big['filename'] in featured_src and 'srcset=' in featured_tag and '600w' in featured_tag and '1200w' in featured_tag and '2000w' in featured_tag, 'A thumbnail featured reference renders its master with the responsive family')
+            og_tag = re.search(r'<meta property="og:image" content="([^"]+)"', body).group(1)
+            check(big['filename'] in og_tag and thumb['filename'] not in og_tag, 'The social image for a thumbnail featured reference is the master')
+            _, editor, _ = admin.request('/wp-admin/post.php?post=' + str(legacy['id']))
+            select, _ = featured_options(editor)
+            legacy_option = re.search(r'<option[^>]* value="' + str(thumb['id']) + r'"[^>]*>', select).group(0)
+            check('selected' in legacy_option, 'The legacy post editor still shows its stored thumbnail reference as the current value')
             # Upload dedupe resolves to masters, never to a variant row
             medium_bytes = (site/'wp-content/uploads'/variants['medium']['filename']).read_bytes()
             multipart_image(admin, media_page(admin), 'medium-copy.png', medium_bytes)
@@ -124,6 +148,9 @@ echo $c['red'], ',', $c['green'], ',', $c['blue'], ' ', imagesx($image), 'x', im
             check(edited is not None and (edited['width'], edited['height']) == (1000, 1000), 'The edited copy is a new 1000x1000 master')
             edited_variants = variants_of(edited['id'])
             check(set(edited_variants) == {'thumbnail', 'medium'}, 'The edited copy gets its own variants (no large at 1000 wide)')
+            _, editor, _ = admin.request('/wp-admin/post-new.php?post_type=post')
+            _, offered = featured_options(editor)
+            check(edited['id'] in offered, 'An intentionally edited copy is offered as a featured image (it is a master, not a variant)')
             check(dbrow(database, 'SELECT content_raw FROM posts WHERE id=?', (post['id'],))['content_raw'] == post['content_raw'], 'Editing does not rewrite referencing content')
             multipart_image(admin, media_page(admin), 'mid.png', (temp/'mid.png').read_bytes())
             mid = dbrow(database, "SELECT * FROM media WHERE original_name='mid.png'")

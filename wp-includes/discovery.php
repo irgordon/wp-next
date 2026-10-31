@@ -125,7 +125,7 @@ function wp_discovery_social_image_url( array $post ): string
 	foreach ( $candidates as $id ) {
 		$media = $wpdb->get_row( "SELECT * FROM media WHERE id=:id AND kind='image' AND state='ready'", [ ':id' => $id ] );
 		if ( null !== $media ) {
-			return wp_media_url( $media );
+			return wp_media_url( wp_image_master( $media ) );
 		}
 	}
 	return '';
