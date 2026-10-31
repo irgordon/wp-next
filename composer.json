@@ -2,6 +2,7 @@
   "name": "wordpress-next/core",
   "description": "WordPress Next development quality gates",
   "type": "project",
+  "license": "BSD-3-Clause",
   "require": {
     "ext-dom": "*",
     "ext-exif": "*",

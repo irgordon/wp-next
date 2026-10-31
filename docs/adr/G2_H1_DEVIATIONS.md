@@ -2,9 +2,9 @@
 
 Recorded October 28, 2026, at Ian's direction: the changelog stays short;
 the errors, deviations and verification detail for the G2 and H1 builds
-live here. The governing contracts are unchanged — [the approved
-scope](V1_SCOPE.md) §G2/§H1 and Ian's October 26 rulings stand as written.
-Nothing in this record amends them.
+live here. The governing contracts in [the approved
+scope](V1_SCOPE.md) §G2/§H1 remain unchanged. Later metadata and
+presentation rulings are recorded below.
 
 ## Deviations
 
@@ -41,8 +41,10 @@ Nothing in this record amends them.
    sections (v0.0.1–v0.0.4) above the consolidated v0.0.0 history, which
    deviates from the single-heading rollup rule Ian set on October 26.
    The v0.0.3 and v0.0.4 sections were shortened to concise entries in
-   the v0.0.4 push; whether to consolidate the version sections into the
-   single heading remains Ian's decision.
+   the v0.0.4 push. **Decided by Ian on October 31, 2026: the per-version
+   sections are retained** (the practice now runs v0.0.1–v0.1.2); the
+   single-heading rollup does not govern this changelog's section
+   structure.
 
 ## Decisions recorded inside the rulings
 
@@ -118,3 +120,13 @@ Both builds:
 ## v0.0.6 Corrections
 
 The local review found four boundary failures beyond the original acceptance suites. [The v0.0.6 record](../reviews/V0_0_6_REVIEW.md) closes them with positive regressions. Imported social IDs now use the media map rather than relying on a ready-ID collision check. WXR attachment references are rewritten before normal sanitization. Generated import provenance is committed with each new Post so a failed later bookkeeping/checkpoint step can recover the original item. The separate source-author/date correction remains, is retryable, and preserves later operator edits. Export now refuses output outside the version-1 importer bounds. These repairs retain format version 1, schema 8, the supplied-media-only policy and the approved scope.
+
+## Rulings recorded October 31, 2026
+
+- **License metadata.** The repository license is BSD 3-Clause (see
+  LICENSE). `composer.json` and the editorial API's OpenAPI `info`
+  object now declare that existing license.
+- **"Log in" Title Case exception.** Admin titles, labels and headings
+  use Title Case, with one explicit exception retained by Ian's
+  ruling: the sign-in label stays "Log in" (as shipped in
+  `wp-admin/login.php`), not "Log In".
