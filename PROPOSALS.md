@@ -160,10 +160,11 @@ credential epoch with credential-inert backups and a `bin/wp restore`
 coordinator. The API ships disabled until operator initialization and
 activation checks pass. The contract and delivery record live in
 `docs/adr/I1_EDITORIAL_API_PACKET.md` and `docs/api/editorial-v1.openapi.json`;
-the suite is `tests/api-http.py` (`composer test:api`, 94 checks). Still
+the suite is `tests/api-http.py` (`composer test:api`, 143 checks). Still
 outside the contract: anonymous browsing, webhooks, media upload, account
 management, design settings, bulk operations and WordPress REST
-compatibility. The composer/OpenAPI license-metadata question remains open.
+compatibility. The composer/OpenAPI license metadata is settled by the
+[October 31 rulings](docs/adr/G2_H1_DEVIATIONS.md#rulings-recorded-october-31-2026).
 
 ## J1 — PHP-FPM Verification And Host Certification
 
@@ -173,6 +174,29 @@ fixtures. [The local verification](docs/reviews/V0_0_9_REVIEW.md) records
 direct TLS, explicit trusted termination, strict certificate verification,
 application workflows and actual backup restoration. CI now includes the
 same gate; local success alone does not establish its remote result.
+
+Release order: **J1 target certification → [root evidence index](REVIEW.md)
+→ v1.0.0 release decision**. The index links existing evidence records;
+it does not replace them or turn local results into target certification.
+
+The goal-document closeout pack tracks C-01–C-10 and P-01–P-07. All 17
+remain open until their target evidence records are filed. Inputs are:
+
+| Input | Required information | Work it enables |
+| --- | --- | --- |
+| T1 | Target HTTPS URL and approved access method | P-02 identities/permissions and P-03 public certificate chain can start without T2 |
+| T2 | Disposable nginx and Apache + PHP-FPM deployments, with URLs/access supplied or explicitly inherited from T1 | C-01–C-10 target runs and P-04/P-05 rehearsals; rows with production halves also need T1 |
+| T3 | Designated provider test mailbox and receipt-confirmation method | P-01 provider verification can start without T2; closure requires T1 + T3 |
+| T4 | Off-host backup destination and a recovery environment | P-06 retention and recovery; closure requires T1 + T2 + T4 |
+
+These tracks start independently as their inputs arrive; T2 is not a
+universal blocker. P-07 additionally requires Safari and a physical touch
+device; deployment URLs alone cannot close it. Every target record must
+include versions, identity, topology, commands, retained outputs and first
+failures before reruns, as required by the deployment contract.
+
+Optional features, GPG identity repair, historical import auditing and
+preserved Mac-draft disposition stay separate and block none of this path.
 
 Remaining execution:
 
