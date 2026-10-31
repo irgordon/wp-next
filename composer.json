@@ -58,7 +58,8 @@
     "test:images": "python3 tests/images-http.py",
     "test:accounts": [
       "python3 tests/accounts-http.py",
-      "python3 tests/account-boundaries-http.py"
+      "python3 tests/account-boundaries-http.py",
+      "python3 tests/smtp-tls.py"
     ],
     "test:portability": [
       "python3 tests/portability-http.py",

@@ -121,6 +121,15 @@ original 44 boundary checks remain, with two import-bookkeeping checks and a
 physical database-path check added.
 These are real HTTP/CLI/filesystem checks; no integration boundary is mocked.
 
+## SMTP TLS Verification
+
+`composer test:accounts` also runs `tests/smtp-tls.py`: real invitation, reset
+and magic-link messages over STARTTLS and implicit TLS to a local sink.
+Per-process PHP CA configuration trusts only the supplied test CA. Negative
+controls require untrusted-CA and hostname-mismatch refusal before AUTH/DATA,
+failed delivery status and an audit event. This verifies local transport;
+production-provider delivery and receipt in a real mailbox remain J1 host work.
+
 ## v0.0.1 Boundary Verification
 
 `composer test:accounts` now runs the original account suite and six additional
