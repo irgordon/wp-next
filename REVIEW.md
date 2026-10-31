@@ -40,6 +40,6 @@ All target closeouts C-01–C-10 and P-01–P-07 remain open until their target 
 
 T1 can start identity/permission and public-certificate checks independently of T2. T3 can start provider mailbox verification; P-01 closes with T1 + T3. P-06 requires T1 + T2 + T4. P-07 also needs Safari and a physical touch device. See [the input map](PROPOSALS.md#j1--php-fpm-verification-and-host-certification).
 
-The October 25 theme-settings observation remains unattributed. The separately reproduced missing-PATH failure is repaired in `0dae001`; the real HTTP regression covers publication without PATH PHP and refusal of an invalid explicit override. This does not establish the historical cause. Preserve the first failed response and available process diagnostics before any rerun.
+The October 25 theme-settings observation remains unattributed because its original response and process diagnostics are unavailable. Meta Muse diagnosed and reproduced the separate missing-PATH PHP health-probe failure in its VM. Codex independently reproduced it locally and implemented the repair in `0dae001`; the real HTTP regression covers publication without PATH PHP and refusal of an invalid explicit override. This establishes the reproduced mechanism, not the historical cause. Preserve the first failed response and available process diagnostics before any rerun.
 
 Optional features, GPG identity repair, historical import auditing and preserved Mac-draft disposition are separate tracks and do not block certification.
