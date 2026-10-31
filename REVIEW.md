@@ -21,6 +21,7 @@ The release path is **J1 target certification → evidence rollup → v1.0.0 rel
 | Portability and discovery | [G2/H1 deviations](docs/adr/G2_H1_DEVIATIONS.md), [portability corrections](docs/reviews/V0_0_6_REVIEW.md) |
 | Authenticated editorial API | [Adopted contract and delivery record](docs/adr/I1_EDITORIAL_API_PACKET.md), [OpenAPI](docs/api/editorial-v1.openapi.json), [API verification](docs/QUALITY.md#v010-editorial-api) |
 | Local FPM/HTTPS and target handoff | [Local review, versions and first failures](docs/reviews/V0_0_9_REVIEW.md), [current gate](tests/deployment-https.py), [J1 execution and dependencies](PROPOSALS.md#j1--php-fpm-verification-and-host-certification) |
+| Installed local upgrade and bakery walkthrough | [Schema-8-to-9 preservation, actual UI captures and limits](docs/reviews/LOCAL_SCHEMA9_BAKERY_REVIEW.md) |
 
 Dated reviews describe their tested snapshots; their counts, scope and environment limitations remain historical. Later corrective records and exact-commit CI establish the corresponding later evidence.
 
@@ -31,6 +32,7 @@ Dated reviews describe their tested snapshots; their counts, scope and environme
 - [`9828745`: closeout-verification batch](https://github.com/irgordon/wp-next/actions/runs/41162384645).
 - [`0c21c86`: content-level refusal snapshots](https://github.com/irgordon/wp-next/actions/runs/41164913264).
 - [`2e8b3b5`: metadata/UI rulings, green CI with 1,832 checks including 422 real FPM/HTTPS assertions](https://github.com/irgordon/wp-next/actions/runs/41168167076).
+- [`73ab182`: CLI-selection repair and release evidence index, green CI with 1,836 checks](https://github.com/irgordon/wp-next/actions/runs/41207356127).
 
 ## Remaining Release Evidence
 
