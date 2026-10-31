@@ -308,12 +308,21 @@ def verify_server_body_refusal(fixture):
 
 def media_snapshot(fixture):
     with sqlite3.connect(fixture['database']) as database:
-        rows = database.execute('SELECT id,sha256,filename,kind,state FROM media ORDER BY id').fetchall()
+        rows = database.execute('SELECT * FROM media ORDER BY id').fetchall()
     uploads = fixture['site']/'wp-content/uploads'
-    files = sorted(str(path.relative_to(uploads)) for path in uploads.rglob('*') if path.is_file()) if uploads.exists() else []
+    files = file_digests(uploads) if uploads.exists() else []
     assets = fixture['state']/'assets'
-    stored = sorted(str(path.relative_to(assets)) for path in assets.rglob('*') if path.is_file()) if assets.exists() else []
+    stored = file_digests(assets) if assets.exists() else []
     return rows, files, stored
+
+
+def file_digests(root):
+    digests = []
+    for path in sorted(root.rglob('*')):
+        if path.is_file():
+            content = path.read_bytes()
+            digests.append((str(path.relative_to(root)), len(content), hashlib.sha256(content).hexdigest()))
+    return digests
 
 
 def send_streamed_body(fixture, path, body_path, content_type):
