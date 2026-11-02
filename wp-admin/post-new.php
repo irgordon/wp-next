@@ -2,6 +2,7 @@
 /** New content controller. Failed input stays in the form. */
 declare( strict_types=1 );
 require_once __DIR__ . '/admin.php';
+require_once __DIR__ . '/post-publication.php';
 $admin_builder_mode = 'visual' === wp_input( $_GET, 'editor' );
 $post_type = wp_input( $_REQUEST, 'post_type', 'post' );
 if ( ! in_array( $post_type, [ 'post', 'page' ], true ) ) {
@@ -31,11 +32,13 @@ if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
 		$form[ $key ] = 'page_template' === $key ? wp_input( $_POST, $key, $value ) : wp_input( $_POST, $key );
 	}
 	$form['term_ids'] = is_array( $_POST['term_ids'] ?? [] ) ? $_POST['term_ids'] ?? [] : [ 'invalid' ];
+	$intent = wp_post_submitted_intent();
+	$form['post_status'] = wp_post_creation_status( $intent, $form['post_status'] );
 	$result = wp_insert_post( $form + [ 'post_type' => $post_type ] );
 	if ( is_wp_error( $result ) ) {
 		$error = $result->get_error_message();
 	} else {
-		wp_safe_redirect( 'post.php?post=' . $result . '&created=1' . ( $admin_builder_mode ? '&editor=visual' : '' ) );
+		wp_safe_redirect( 'post.php?post=' . $result . wp_post_result_query( $intent ) . '&created=1' . ( $admin_builder_mode ? '&editor=visual' : '' ) );
 	}
 }
 $admin_page_title = 'New ' . ( 'page' === $post_type ? 'Page' : 'Post' );

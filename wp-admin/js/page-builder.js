@@ -76,7 +76,7 @@ import { createBlock as makeBlock, locateBlock } from './visual-builder-model.js
 			}
 			sessionStorage.setItem( key, JSON.stringify( data ) );
 			return true;
-		} catch ( error ) { announce( 'Browser draft storage is unavailable. Save changes to keep your work.' ); return false; }
+		} catch ( error ) { announce( 'Browser draft storage is unavailable. Your work is kept only when you save.' ); return false; }
 	}
 	function sync() {
 		raw.value = JSON.stringify( documentState );
@@ -290,7 +290,7 @@ import { createBlock as makeBlock, locateBlock } from './visual-builder-model.js
 	const stateLine = document.getElementById( 'editor-state' );
 	let workspace = null;
 	let selectedPath = null;
-	const savedSnapshot = editorSnapshot();
+	const savedSnapshot = form.dataset.saveFailed === '1' ? null : editorSnapshot();
 	function visualAfterRender() {
 		updateState();
 		showInspector();
@@ -298,10 +298,23 @@ import { createBlock as makeBlock, locateBlock } from './visual-builder-model.js
 	}
 	function updateState() {
 		if ( ! stateLine ) { return; }
-		const statusSelect = form.elements.namedItem( 'post_status' );
-		const status = form.dataset.designEmbed === '1' ? form.dataset.persistedStatus : statusSelect?.value;
-		const label = status === 'published' ? 'Published' : status === 'archived' ? 'Archived' : 'Draft';
-		stateLine.textContent = label + ' · ' + ( editorSnapshot() !== savedSnapshot ? 'Unsaved changes' : 'All changes saved' );
+		const status = form.dataset.persistedStatus;
+		const dirty = editorSnapshot() !== savedSnapshot;
+		if ( 'new' === status ) {
+			stateLine.textContent = 'Not saved yet' + ( '1' === form.dataset.saveFailed ? ' · Save failed — changes not saved' : dirty ? ' · Unsaved changes' : '' );
+			return;
+		}
+		const label = status === 'published' ? 'Published' : status === 'archived' ? 'Archived' : status === 'trashed' ? 'Trashed' : 'Draft';
+		stateLine.textContent = label + ' · ' + ( '1' === form.dataset.saveFailed ? 'Save failed — changes not saved' : dirty ? 'Unsaved changes' : 'All changes saved' );
+	}
+	if ( 'form' === form.dataset.editorView && '1' !== form.dataset.designEmbed ) {
+		document.addEventListener( 'keydown', function( event ) {
+			if ( ! ( event.metaKey || event.ctrlKey ) || event.altKey || 's' !== event.key.toLowerCase() ) { return; }
+			const saveButton = form.querySelector( '[data-page-save]' );
+			if ( ! saveButton ) { return; }
+			event.preventDefault();
+			form.requestSubmit( saveButton );
+		} );
 	}
 	function showInspector() {
 		if ( ! inspector ) { return; }
