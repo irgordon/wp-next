@@ -52,6 +52,11 @@ class WP_Installer {
 			return $result;
 		}
 		$username = sanitize_text_field( $admin['username'] ?? '' );
+		$display_name = sanitize_text_field( $admin['display_name'] ?? '' );
+		if ( strlen( $display_name ) > 200 ) {
+			return new WP_Error( 'invalid_display_name', 'Use 200 characters or fewer for the public display name.' );
+		}
+		$display_name = '' !== $display_name ? $display_name : $username;
 		$email = trim( (string) ( $admin['email'] ?? '' ) );
 		$password = (string) ( $admin['password'] ?? '' );
 		if ( ! preg_match( '/^[\pL\pN_.-]{2,60}$/u', $username ) ) {
@@ -76,15 +81,16 @@ class WP_Installer {
 				return new WP_Error( 'already_installed', 'The application is already installed.' );
 			}
 			wp_upgrade_schema( $db );
-			$db->transaction( function ( WP_SQLite_DB $db ) use ( $username, $email, $password, $site, $url ): void {
+			$db->transaction( function ( WP_SQLite_DB $db ) use ( $username, $display_name, $email, $password, $site, $url ): void {
 				if ( null !== $db->get_row( "SELECT option_value FROM options WHERE option_name='site_installed'" ) ) {
 					throw new \RuntimeException( 'Installation was completed by another request.' );
 				}
-				$db->query( 'INSERT INTO users(username,email,password_hash,capabilities,display_name) VALUES(:username,:email,:hash,:caps,:username)', [
+				$db->query( 'INSERT INTO users(username,email,password_hash,capabilities,display_name) VALUES(:username,:email,:hash,:caps,:display)', [
 					':username' => $username,
 					':email'    => $email,
 					':hash'     => password_hash( $password, PASSWORD_DEFAULT ),
-					':caps'     => '["administrator"]'
+					':caps'     => '["administrator"]',
+					':display'  => $display_name
 				] );
 				$author = (int) $db->get_row( 'SELECT last_insert_rowid() AS id' )['id'];
 				foreach ( [ [ 'hello-world', 'Hello World!', 'post', '<p>Welcome to your new site.</p>' ], [ 'sample-page', 'Sample Page', 'page', '<h2>About this site</h2><p>Make this page your own.</p>' ] ] as [ $slug, $title, $type, $body ] ) {

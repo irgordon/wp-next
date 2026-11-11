@@ -106,7 +106,7 @@ class WP_Post_Mutation_Service {
 			'status'            => $status,
 			'post_type'         => $type,
 			'metadata'          => $metadata,
-			'excerpt'           => sanitize_text_field( $input['post_excerpt'] ?? $snapshot['excerpt'] ?? '' ),
+			'excerpt'           => isset( $input['post_excerpt'] ) ? wp_summary_trim( sanitize_text_field( $input['post_excerpt'] ), 60, '' ) : (string) ( $snapshot['excerpt'] ?? '' ),
 			'featured_media_id' => $featured ?: null
 		];
 	}

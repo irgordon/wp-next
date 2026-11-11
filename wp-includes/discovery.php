@@ -68,7 +68,7 @@ function wp_discovery_render_feed(): string
 		if ( '' !== $author ) {
 			$out .= '<dc:creator>' . wp_discovery_escape( $author ) . "</dc:creator>\n";
 		}
-		$out .= '<description>' . wp_discovery_escape( (string) ( $post['excerpt'] ?? '' ) ) . "</description>\n";
+		$out .= '<description>' . wp_discovery_escape( wp_post_summary( $post ) ) . "</description>\n";
 		$out .= "</item>\n";
 	}
 	$out .= "</channel>\n</rss>\n";

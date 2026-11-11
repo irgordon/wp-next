@@ -250,17 +250,20 @@ function the_title(): void
 {
 	echo esc_html( $GLOBALS['wp_current_post']['title'] ?? '' );
 }
+function wp_post_render_source( array $post ): string
+{
+	if ( ! empty( $post['content_rendered'] ) && (int) $post['revision'] > 0 && (int) $post['rendered_revision'] === (int) $post['revision'] ) {
+		return wp_kses_post( $post['content_rendered'] );
+	}
+	return wp_render_content( $post['content_raw'] );
+}
 function the_content(): void
 {
 	$post = $GLOBALS['wp_current_post'];
 	if ( null === $post ) {
 		return;
 	}
-	if ( ! empty( $post['content_rendered'] ) && (int) $post['revision'] > 0 && (int) $post['rendered_revision'] === (int) $post['revision'] ) {
-		echo wp_kses_post( $post['content_rendered'] );
-	} else {
-		echo wp_render_content( $post['content_raw'] );
-	}
+	echo wp_post_render_source( $post );
 }
 /** Reads mutable database configuration. @phpstan-impure */
 function get_option( string $name, mixed $default = '' ): mixed
@@ -369,10 +372,52 @@ function get_footer(): void
 {
 	require wp_theme_directory() . '/footer.php';
 }
+function wp_summary_trim( string $text, int $count = 60, string $append = '…' ): string
+{
+	$text = trim( $text );
+	// Byte-mode patterns on purpose: ASCII whitespace never appears inside a
+	// UTF-8 sequence, and the split cannot fail open on invalid bytes.
+	$words = preg_split( '/\s+/', $text, -1, PREG_SPLIT_NO_EMPTY );
+	if ( false === $words ) {
+		return '';
+	}
+	if ( count( $words ) > $count ) {
+		$text = implode( ' ', array_slice( $words, 0, $count ) ) . $append;
+	} elseif ( strlen( $text ) > 600 ) {
+		// Text written without spaces (for example Japanese or Chinese) is
+		// a single "word" above; bound it by bytes so it stays a summary.
+		$text = mb_strcut( $text, 0, 600, 'UTF-8' );
+		if ( '' !== $append && ! str_ends_with( $text, $append ) ) {
+			$text .= $append;
+		}
+	}
+	return $text;
+}
+function wp_post_summary( array $post ): string
+{
+	$excerpt = trim( (string) ( $post['excerpt'] ?? '' ) );
+	if ( '' !== $excerpt ) {
+		return wp_summary_trim( $excerpt, 60 );
+	}
+	// Derivation is for posts. Pages keep their stored excerpt, or the
+	// caller's fallback (the site description) when they have none.
+	if ( 'post' !== (string) ( $post['post_type'] ?? 'post' ) ) {
+		return '';
+	}
+	$html = wp_post_render_source( $post );
+	// Script-like elements carry no summary text; drop them with their contents.
+	$html = (string) preg_replace( '#<(script|style|noscript|template)\b[^>]*>.*?</\1>#is', ' ', $html );
+	// Block boundaries become spaces so words from separate blocks never fuse.
+	$html = (string) preg_replace( '#</(p|div|h[1-6]|li|ul|ol|blockquote|pre|figure|figcaption|table|tr|section|article)>|<br\s*/?>#i', ' ', $html );
+	$text = html_entity_decode( strip_tags( $html ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+	$text = (string) preg_replace( '/\s+/', ' ', $text );
+	return wp_summary_trim( $text, 60 );
+}
 function wp_head(): void
 {
 	$post = $GLOBALS['wp_current_post'];
-	$description = $post['excerpt'] ?? $GLOBALS['wp_archive_description'] ?? get_option( 'site_tagline', '' );
+	$summary = is_array( $post ) ? wp_post_summary( $post ) : '';
+	$description = '' !== $summary ? $summary : ( $GLOBALS['wp_archive_description'] ?? get_option( 'site_tagline', '' ) );
 	$canonical = $GLOBALS['wp_canonical'] ?? wp_home_url();
 	echo '<meta name="description" content="' . esc_attr( $description ) . '" /><link rel="canonical" href="' . esc_url( $canonical ) . '" />';
 	echo '<link rel="alternate" type="application/rss+xml" title="' . esc_attr( (string) get_option( 'site_title', '' ) ) . '" href="' . esc_url( wp_discovery_feed_url() ) . '" />';

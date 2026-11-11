@@ -13,11 +13,7 @@ if ( '' !== ( $GLOBALS['wp_search_term'] ?? '' ) ) {
 if ( have_posts() ) :
 	while ( have_posts() ) :
 		the_post(); ?>
-<article class="archive-entry"><?php wp_post_labels(); ?><p class="entry-meta"><?php echo esc_html( gmdate( 'F j, Y', (int) $GLOBALS['wp_current_post']['published_at'] ) ); ?></p><h2 class="entry-title"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2><?php the_featured_image(); ?><div class="entry-summary"><?php if ( '' !== $GLOBALS['wp_current_post']['excerpt'] ) {
-	echo '<p>' . esc_html( $GLOBALS['wp_current_post']['excerpt'] ) . '</p>';
-							   } else {
-								   the_content();
-							   } ?></div><a class="read-more" href="<?php the_permalink(); ?>">Read more →</a></article>
+<article class="archive-entry"><?php wp_post_labels(); ?><p class="entry-meta"><?php echo esc_html( gmdate( 'F j, Y', (int) $GLOBALS['wp_current_post']['published_at'] ) ); ?></p><h2 class="entry-title"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2><?php the_featured_image(); ?><div class="entry-summary"><p><?php echo esc_html( wp_post_summary( $GLOBALS['wp_current_post'] ) ); ?></p></div><a class="read-more" href="<?php the_permalink(); ?>">Read more →</a></article>
 	<?php endwhile;
 else :
 	?><section class="empty"><h1>No posts found</h1><p>Try another search, or return to the home page.</p></section><?php

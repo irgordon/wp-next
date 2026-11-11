@@ -19,9 +19,10 @@ if ( ! $success && 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
 	}
 	$path = str_replace( '/wp-admin/install.php', '', $_SERVER['SCRIPT_NAME'] ?? '' );
 	$result = ( new WP_Installer( WP_DB_PATH, WP_VAR_DIR ) )->install( [
-		'username' => wp_input( $_POST, 'admin_user' ),
-		'email'    => wp_input( $_POST, 'admin_email' ),
-		'password' => wp_input( $_POST, 'admin_password' )
+		'username'     => wp_input( $_POST, 'admin_user' ),
+		'display_name' => wp_input( $_POST, 'admin_display_name' ),
+		'email'        => wp_input( $_POST, 'admin_email' ),
+		'password'     => wp_input( $_POST, 'admin_password' )
 	], [
 		'title' => wp_input( $_POST, 'site_title', 'My Site' ),
 		'url'   => ( wp_is_https() ? 'https://' : 'http://' ) . $host . $path
@@ -56,7 +57,8 @@ if ( $success ) {
 <p>A publishing workspace for your content, pages, and design.</p>
 	<?php wp_admin_field( 'site_title', 'Site title', wp_input( $_POST, 'site_title' ) );
 	wp_admin_field( 'admin_user', 'Administrator username', wp_input( $_POST, 'admin_user' ) );
-	wp_admin_field( 'admin_email', 'Administrator email', wp_input( $_POST, 'admin_email' ), 'email' ); ?>
+	wp_admin_field( 'admin_email', 'Administrator email', wp_input( $_POST, 'admin_email' ), 'email' );
+	wp_admin_field( 'admin_display_name', 'Public display name (optional)', wp_input( $_POST, 'admin_display_name' ) ); ?>
 <div class="form-field"><label for="admin_password">Password</label><input id="admin_password" name="admin_password" type="password" autocomplete="new-password" minlength="12" required /><p class="description">Use at least 12 characters. A unique site secret is created automatically.</p></div>
 <div class="wizard-actions"><button type="button" class="button-link" data-wizard-back>Back</button><button type="submit">Install site</button></div>
 </section>
