@@ -48,7 +48,7 @@ async function requestPageCreation() {
 async function postPageCreation() {
 	const data = new FormData(); data.set( 'design_action', 'create_page' ); data.set( '_wpnonce', context.createButton.dataset.nonce );
 	try { return await fetch( new URL( 'themes.php', location.href ), { method: 'POST', credentials: 'same-origin', redirect: 'error', headers: { Accept: 'application/json' }, body: data } ); }
-	catch ( error ) { throw new Error( CREATION_UNCONFIRMED_MESSAGE ); }
+	catch ( error ) { throw new Error( CREATION_UNCONFIRMED_MESSAGE, { cause: error } ); }
 }
 async function readPageCreationResult( response ) {
 	const result = await readPageCreationJson( response );
@@ -58,7 +58,7 @@ async function readPageCreationResult( response ) {
 }
 async function readPageCreationJson( response ) {
 	try { return await response.json(); }
-	catch ( error ) { throw new Error( CREATION_UNCONFIRMED_MESSAGE ); }
+	catch ( error ) { throw new Error( CREATION_UNCONFIRMED_MESSAGE, { cause: error } ); }
 }
 function showPageCreationError( message ) {
 	const notice = context.element.querySelector( '[data-page-create-error]' );

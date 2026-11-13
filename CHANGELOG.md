@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.5
+
+Updated November 13, 2026. Error provenance in the design screens. Schema remains 9.
+
+- When loading the private preview or creating a design Page fails, the thrown error now keeps the original error as its cause. The messages people see are unchanged.
+
 ## v0.1.4
 
 Updated November 13, 2026. First-run guidance (usability rulings U1:B, U2:A, U3:A). Schema remains 9.

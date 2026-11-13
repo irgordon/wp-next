@@ -69,7 +69,7 @@ async function readPreviewJson( response ) {
 		if ( ! payload || typeof payload !== 'object' || Array.isArray( payload ) ) { throw new Error( 'Invalid preview envelope.' ); }
 		return payload;
 	}
-	catch ( error ) { throw new Error( 'The private preview could not load. Your edits remain in the controls; reload Site design if your session expired.' ); }
+	catch ( error ) { throw new Error( 'The private preview could not load. Your edits remain in the controls; reload Site design if your session expired.', { cause: error } ); }
 }
 function applyPreviewPayload( context, payload, sequence ) {
 	context.scrollTop = context.frameTarget === context.target ? ( context.frame.contentDocument?.scrollingElement?.scrollTop ?? context.scrollTop ) : 0;
