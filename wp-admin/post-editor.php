@@ -12,7 +12,11 @@ $action_url .= ! empty( $admin_builder_mode ) ? '&editor=visual' : '';
 $action_url .= ! empty( $admin_design_editor ) ? wp_design_editor_query( (int) $post['id'] ) : '';
 wp_admin_notice( $error, true );
 if ( isset( $_GET['updated'] ) || isset( $_GET['created'] ) ) {
-	wp_admin_notice( ! empty( $admin_design_editor ) ? wp_design_page_save_notice( true, wp_input( $_GET, 'page_action' ), $post['status'] ) : ( isset( $_GET['saved_as'] ) && null !== $post ? wp_post_save_notice( wp_input( $_GET, 'saved_as' ), $post['status'] ) : 'Content saved.' ) );
+	$save_notice = ! empty( $admin_design_editor ) ? wp_design_page_save_notice( true, wp_input( $_GET, 'page_action' ), $post['status'] ) : ( isset( $_GET['saved_as'] ) && null !== $post ? wp_post_save_notice( wp_input( $_GET, 'saved_as' ), $post['status'] ) : 'Content saved.' );
+	if ( isset( $_GET['summary_shortened'] ) && empty( $admin_design_editor ) ) {
+		$save_notice .= ' Your summary was shortened to 60 words.';
+	}
+	wp_admin_notice( $save_notice );
 }
 $media_items = $wpdb->get_results( "SELECT * FROM media WHERE kind='image' AND state='ready' AND (id=:selected OR id=:social OR id IN (SELECT id FROM media WHERE variant='' ORDER BY id DESC LIMIT 100)) ORDER BY id DESC", [
 	':selected' => (int) $form['featured_media_id'],

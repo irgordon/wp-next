@@ -38,7 +38,7 @@ if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
 	if ( is_wp_error( $result ) ) {
 		$error = $result->get_error_message();
 	} else {
-		wp_safe_redirect( 'post.php?post=' . $result . wp_post_result_query( $intent ) . '&created=1' . ( $admin_builder_mode ? '&editor=visual' : '' ) );
+		wp_safe_redirect( 'post.php?post=' . $result . wp_post_result_query( $intent ) . wp_post_summary_result_query( $form ) . '&created=1' . ( $admin_builder_mode ? '&editor=visual' : '' ) );
 	}
 }
 $admin_page_title = 'New ' . ( 'page' === $post_type ? 'Page' : 'Post' );

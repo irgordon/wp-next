@@ -517,6 +517,7 @@ function the_featured_image(): void
 	}
 	$media = $wpdb->get_row( 'SELECT * FROM media WHERE id=:id', [ ':id' => $id ] );
 	if ( null !== $media ) {
+		$media = wp_image_master( $media );
 		echo '<figure class="featured">' . wp_image_tag( $media, (string) $media['alt_text'] ) . '</figure>';
 	}
 }

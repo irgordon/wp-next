@@ -82,7 +82,7 @@ if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
 			$error = $result->get_error_message();
 			$form['post_status'] = wp_design_page_failed_status( $admin_design_editor, $post['status'], $form['post_status'] );
 		} else {
-			wp_safe_redirect( 'post.php?post=' . $id . ( $admin_design_editor ? '' : wp_post_result_query( $intent ) ) . '&updated=1' . ( $admin_builder_mode ? '&editor=visual' : '' ) . ( $admin_design_editor ? wp_design_editor_query( $id ) . wp_design_page_result_query( $action ) : '' ) );
+			wp_safe_redirect( 'post.php?post=' . $id . ( $admin_design_editor ? '' : wp_post_result_query( $intent ) . wp_post_summary_result_query( $form ) ) . '&updated=1' . ( $admin_builder_mode ? '&editor=visual' : '' ) . ( $admin_design_editor ? wp_design_editor_query( $id ) . wp_design_page_result_query( $action ) : '' ) );
 		}
 	}
 }

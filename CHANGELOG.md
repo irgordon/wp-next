@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.1.3
+
+Updated November 13, 2026. Three fixes from the fresh-install review follow-ups. Schema remains 9.
+
+- Featured images take their alt text from the resolved master when the stored reference is a legacy variant.
+- Saving a summary longer than 60 words now says so in the editor's save notice.
+- Regression test: a title-only API update leaves a stored over-length excerpt byte-identical.
+
 ## v0.1.2
 
 Updated October 30, 2026. Verification batch for the J1 closeouts (C-02/C-03/C-05/C-08/C-10); no production code changes. Schema remains 9.

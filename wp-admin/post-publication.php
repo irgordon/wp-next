@@ -95,3 +95,14 @@ function wp_post_result_query( ?string $intent ): string
 	}
 	return '&saved_as=' . $intent;
 }
+function wp_post_summary_result_query( array $form ): string
+{
+	if ( ! isset( $form['post_excerpt'] ) ) {
+		return '';
+	}
+	$submitted = sanitize_text_field( (string) $form['post_excerpt'] );
+	if ( '' === $submitted || wp_summary_trim( $submitted, 60, '' ) === $submitted ) {
+		return '';
+	}
+	return '&summary_shortened=1';
+}

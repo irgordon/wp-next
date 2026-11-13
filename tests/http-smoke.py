@@ -231,6 +231,16 @@ with tempfile.TemporaryDirectory(prefix='wp-release-http-') as temp_name:
             check(status==200 and 'name="description" content="Fresh' not in body,'Page search description is not derived from its content')
             status,body,_=admin.request('/feed')
             check(status==200 and ('<description>'+derived+'</description>') in body,'Feed description uses the derived summary')
+            fixture_id=dbrow(database,'SELECT id FROM posts WHERE slug=?',('summary-fixture',))['id']
+            fixture_form={'ID':str(fixture_id),'post_title':'Summary Fixture','post_name':'summary-fixture','post_content':json.dumps({'version':1,'blocks':[{'type':'paragraph','html':'<p>'+long_words+'</p>'}]})}
+            save_status,_,resp_headers=editor_save(admin,'/wp-admin/post.php?post='+str(fixture_id),dict(fixture_form,action='update',post_excerpt=' '.join('longword%03d'%i for i in range(1,71))))
+            location=next((v for k,v in resp_headers.items() if k.lower()=='location'),'') if resp_headers else ''
+            check(save_status==302 and 'summary_shortened=1' in location,'Save redirect marks a shortened summary')
+            save_status,notice_body,_=admin.request('/wp-admin/post.php?'+location.split('?',1)[1] if '?' in location else '/wp-admin/')
+            check(save_status==200 and 'Your summary was shortened to 60 words.' in notice_body,'Editor notice reports the shortened summary')
+            save_status,_,resp_headers=editor_save(admin,'/wp-admin/post.php?post='+str(fixture_id),dict(fixture_form,action='update',post_excerpt='Short summary.'))
+            location=next((v for k,v in resp_headers.items() if k.lower()=='location'),'') if resp_headers else ''
+            check(save_status==302 and 'summary_shortened' not in location,'Save redirect omits the mark when nothing was shortened')
             check(status==200 and '<dc:creator>Test Administrator</dc:creator>' in body,'Feed byline uses the install display name')
             status,body,_=admin.request('/wp-admin/post-new.php')
             status,_,_=admin.request('/wp-admin/post-new.php',{'_wpnonce':token(body,'post-editor'),'action':'publish','post_title':'Excerpt Fixture','post_name':'excerpt-fixture','post_content':json.dumps({'version':1,'blocks':[{'type':'paragraph','html':'<p>exctok body words</p>'}]}),'post_excerpt':'Author written summary stands.'})
@@ -309,6 +319,26 @@ with tempfile.TemporaryDirectory(prefix='wp-release-http-') as temp_name:
             status,body,_=admin.request('/wp-admin/media.php')
             status,body,_=admin.request('/wp-admin/media.php',{'_wpnonce':token(body,action_field='upload'),'action':'delete','id':media['id'],'confirm_delete':'yes'})
             check(status==200 and 'could not be changed' in body and dbrow(database,'SELECT id FROM media WHERE id=?',(media['id'],)) is not None,'Site-logo references prevent media library removal')
+            import struct,zlib
+            def png(width,height):
+                def chunk(kind,data):
+                    return struct.pack('>I',len(data))+kind+data+struct.pack('>I',zlib.crc32(kind+data)&0xffffffff)
+                raw=b''.join(b'\x00'+b'\x40\x80\xc0'*width for _ in range(height))
+                return b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',width,height,8,2,0,0,0))+chunk(b'IDAT',zlib.compress(raw))+chunk(b'IEND',b'')
+            status,body,_=admin.request('/wp-admin/media.php')
+            status,_,_=admin.request('/wp-admin/media.php',multipart('featured.png',png(300,200),'image/png',token(body,action_field='upload')),headers)
+            cli(site,env,'queue:work','200')
+            pair=dbrow(database,"SELECT m.id AS master,v.id AS variant FROM media m JOIN media v ON v.parent_id=m.id AND v.variant='thumbnail' WHERE m.original_name='featured.png'")
+            check(pair is not None,'Featured-alt fixture upload produced a thumbnail variant')
+            if pair is not None:
+                con=sqlite3.connect(database)
+                con.execute("UPDATE media SET alt_text='Featured master alt' WHERE id=?",(pair['master'],))
+                con.execute("UPDATE media SET alt_text='' WHERE id=?",(pair['variant'],))
+                con.execute("UPDATE posts SET featured_media_id=? WHERE slug='summary-fixture'",(pair['variant'],))
+                con.commit();con.close()
+                status,body,_=admin.request('/summary-fixture/')
+                check(status==200 and 'alt="Featured master alt"' in body,'Featured image takes its alt text from the master when the stored reference is a variant')
+                con=sqlite3.connect(database);con.execute("UPDATE posts SET featured_media_id=0 WHERE slug='summary-fixture'");con.commit();con.close()
             second=Client(base);check(second.login('pagewriter')[0]==302,'A second session can be established for profile controls')
             status,body,_=pagewriter.request('/wp-admin/profile.php')
             status,body,_=pagewriter.request('/wp-admin/profile.php',{'_wpnonce':token(body),'action':'revoke'})
