@@ -131,7 +131,7 @@ function wp_design_validate( array $config ): array
 		}
     }
     if ( ( max( wp_color_luminance( $tokens['accent'] ), wp_color_luminance( $tokens['background'] ) ) + .05 ) / ( min( wp_color_luminance( $tokens['accent'] ), wp_color_luminance( $tokens['background'] ) ) + .05 ) < 4.5 ) {
-		throw new RuntimeException( 'Colors need at least 4.5:1 text contrast.' ); 
+		throw new RuntimeException( wp_color_luminance( $tokens['accent'] ) >= wp_color_luminance( $tokens['background'] ) ? 'Colors need at least 4.5:1 text contrast: this accent is too light for the background. Try a darker accent or a lighter background.' : 'Colors need at least 4.5:1 text contrast: this accent is too dark for the background. Try a lighter accent or a darker background.' );
 	}
     foreach ( [
 		'width'     => [ 640, 1400, 960 ],

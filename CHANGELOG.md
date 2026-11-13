@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.1.4
+
+Updated November 13, 2026. First-run guidance (usability rulings U1:B, U2:A, U3:A). Schema remains 9.
+
+- The install-complete screen now offers next steps and names the starter content, with edit links.
+- The design contrast refusal now says which way to move the colors.
+
 ## v0.1.3
 
 Updated November 13, 2026. Three fixes from the fresh-install review follow-ups. Schema remains 9.

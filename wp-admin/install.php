@@ -35,7 +35,20 @@ if ( ! $success && 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
 wp_admin_auth_header( $success ? 'Installation complete' : 'Create your site' );
 wp_admin_notice( $error, true );
 if ( $success ) {
-	echo '<p>Your site is ready. Sign in to start publishing.</p><a class="button" href="login.php">Log in</a>';
+	global $wpdb;
+	$starter_db = $wpdb ?? new \WordPress\Database\WP_SQLite_DB( WP_DB_PATH );
+	$starter = $starter_db->get_results( "SELECT id,title FROM posts WHERE slug IN ('hello-world','sample-page') ORDER BY id" );
+	echo '<p>Your site is ready.</p>';
+	echo '<p><a href="' . esc_url( wp_home_url( '/' ) ) . '">View your site</a></p>';
+	if ( [] !== $starter ) {
+		$links = [];
+		foreach ( $starter as $item ) {
+			$links[] = '<a href="' . esc_url( 'login.php?redirect_to=' . urlencode( 'post.php?post=' . (int) $item['id'] ) ) . '">' . esc_html( $item['title'] ) . '</a>';
+		}
+		echo '<p>Your site starts with starter content: ' . implode( ' and ', $links ) . '. Edit it or delete it whenever you are ready.</p>';
+	}
+	echo '<p>After you sign in, you can <a href="' . esc_url( 'login.php?redirect_to=' . urlencode( 'post-new.php?post_type=post' ) ) . '">write a new post</a> or <a href="' . esc_url( 'login.php?redirect_to=' . urlencode( 'themes.php' ) ) . '">change the design</a>.</p>';
+	echo '<a class="button" href="login.php">Log in</a>';
 } else {
 	?>
 <script src="js/install.js" defer></script>
